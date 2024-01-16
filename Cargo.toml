@@ -1,11 +1,15 @@
 [package]
-name = "GameEngine"
+name = "RustCraft"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+gl = "0.14.0"
+glfw = "0.54.0"
+libc = "0.2.152"
+
 
 [dependencies.opencl3]
 version = "0.9.5"
