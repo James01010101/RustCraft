@@ -1,0 +1,4 @@
+
+# stable or nightly
+[toolchain]
+channel = "stable"
