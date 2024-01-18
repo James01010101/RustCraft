@@ -10,34 +10,36 @@ use opencl3::types::{cl_uint};
 
 use minifb::{Window, WindowOptions};
 
+
 pub struct Renderer {
-    pub screenWidth: u32,
-    pub screenHeight: u32,
-    pub totalPixels: u32,
+    pub screenWidth: usize,
+    pub screenHeight: usize,
+    pub totalPixels: usize,
     pub window: Window,
 
     pub device: Device,
     pub context: Context,
     pub queue: CommandQueue,
 
-    pub pixelBuffer1: Vec<[u32]>,
-    pub pixelBuffer2: Vec<[u32]>,
-    pub pixelBuffer3: Vec<[u32]>,
+    pub pixelBuffer1: Vec<u32>,
+    pub pixelBuffer2: Vec<u32>,
+    pub pixelBuffer3: Vec<u32>,
 
     pub gpuPixelBuffer1: Buffer::<cl_uint>,
     pub gpuPixelBuffer2: Buffer::<cl_uint>,
     pub gpuPixelBuffer3: Buffer::<cl_uint>,
-
-
 }
 
 // this is where i write the functions for the Renderer Struct
-pub fn CreateRenderer(width: u32, height: u32) -> Renderer {
+pub fn CreateRenderer(width: usize, height: usize) -> Renderer {
 
     // Find a usable GPU device for this application
-    let device_id = *get_all_devices(CL_DEVICE_TYPE_GPU)?
+    // calls the get all devices func, if ok then continues, else if it causes an error it is delt with
+    let device_id = *get_all_devices(CL_DEVICE_TYPE_GPU)
+        .expect("Failed to get all devices")
         .first()
-        .expect("no device found in platform");
+        .expect("No device found in platform");
+
     let device = Device::new(device_id);
 
     // Create a Context on an OpenCL device
@@ -49,10 +51,10 @@ pub fn CreateRenderer(width: u32, height: u32) -> Renderer {
 
 
     // create window
-    let mut window = Window::new(
+    let window = Window::new(
         "RustCraft",
-        width,
-        height,
+        width as usize,
+        height as usize,
         WindowOptions::default(),
     ).unwrap_or_else(|e| {
         panic!("{}", e);
@@ -60,16 +62,18 @@ pub fn CreateRenderer(width: u32, height: u32) -> Renderer {
 
 
     // create pixel buffers (CPU)
-    let totalPixels: u32 = width * height;
+    let totalPixels: usize = width * height;
     let mut buffer1 = vec![0u32; totalPixels];
     let mut buffer2 = vec![0u32; totalPixels];
     let mut buffer3 = vec![0u32; totalPixels];
 
     // create the gpu pixel buffers
-    let mut gpuPixelBuffer1 = unsafe { Buffer::<cl_uint>::create(&context, CL_MEM_READ_WRITE, totalPixels, ptr::null_mut())? };
-    let mut gpuPixelBuffer2 = unsafe { Buffer::<cl_uint>::create(&context, CL_MEM_READ_WRITE, totalPixels, ptr::null_mut())? };
-    let mut gpuPixelBuffer3 = unsafe { Buffer::<cl_uint>::create(&context, CL_MEM_READ_WRITE, totalPixels, ptr::null_mut())? };
-
+    let mut gpuPixelBuffer1 = unsafe { Buffer::<cl_uint>::create(&context, CL_MEM_READ_WRITE, totalPixels, ptr::null_mut())
+            .expect("Failed to create GPU buffer") };
+    let mut gpuPixelBuffer2 = unsafe { Buffer::<cl_uint>::create(&context, CL_MEM_READ_WRITE, totalPixels, ptr::null_mut())
+            .expect("Failed to create GPU buffer") };
+    let mut gpuPixelBuffer3 = unsafe { Buffer::<cl_uint>::create(&context, CL_MEM_READ_WRITE, totalPixels, ptr::null_mut())
+            .expect("Failed to create GPU buffer") };
 
 
     let r: Renderer = Renderer {
@@ -82,7 +86,7 @@ pub fn CreateRenderer(width: u32, height: u32) -> Renderer {
         context: context,
         queue: queue,
 
-        pixelBuffer2: buffer2,
+        pixelBuffer1: buffer1,
         pixelBuffer2: buffer2,
         pixelBuffer3: buffer3,
 
