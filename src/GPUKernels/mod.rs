@@ -1,1 +1,4 @@
-use PixelGradient::*;
+
+
+pub mod PixelGradient;
+pub mod PixelShift;
