@@ -1,65 +1,94 @@
 // This file will be for all rendering to windows
 
+use std::ptr;
 
-use glfw::{Action, Context, Key, Glfw, InitError, WindowEvent, PWindow, GlfwReceiver};
-use gl::{load_with};
-use std::ptr::null;
+use opencl3::device::{Device, CL_DEVICE_TYPE_GPU, get_all_devices};
+use opencl3::context::{Context};
+use opencl3::command_queue::{CommandQueue, CL_QUEUE_PROFILING_ENABLE};
+use opencl3::memory::{Buffer, CL_MEM_READ_WRITE};
+use opencl3::types::{cl_uint};
+
+use minifb::{Window, WindowOptions};
 
 pub struct Renderer {
-    pub glfwObj: Glfw,
+    pub screenWidth: u32,
+    pub screenHeight: u32,
+    pub totalPixels: u32,
+    pub window: Window,
 
-    pub window: PWindow,
-    pub windowSizeX: u32,
-    pub windowSizeY: u32,
+    pub device: Device,
+    pub context: Context,
+    pub queue: CommandQueue,
 
-    pub events: GlfwReceiver<(f64, WindowEvent)>,
+    pub pixelBuffer1: Vec<[u32]>,
+    pub pixelBuffer2: Vec<[u32]>,
+    pub pixelBuffer3: Vec<[u32]>,
 
-    pub gltexture: gl::types::GLuint,
+    pub gpuPixelBuffer1: Buffer::<cl_uint>,
+    pub gpuPixelBuffer2: Buffer::<cl_uint>,
+    pub gpuPixelBuffer3: Buffer::<cl_uint>,
+
+
 }
 
 // this is where i write the functions for the Renderer Struct
 pub fn CreateRenderer(width: u32, height: u32) -> Renderer {
 
-    // Initialize GLFW
-    let mut glfwObj = glfw::init_no_callbacks().unwrap();
+    // Find a usable GPU device for this application
+    let device_id = *get_all_devices(CL_DEVICE_TYPE_GPU)?
+        .first()
+        .expect("no device found in platform");
+    let device = Device::new(device_id);
 
-    // Set up window hints here (like version, profile, etc.)
-    glfwObj.window_hint(glfw::WindowHint::ContextVersion(3, 3));
-    glfwObj.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
+    // Create a Context on an OpenCL device
+    let context = Context::from_device(&device).expect("Context::from_device failed");
 
-    // Create a windowed mode window and its OpenGL context
-    let (mut window, events) = glfwObj.create_window(width, height, "RustCraft", glfw::WindowMode::Windowed)
-        .expect("Failed to create GLFW window.");
+    // Create a command queue with the specified properties
+    let queue = CommandQueue::create_default_with_properties(&context, CL_QUEUE_PROFILING_ENABLE, 0)
+        .expect("Failed to create command queue with properties");
 
-    // Make the window's context current
-    window.make_current();
 
-    // Load all OpenGL function pointers
-    gl::load_with(|s| window.get_proc_address(s) as *const _);
+    // create window
+    let mut window = Window::new(
+        "RustCraft",
+        width,
+        height,
+        WindowOptions::default(),
+    ).unwrap_or_else(|e| {
+        panic!("{}", e);
+    });
 
-    // make the gl texture
-    let mut gltexture: gl::types::GLuint = 0;
-    unsafe {
-        gl::GenTextures(1, &mut gltexture);
-        gl::BindTexture(gl::TEXTURE_2D, gltexture);
-        gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA, width, height, 0, gl::RGBA, gl::FLOAT, null());
-    }
 
-    // create my pixel buffers
-    // vec is created like this vec![[num type; amount]; size]
-    // so each element will be 4 f32, and there is width * height elements
-    let mut pixelBuff1 = vec![[0.0f32; 4]; width * height]; // Initialize with black color
-    let mut pixelBuff2 = vec![[128.0f32; 4]; width * height]; // Initialize with grey color
-    let mut pixelBuff3 = vec![[255.0f32; 4]; width * height]; // Initialize with white color
+    // create pixel buffers (CPU)
+    let totalPixels: u32 = width * height;
+    let mut buffer1 = vec![0u32; totalPixels];
+    let mut buffer2 = vec![0u32; totalPixels];
+    let mut buffer3 = vec![0u32; totalPixels];
 
-    // now create the Renderer struct to return
+    // create the gpu pixel buffers
+    let mut gpuPixelBuffer1 = unsafe { Buffer::<cl_uint>::create(&context, CL_MEM_READ_WRITE, totalPixels, ptr::null_mut())? };
+    let mut gpuPixelBuffer2 = unsafe { Buffer::<cl_uint>::create(&context, CL_MEM_READ_WRITE, totalPixels, ptr::null_mut())? };
+    let mut gpuPixelBuffer3 = unsafe { Buffer::<cl_uint>::create(&context, CL_MEM_READ_WRITE, totalPixels, ptr::null_mut())? };
+
+
+
     let r: Renderer = Renderer {
-        glfwObj: glfwObj,
+        screenWidth: width,
+        screenHeight: height,
+        totalPixels: totalPixels,
         window: window,
-        windowSizeX: width,
-        windowSizeY: height,
-        events: events,
-        gltexture: gltexture
+
+        device: device,
+        context: context,
+        queue: queue,
+
+        pixelBuffer2: buffer2,
+        pixelBuffer2: buffer2,
+        pixelBuffer3: buffer3,
+
+        gpuPixelBuffer1: gpuPixelBuffer1,
+        gpuPixelBuffer2: gpuPixelBuffer2,
+        gpuPixelBuffer3: gpuPixelBuffer3,
     };
     return r;
 }

@@ -2,8 +2,10 @@
 use crate::Renderer::*;
 use gl::{Clear, ClearColor};
 use glfw::{Key, Action, Context};
+use libc::c_void;
+use std::mem;
 
-pub fn RunMainGameLoop() {
+pub fn RunMainGameLoop() -> Result<()> {
 
     // create Renderer and window
     let mut renderer: Renderer = CreateRenderer(800, 600);
@@ -33,17 +35,22 @@ pub fn RunMainGameLoop() {
         */
 
         // render the image
-        render_texture(renderer);
+        RenderTexture(&mut renderer);
     }
 
-    
+    Ok(())
 }
 
-fn RenderTexture(renderer: Renderer) {
+fn RenderTexture(renderer: &mut Renderer) {
     // TODO: #18 update the texture
+    // swap the buffer 1 and 2
+    mem::swap(&mut renderer.pixelBuff1, &mut renderer.pixelBuff2);
+
+    // render buffer 1
     unsafe {
-        gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA32F as i32, width as i32, height as i32, 0, gl::RGBA, gl::FLOAT, pixels.as_ptr() as *const c_void);
+        gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA32F as i32, renderer.screenWidth as i32, renderer.screenHeight as i32, 0, gl::RGBA, gl::FLOAT, renderer.pixelBuff1.as_ptr() as *const c_void);
     }
+    renderer.window.swap_buffers();
 }
 
 fn handle_window_event(window: &mut glfw::Window, event: glfw::WindowEvent) {
