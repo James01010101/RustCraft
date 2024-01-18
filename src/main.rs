@@ -2,20 +2,22 @@
 
 // warnings to ignore
 #![allow(non_snake_case)]
+#![allow(non_upper_case_globals)]
+
+// might use these later
 #![allow(dead_code)]
 #![allow(unused_imports)]
 #![allow(unused_mut)]
 #![allow(unused_variables)]
 
-// grab any modules i need
-pub mod Renderer;
+// create any modules i need
 pub mod MainGameLoop;
-pub mod Kernels; // this is the object that will store all of the kernels
-pub mod GPUKernels; // this is where all of the kernels are written
+pub mod Renderer;
+pub mod GPUKernels; // where i write all gpu kernels
+pub mod Kernels;    // where i store the compiled kernels
 
-fn main() -> Result<()> {
+
+fn main() {
 
     MainGameLoop::RunMainGameLoop();
-
-    Ok(())
 }
