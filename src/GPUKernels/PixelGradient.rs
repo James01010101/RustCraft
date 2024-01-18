@@ -14,9 +14,17 @@ kernel void PixelGradient (global uint* pixels, uint height, uint width)
     const size_t idx = id % width; // pixel col
 
     uint a = 0;
-    uint r = (1 - (float)idy / (height / 2)) * 255;
-    uint g = 0; //(float)idy / (height / 2) * 255;
-    uint b = 0; //(float)idy / (height / 2) * 255;
+    uint r = 0; //(1 - ((float)idy / (height / 2))) * 255; // DONE
+
+    uint g = 0;
+    if (idy < (height / 2)) {
+        g = (float)idy / height * 255;
+    } else {
+        g = (1 - (((float)idy + (height / 2)) / (height))) * 255;
+    }
+
+
+    uint b = 0; //((float)idy - (height / 2)) / (height / 2) * 255; // DONE
     uint pixelColour = (a << 24) | (r << 16) | (g << 8) | b;
 
     pixels[id] = pixelColour;
