@@ -9,6 +9,7 @@ edition = "2021"
 gl = "0.14.0"
 glfw = "0.54.0"
 libc = "0.2.152"
+minifb = "0.25.0"
 
 
 [dependencies.opencl3]
