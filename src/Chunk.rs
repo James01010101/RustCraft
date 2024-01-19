@@ -13,7 +13,7 @@ struct PartitionedObjects {
 // This will store all of the blocks and objects within a chunk
 pub struct Chunk {
     // Blocks, These are all of the mostly static blocks that will be in the world, that fit into a single block
-    pub chunkBlocks: [[[Option<Block>; ChunkSizeZ]; ChunkSizeY]; ChunkSizeX],
+    pub chunkBlocks: [[[Option<Block>; chunkSizeZ]; chunkSizeY]; chunkSizeX],
 
 
     // other objects like mobs that dont fit into a single block
