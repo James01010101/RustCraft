@@ -8,11 +8,12 @@ use minifb::{Key};
 use std::mem;
 use std::thread;
 use std::time::Duration;
+use std::time::Instant;
 
 pub fn RunMainGameLoop() {
 
     // create Renderer and window
-    let mut renderer: Renderer = CreateRenderer(800, 600);
+    let mut renderer: Renderer = CreateRenderer(1920, 1080);
 
     // create my kernels objects which will compile all my kernels
     let kernels: Kernels = CreateKernels(&renderer);
@@ -23,12 +24,12 @@ pub fn RunMainGameLoop() {
     
     let mut frameNumber: u64 = 0;
     
-
+    let windowStartTime = Instant::now();
     // Loop until the user closes the window
     while renderer.window.is_open() && !renderer.window.is_key_down(Key::Escape) {
         frameNumber += 1;
 
-        //RunPixelShiftKernel(&mut renderer, &kernels);
+        RunPixelShiftKernel(&mut renderer, &kernels);
         
         // Switch buffers if needed, e.g., based on user input or timing
         // Example: Switch buffer on spacebar press
@@ -43,4 +44,9 @@ pub fn RunMainGameLoop() {
 
         //thread::sleep(Duration::from_secs(1));
     }   
+    let totalWindowDuration_ms = windowStartTime.elapsed().as_millis();
+    let AvgFPS: f32 = frameNumber as f32 / (totalWindowDuration_ms as f32 / 1000.0);
+    println!("Total Window Time (ms): {:?}", totalWindowDuration_ms);
+    println!("Total Frames Rendered: {}", frameNumber);
+    println!("Average Frame Rate: {}", AvgFPS);
 }
