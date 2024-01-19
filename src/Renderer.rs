@@ -1,6 +1,7 @@
 // This file will be for all rendering to windows
 
 use std::ptr;
+use std::mem;
 
 use opencl3::device::{Device, CL_DEVICE_TYPE_GPU, get_all_devices};
 use opencl3::context::{Context};
@@ -95,6 +96,13 @@ pub fn CreateRenderer(width: usize, height: usize) -> Renderer {
         gpuPixelBuffer3: gpuPixelBuffer3,
     };
     return r;
+}
+
+
+// will swap buffers 1 & 2 and then show the new buffer 1 to the screen
+pub fn RenderToScreen(renderer: &mut Renderer) {
+    mem::swap(&mut renderer.pixelBuffer1, &mut renderer.pixelBuffer2);
+    renderer.window.update_with_buffer(&renderer.pixelBuffer1, renderer.screenWidth, renderer.screenHeight).unwrap();
 }
 
 
