@@ -1,4 +1,7 @@
 
+// this is a practise kernel 
+
+
 use opencl3::types::{CL_NON_BLOCKING, CL_BLOCKING};
 use opencl3::kernel::{ExecuteKernel};
 use crate::Renderer::*;
