@@ -13,7 +13,20 @@ kernel void PixelShift (global uint* pixels, uint height, uint width)
     const size_t idy = id / width; // pixel row
     const size_t idx = id % width; // pixel col
 
-    pixels[id] = pixels[id] + 1;
+    uint pixel = pixels[id];
+    
+    uint a = pixel >> 24;
+    uint r = (pixel << 8) >> 24;
+    uint g = (pixel << 16) >> 24;
+    uint b = (pixel << 32) >> 24;
+
+    // increase rgb by 1
+    r = (r + 1) % 256;
+    g = (g + 1) % 256;
+    b = (b + 1) % 256;
+    uint pixelColour = (a << 24) | (r << 16) | (g << 8) | b;
+
+    pixels[id] = pixelColour;
 }"#;
 /*
     // 0xAARRGGBB
