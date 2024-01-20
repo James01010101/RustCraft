@@ -4,12 +4,14 @@ use crate::Kernels::{Kernels, CreateKernels};
 use crate::GPUKernels::PixelGradient::RunPixelGradientKernel;
 use crate::GPUKernels::PixelShift::RunPixelShiftKernel;
 use crate::World::*;
+use crate::Chunk::*;
 
 use minifb::{Key};
 
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
+use std::mem;
 
 pub fn RunMainGameLoop() {
 
@@ -22,7 +24,7 @@ pub fn RunMainGameLoop() {
     // create my world
     let world: World = CreateWorld();
 
-
+    
     // stats before starting
     let mut frameNumber: u64 = 0;
     let windowStartTime = Instant::now();
