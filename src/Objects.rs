@@ -34,3 +34,18 @@ pub enum BlockType {
     Cobblestone,
 
 }
+
+
+
+pub fn CreateNewBlock(blockType: BlockType, dynamic: bool, posX: i32, posY: i32, posZ: i16) -> Block {
+    
+    let newPos: Position = Position { x: posX, y: posY, z: posZ };
+    
+    let newBlock: Block = Block {
+        blocksType: blockType,
+        dynamic: dynamic,
+        position: newPos,
+    };
+
+    return newBlock;
+}
