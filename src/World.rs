@@ -1,5 +1,7 @@
 
 use crate::Chunk::*;
+use crate::Objects::*;
+
 use std::collections::HashMap;
 
 
@@ -7,11 +9,14 @@ use std::collections::HashMap;
 struct World {
 
     // TODO: #25 Use a hashmap to store currently loaded chunks
-    chunks: HashMap<Chunk>
+    chunks: HashMap<i32, Chunk>,
+
+    testBlocks: Vec<Block>,
 }
 
 
 // TODO: #22 Make the create world function
 pub fn CreateWorld() {
- 
+
+
 }
