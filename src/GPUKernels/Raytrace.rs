@@ -6,6 +6,7 @@ use opencl3::kernel::{ExecuteKernel};
 use crate::Renderer::*;
 use crate::Kernels::Kernels;
 
+
 // test kernel, gradient colours
 pub const raytraceKernelName: &str = "raytrace";
 pub const raytraceKernel: &str = r#"
