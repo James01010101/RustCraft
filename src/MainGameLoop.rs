@@ -3,6 +3,7 @@ use crate::Renderer::*;
 use crate::Kernels::{Kernels, CreateKernels};
 use crate::GPUKernels::PixelGradient::RunPixelGradientKernel;
 use crate::GPUKernels::PixelShift::RunPixelShiftKernel;
+use crate::World::*;
 
 use minifb::{Key};
 
@@ -17,6 +18,10 @@ pub fn RunMainGameLoop() {
 
     // create my kernels objects which will compile all my kernels
     let kernels: Kernels = CreateKernels(&renderer);
+
+    // create my world
+    let world: World = CreateWorld();
+
 
     // stats before starting
     let mut frameNumber: u64 = 0;
