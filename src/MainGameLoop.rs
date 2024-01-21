@@ -5,6 +5,8 @@ use crate::GPUKernels::PixelGradient::RunPixelGradientKernel;
 use crate::GPUKernels::PixelShift::RunPixelShiftKernel;
 use crate::World::*;
 use crate::Chunk::*;
+use crate::Objects::*;
+
 
 use minifb::{Key};
 
@@ -14,6 +16,8 @@ use std::time::Instant;
 use std::mem;
 
 pub fn RunMainGameLoop() {
+
+    println!("Size of Block: {} bytes", mem::size_of::<Block>());
 
     // create Renderer and window
     let mut renderer: Renderer = CreateRenderer(1920, 1080);
