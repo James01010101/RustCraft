@@ -35,8 +35,24 @@ pub struct Tris {
     v3: Position,
 }
 
+// all of the verticies of a square
+pub struct SquareVerts {
+    LBB: Position,
+    LBT: Position,
+
+    LFB: Position, 
+    LFT: Position,
+
+    RBB: Position,
+    RBT: Position,
+
+    RFB: Position,
+    RFT: Position,
+}
+
 
 // the main strut to hold all info related to a block
+// previously 448 Bytes now 136 static (not including vector faces)
 pub struct Block {
     // what kind of object is it
     blocksType: BlockType,
@@ -48,27 +64,21 @@ pub struct Block {
 
     // Should add a vector of tris here that are pre computed, so its one less thing i need to calculate
     // every time i need to check for collisions, there will be exactly 12
-    faces: [Tris; 12],
+
+    verts: SquareVerts,
+
+    faces: Vec<Tris>,
+    numFaces: u8, // so the gpu can loop through all faces
+
 }
 
 
+// TODO: #32 create the tris from the blocks that are touching air
 // from the position of a block create all tris
-pub fn CreateTrisFromBlock(pos: &Position) -> [Tris; 12] {
-    // create all verts (share them between edges to save space)
-    // Name (xyz) or (Left/Right, Front/Back, Top/Bottom)
-    let LBB: Position = Position { x: pos.x, y: pos.y, z: pos.z }; // this will be the position passed in
-    let LBT: Position = Position { x: pos.x, y: pos.y, z: pos.z + 1 };
-
-    let LFB: Position = Position { x: pos.x, y: pos.y - 1, z: pos.z }; 
-    let LFT: Position = Position { x: pos.x, y: pos.y - 1, z: pos.z + 1 };
-
-    let RBB: Position = Position { x: pos.x + 1, y: pos.y, z: pos.z };
-    let RBT: Position = Position { x: pos.x + 1, y: pos.y, z: pos.z + 1 };
-
-    let RFB: Position = Position { x: pos.x + 1, y: pos.y - 1, z: pos.z };
-    let RFT: Position = Position { x: pos.x + 1, y: pos.y - 1, z: pos.z + 1 };
+pub fn CreateTrisFromBlock(pos: &Position) {
 
     // now make the tris from all the positions and return it
+    /* Old Code
     let top1Tri: Tris = Tris { v1: LFT.clone(), v2: LBT.clone(), v3: RBT.clone() };
     let top2Tri: Tris = Tris { v1: LFT.clone(), v2: RFT.clone(), v3: RBT.clone() };
 
@@ -96,7 +106,26 @@ pub fn CreateTrisFromBlock(pos: &Position) -> [Tris; 12] {
                                     back1Tri, back2Tri];
 
     return trisArr;
+    */
 
+}
+
+pub fn CalculateSqureVerts(pos: &Position) -> SquareVerts {
+    let mut sv: SquareVerts = SquareVerts {
+
+        // Name (xyz) or (Left/Right, Front/Back, Top/Bottom)
+        LBB: Position { x: pos.x, y: pos.y, z: pos.z }, // this will be the position passed in
+        LBT: Position { x: pos.x, y: pos.y, z: pos.z + 1 },
+        LFB: Position { x: pos.x, y: pos.y - 1, z: pos.z },
+        LFT: Position { x: pos.x, y: pos.y - 1, z: pos.z + 1 },
+        RBB: Position { x: pos.x + 1, y: pos.y, z: pos.z },
+        RBT: Position { x: pos.x + 1, y: pos.y, z: pos.z + 1 },
+        RFB: Position { x: pos.x + 1, y: pos.y - 1, z: pos.z },
+        RFT: Position { x: pos.x + 1, y: pos.y - 1, z: pos.z + 1 },
+
+    };
+
+    return sv;
 }
 
 
@@ -107,13 +136,17 @@ pub fn CreateNewBlock(blockType: BlockType, dynamic: bool, posX: i32, posY: i32,
 
     let mut newPos: Position = Position { x: posX, y: posY, z: posZ };
 
-    let mut tris: [Tris; 12] = CreateTrisFromBlock(&newPos);
+    let mut tris: Vec<Tris> = Vec::new();
+
+    let mut verts: SquareVerts = CalculateSqureVerts(&newPos);
     
     let mut newBlock: Block = Block {
         blocksType: blockType,
         dynamic: dynamic,
         position: newPos,
         faces: tris,
+        numFaces: 0,
+        verts: verts,
     };
 
         return newBlock;
