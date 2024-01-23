@@ -54,8 +54,8 @@ pub fn CreateRenderer(width: usize, height: usize) -> Renderer {
     // create window
     let window = Window::new(
         "RustCraft",
-        width as usize,
-        height as usize,
+        width,
+        height,
         WindowOptions::default(),
     ).unwrap_or_else(|e| {
         panic!("{}", e);
