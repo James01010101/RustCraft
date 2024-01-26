@@ -1,4 +1,4 @@
-use crate::Objects::Position;
+use crate::World::FPosition;
 
 
 
@@ -8,8 +8,8 @@ pub struct Camera {
     pub nearPlane: f32,
     pub farPlane: f32,
 
-    pub cameraPosition: Position,
-    pub cameraTarget: Position,
+    pub position: FPosition,
+    pub target: FPosition,
 
 }
 
@@ -21,8 +21,8 @@ impl Camera {
         let farPlane: f32 = 100.0;
 
         // initial position and target
-        let cameraPosition: Position = Position::new(0, 0, 0);
-        let cameraTarget: Position = Position::new(0, 0, 0);
+        let position: FPosition = FPosition::new(0.0, 2.0, -5.0);
+        let target: FPosition = FPosition::new(0.0, 0.0, 0.0);
 
         Camera {
             fov: fov,
@@ -30,8 +30,8 @@ impl Camera {
             nearPlane,
             farPlane,
 
-            cameraPosition,
-            cameraTarget,
+            position,
+            target,
         }
     }
 }
