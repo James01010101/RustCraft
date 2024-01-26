@@ -6,7 +6,6 @@ extern crate gl;
 use crate::GPUKernels::OpenGLShaders;
 use crate::Camera::Camera;
 
-use std::{ptr, mem};
 use std::ffi::{CStr, CString};
 
 use glfw::{Context, GlfwReceiver, PWindow, WindowEvent};

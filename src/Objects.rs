@@ -1,10 +1,4 @@
-use crate::Settings::*;
 use crate::World::Position;
-
-use std::mem;
-
-
-
 
 // what type of block is it
 pub enum BlockType {
@@ -15,7 +9,6 @@ pub enum BlockType {
 
     Stone,
     Cobblestone,
-
 }
 
 

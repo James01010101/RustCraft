@@ -1,10 +1,6 @@
 
 use crate::Renderer::*;
-use crate::Kernels::Kernels;
-use crate::GPUKernels;
 use crate::World::*;
-use crate::Chunk::*;
-use crate::Objects::*;
 use crate::GPUData::GPUData;
 
 extern crate gl;
@@ -12,7 +8,6 @@ extern crate glfw;
 
 use glfw::Context;
 
-use std::thread;
 use std::time::Duration;
 use std::time::Instant;
 use std::mem;
@@ -21,8 +16,6 @@ use nalgebra::{Point3, Vector3};
 
 
 pub fn RunMainGameLoop() {
-
-    println!("Size of Block: {} bytes", mem::size_of::<Block>());
 
     // create Renderer and window
     let mut renderer: Renderer = Renderer::new(1920, 1080, 80.0);
