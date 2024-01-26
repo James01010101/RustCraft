@@ -1,8 +1,6 @@
 
 // this is a practise kernel 
-
-use opencl3::types::{CL_NON_BLOCKING, CL_BLOCKING};
-use opencl3::kernel::{ExecuteKernel};
+/*
 use crate::Renderer::*;
 use crate::Kernels::Kernels;
 
@@ -49,3 +47,4 @@ pub fn RunraytraceKernel(renderer: &mut Renderer, kernels: &Kernels) {
     let duration = end_time - start_time;
     println!("Pixel Gradient Kernel execution duration (ns): {}", duration);
 }
+*/
