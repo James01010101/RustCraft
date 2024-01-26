@@ -9,7 +9,7 @@ use crate::Camera::Camera;
 use std::{ptr, mem};
 use std::ffi::{CStr, CString};
 
-use glfw::{Context, PWindow};
+use glfw::{Context, GlfwReceiver, PWindow, WindowEvent};
 use glfw::ffi::glfwSwapInterval;
 
 use gl::types::{GLchar, GLint};
@@ -19,6 +19,7 @@ pub struct Renderer {
 
     pub glfw: glfw::Glfw,
     pub window: PWindow,
+    pub events: GlfwReceiver<(f64, WindowEvent)>,
 
     pub screenWidth: u32,
     pub screenHeight: u32,
@@ -52,12 +53,19 @@ impl Renderer {
 
         window.set_key_polling(true);
         window.make_current();
-
-        // uncap the frame rate (0: uncapped, otherwise fps is monitorRefresh / n)
-        unsafe { glfwSwapInterval(0); }
         
+
         // load all gl functions
         gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
+        
+        // other important gl functions
+        unsafe {
+            // uncap the frame rate (0: uncapped, otherwise fps is monitorRefresh / n)
+            glfwSwapInterval(0);
+            
+            gl::Enable(gl::DEPTH_TEST);
+        }
+
 
         // get the open gl version
         let glVersion = unsafe {
@@ -70,7 +78,7 @@ impl Renderer {
         let openGLProgram = CreateOpenGLProgram();
 
         // calculate camera info
-        let camera: Camera = Camera::new(fieldOfView, width, height);
+        let mut camera: Camera = Camera::new(fieldOfView, width, height);
 
         // shader variables locations
         let mut modelLocation: i32 = 0;
@@ -82,9 +90,6 @@ impl Renderer {
             projectionLocation = gl::GetUniformLocation(openGLProgram, CString::new("projection").unwrap().as_ptr());
         }
 
-
-        // let mut positions: [f32; 6] = [0.0, 0.0, 0.0, 1.0, 1.0, -1.5];
-
         // create pixel buffers (CPU)
         let totalPixels: u32 = width * height;
 
@@ -92,6 +97,7 @@ impl Renderer {
         Renderer {
             glfw: glfw,
             window: window,
+            events: events,
 
             screenWidth: width,
             screenHeight: height,
