@@ -1,108 +1,178 @@
 // This file will be for all rendering to windows
 
-use std::ptr;
-use std::mem;
+extern crate glfw;
+extern crate gl;
 
-use opencl3::device::{Device, CL_DEVICE_TYPE_GPU, get_all_devices};
-use opencl3::context::{Context};
-use opencl3::command_queue::{CommandQueue, CL_QUEUE_PROFILING_ENABLE};
-use opencl3::memory::{Buffer, CL_MEM_READ_WRITE};
-use opencl3::types::{cl_uint};
+use crate::GPUKernels::OpenGLShaders;
+use crate::Camera::Camera;
 
-use minifb::{Window, WindowOptions};
+use std::{ptr, mem};
+use std::ffi::{CStr, CString};
+
+use glfw::{Context, PWindow};
+use glfw::ffi::glfwSwapInterval;
+
+use gl::types::{GLchar, GLint};
 
 
 pub struct Renderer {
-    pub screenWidth: usize,
-    pub screenHeight: usize,
-    pub totalPixels: usize,
-    pub window: Window,
 
-    pub device: Device,
-    pub context: Context,
-    pub queue: CommandQueue,
+    pub glfw: glfw::Glfw,
+    pub window: PWindow,
 
-    pub pixelBuffer1: Vec<u32>,
-    pub pixelBuffer2: Vec<u32>,
-    pub pixelBuffer3: Vec<u32>,
+    pub screenWidth: u32,
+    pub screenHeight: u32,
+    pub totalPixels: u32,
 
-    pub gpuPixelBuffer1: Buffer::<cl_uint>,
-    pub gpuPixelBuffer2: Buffer::<cl_uint>,
-    pub gpuPixelBuffer3: Buffer::<cl_uint>,
+    pub openGLProgram: u32,
+
+    pub camera: Camera,
+
+    // gpu memory locations
+    pub modelMatrixLocation: i32,
+    pub viewMatrixLocation: i32,
+    pub projectionMatrixLocation: i32,
+
 }
 
 // this is where i write the functions for the Renderer Struct
-pub fn CreateRenderer(width: usize, height: usize) -> Renderer {
+impl Renderer { 
+    pub fn new(width: u32, height: u32, fieldOfView: f32) -> Renderer {
 
-    // Find a usable GPU device for this application
-    // calls the get all devices func, if ok then continues, else if it causes an error it is delt with
-    let device_id = *get_all_devices(CL_DEVICE_TYPE_GPU)
-        .expect("Failed to get all devices")
-        .first()
-        .expect("No device found in platform");
+        let mut glfw: glfw::Glfw = glfw::init(glfw::fail_on_errors).unwrap();
 
-    let device = Device::new(device_id);
+        // create the window
+        let (mut window, events) = glfw.create_window(
+            width, 
+            height, 
+            "RustCraft", 
+            glfw::WindowMode::Windowed
+        )
+            .expect("Failed to create GLFW window.");
 
-    // Create a Context on an OpenCL device
-    let context = Context::from_device(&device).expect("Context::from_device failed");
+        window.set_key_polling(true);
+        window.make_current();
 
-    // Create a command queue with the specified properties
-    let queue = CommandQueue::create_default_with_properties(&context, CL_QUEUE_PROFILING_ENABLE, 0)
-        .expect("Failed to create command queue with properties");
+        // uncap the frame rate (0: uncapped, otherwise fps is monitorRefresh / n)
+        unsafe { glfwSwapInterval(0); }
+        
+        // load all gl functions
+        gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
+
+        // get the open gl version
+        let glVersion = unsafe {
+            let data = CStr::from_ptr(gl::GetString(gl::VERSION) as *const i8);
+            data.to_string_lossy().into_owned()
+        };
+        println!("OpenGL version: {}", glVersion);
+
+        // make the open gl graphics pipeline
+        let openGLProgram = CreateOpenGLProgram();
+
+        // calculate camera info
+        let camera: Camera = Camera::new(fieldOfView, width, height);
+
+        // shader variables locations
+        let mut modelLocation: i32 = 0;
+        let mut viewLocation: i32 = 0;
+        let mut projectionLocation: i32 = 0;
+        unsafe {
+            modelLocation = gl::GetUniformLocation(openGLProgram, CString::new("model").unwrap().as_ptr());
+            viewLocation = gl::GetUniformLocation(openGLProgram, CString::new("view").unwrap().as_ptr());
+            projectionLocation = gl::GetUniformLocation(openGLProgram, CString::new("projection").unwrap().as_ptr());
+        }
 
 
-    // create window
-    let window = Window::new(
-        "RustCraft",
-        width,
-        height,
-        WindowOptions::default(),
-    ).unwrap_or_else(|e| {
-        panic!("{}", e);
-    });
+        // let mut positions: [f32; 6] = [0.0, 0.0, 0.0, 1.0, 1.0, -1.5];
+
+        // create pixel buffers (CPU)
+        let totalPixels: u32 = width * height;
 
 
-    // create pixel buffers (CPU)
-    let totalPixels: usize = width * height;
-    let mut buffer1 = vec![0u32; totalPixels];
-    let mut buffer2 = vec![0u32; totalPixels];
-    let mut buffer3 = vec![0u32; totalPixels];
+        Renderer {
+            glfw: glfw,
+            window: window,
 
-    // create the gpu pixel buffers
-    let mut gpuPixelBuffer1 = unsafe { Buffer::<cl_uint>::create(&context, CL_MEM_READ_WRITE, totalPixels, ptr::null_mut())
-            .expect("Failed to create GPU buffer") };
-    let mut gpuPixelBuffer2 = unsafe { Buffer::<cl_uint>::create(&context, CL_MEM_READ_WRITE, totalPixels, ptr::null_mut())
-            .expect("Failed to create GPU buffer") };
-    let mut gpuPixelBuffer3 = unsafe { Buffer::<cl_uint>::create(&context, CL_MEM_READ_WRITE, totalPixels, ptr::null_mut())
-            .expect("Failed to create GPU buffer") };
+            screenWidth: width,
+            screenHeight: height,
+            totalPixels: totalPixels,
 
+            openGLProgram: openGLProgram,
 
-    let r: Renderer = Renderer {
-        screenWidth: width,
-        screenHeight: height,
-        totalPixels: totalPixels,
-        window: window,
+            camera: camera,
 
-        device: device,
-        context: context,
-        queue: queue,
+            // gpu memory locations
+            modelMatrixLocation: modelLocation,
+            viewMatrixLocation: viewLocation,
+            projectionMatrixLocation: projectionLocation,
+        }
 
-        pixelBuffer1: buffer1,
-        pixelBuffer2: buffer2,
-        pixelBuffer3: buffer3,
-
-        gpuPixelBuffer1: gpuPixelBuffer1,
-        gpuPixelBuffer2: gpuPixelBuffer2,
-        gpuPixelBuffer3: gpuPixelBuffer3,
-    };
-    return r;
+    }
 }
 
 
-// will swap buffers 1 & 2 and then show the new buffer 1 to the screen
-pub fn RenderToScreen(renderer: &mut Renderer) {
-    mem::swap(&mut renderer.pixelBuffer1, &mut renderer.pixelBuffer2);
-    renderer.window.update_with_buffer(&renderer.pixelBuffer1, renderer.screenWidth, renderer.screenHeight).unwrap();
-}
+// creates and compiles the vertex and fragment shaders into a program
+fn CreateOpenGLProgram() -> u32 {
+    unsafe {
+        // Create Vertex Shader
+        let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
+        gl::ShaderSource(vertex_shader, 1, &CString::new(OpenGLShaders::vertex_shader_source).unwrap().as_ptr(), std::ptr::null());
+        gl::CompileShader(vertex_shader);
 
+        // Check for vertex shader compile errors
+        let mut success = gl::FALSE as GLint;
+        let mut info_log: Vec<u8> = Vec::with_capacity(512);
+        info_log.set_len(512 - 1); // Subtract 1 to skip the trailing null character
+
+        gl::GetShaderiv(vertex_shader, gl::COMPILE_STATUS, &mut success);
+
+        if success != gl::TRUE as GLint {
+            gl::GetShaderInfoLog(vertex_shader, 512, std::ptr::null_mut(), info_log.as_mut_ptr() as *mut GLchar);
+            println!("ERROR::SHADER::COMPILATION_FAILED\n{}", std::str::from_utf8(&info_log).unwrap());
+        }
+    
+        // Create Fragment Shader
+        let fragment_shader = gl::CreateShader(gl::FRAGMENT_SHADER);
+        gl::ShaderSource(fragment_shader, 1, &CString::new(OpenGLShaders::fragment_shader_source).unwrap().as_ptr(), std::ptr::null());
+        gl::CompileShader(fragment_shader);
+
+        // Check for fragment shader compile errors
+        success = gl::FALSE as GLint;
+        let mut info_log: Vec<u8> = Vec::with_capacity(512);
+        info_log.set_len(512 - 1); // Subtract 1 to skip the trailing null character
+
+        gl::GetShaderiv(fragment_shader, gl::COMPILE_STATUS, &mut success);
+
+        if success != gl::TRUE as GLint {
+            gl::GetShaderInfoLog(fragment_shader, 512, std::ptr::null_mut(), info_log.as_mut_ptr() as *mut GLchar);
+            println!("ERROR::SHADER::COMPILATION_FAILED\n{}", std::str::from_utf8(&info_log).unwrap());
+        }
+    
+        // Create Shader Program
+        let shader_program = gl::CreateProgram();
+        gl::AttachShader(shader_program, vertex_shader);
+        gl::AttachShader(shader_program, fragment_shader);
+        gl::LinkProgram(shader_program);
+        
+        // Check for linking errors
+        success = gl::FALSE as GLint;
+        let mut info_log = Vec::with_capacity(512);
+        info_log.set_len(512 - 1); // Subtract 1 to skip the trailing null character
+
+        gl::GetProgramiv(shader_program, gl::LINK_STATUS, &mut success);
+
+        if success != gl::TRUE as GLint {
+            gl::GetProgramInfoLog(shader_program, 512, std::ptr::null_mut(), info_log.as_mut_ptr() as *mut GLchar);
+            println!("ERROR::SHADER::PROGRAM::LINKING_FAILED\n{}", std::str::from_utf8(&info_log).unwrap());
+        }
+    
+        // Delete shaders; no longer necessary after linking
+        gl::DeleteShader(vertex_shader);
+        gl::DeleteShader(fragment_shader);
+
+        shader_program
+    }
+
+
+}
 
