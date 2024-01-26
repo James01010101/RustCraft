@@ -31,3 +31,43 @@ pub fn CreateWorld() -> World {
     
     return world;
 }
+
+
+// other important structs
+// a basic 3 int position position struct to store the xyz position of a block
+// its position is the bottom left back part of the square
+pub struct Position {
+    pub x: i32,
+    pub y: i16,
+    pub z: i32,
+}   
+
+// TODO: make sure all positions use f32 for now since all gpu calculations use f32
+impl Position {
+    pub fn new(x: i32, y: i16, z: i32) -> Position {
+        Position {
+            x,
+            y,
+            z,
+        }
+    }
+}
+
+
+// same but a float position
+pub struct FPosition {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+}   
+
+// TODO: make sure all positions use f32 for now since all gpu calculations use f32
+impl FPosition {
+    pub fn new(x: f32, y: f32, z: f32) -> FPosition {
+        FPosition {
+            x,
+            y,
+            z,
+        }
+    }
+}
