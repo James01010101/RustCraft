@@ -1,18 +1,9 @@
 use crate::Settings::*;
+use crate::World::Position;
 
 use std::mem;
 
-// a basic 3 int position position struct to store the xyz position of a block
-// its position is the bottom left back part of the square
-#[derive(Clone)]
-pub struct Position {
-    // i16 max/min = 32,767
-    // i32 max/min = 2,147,483,647
 
-    pub x: i32,
-    pub y: i32,
-    pub z: i16,
-}   
 
 
 // what type of block is it
@@ -129,7 +120,7 @@ pub fn CalculateSqureVerts(pos: &Position) -> SquareVerts {
 }
 
 
-pub fn CreateNewBlock(blockType: BlockType, dynamic: bool, posX: i32, posY: i32, posZ: i16) -> Block {
+pub fn CreateNewBlock(blockType: BlockType, dynamic: bool, posX: i32, posY: i16, posZ: i32) -> Block {
     
     // if the block is dynamic then i create its own Position so i can change it,
     // other wise it gets a non mutable reference to a large table where all positions created are stored
