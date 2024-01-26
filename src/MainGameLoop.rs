@@ -8,9 +8,7 @@ extern crate glfw;
 
 use glfw::Context;
 
-use std::time::Duration;
 use std::time::Instant;
-use std::mem;
 
 use nalgebra::{Point3, Vector3};
 

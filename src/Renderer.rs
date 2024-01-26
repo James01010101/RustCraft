@@ -77,7 +77,7 @@ impl Renderer {
         let openGLProgram = CreateOpenGLProgram();
 
         // calculate camera info
-        let mut camera: Camera = Camera::new(fieldOfView, width, height);
+        let camera: Camera = Camera::new(fieldOfView, width, height);
 
         // shader variables locations
         let mut modelLocation: i32 = 0;

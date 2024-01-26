@@ -5,8 +5,9 @@
 #![allow(non_upper_case_globals)]
 
 // might use these later
+//#![allow(unused_imports)]
+
 #![allow(dead_code)]
-#![allow(unused_imports)]
 #![allow(unused_mut)]
 #![allow(unused_variables)]
 #![allow(unused_assignments)]
