@@ -49,12 +49,13 @@ impl GPUData {
 
         // Create a VBO (Stores the verticies data)
         let mut cubeVbo: u32 = 0;
+        let vboBufferSize: usize = cubeVerticies.len() * std::mem::size_of::<i32>();
         unsafe {
             gl::GenBuffers(1, &mut cubeVbo);
             gl::BindBuffer(gl::ARRAY_BUFFER, cubeVbo);
             gl::BufferData(
                 gl::ARRAY_BUFFER, 
-                (cubeVerticies.len() * std::mem::size_of::<i32>()) as gl::types::GLsizeiptr,
+                vboBufferSize as gl::types::GLsizeiptr,
                 cubeVerticies.as_ptr() as *const gl::types::GLvoid, 
                 gl::STATIC_DRAW
             );
@@ -67,16 +68,20 @@ impl GPUData {
 
         // create an Element Buffer Object (to store the indexes array which points to each vertex in the verticies array)
         let mut cubeEbo: u32 = 0;
+        let eboBufferSize: usize = cubeTrisIndices.len() * std::mem::size_of::<u16>();
         unsafe {
             gl::GenBuffers(1, &mut cubeEbo);
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, cubeEbo);
+            
             gl::BufferData(
                 gl::ELEMENT_ARRAY_BUFFER, 
-                (cubeTrisIndices.len() * std::mem::size_of::<u16>()) as gl::types::GLsizeiptr, 
+                eboBufferSize as gl::types::GLsizeiptr, 
                 cubeTrisIndices.as_ptr() as *const gl::types::GLvoid, 
                 gl::STATIC_DRAW
             );
         }
+
+        println!("VBO Buffer Size: {} bytes \nEBO Buffer Size: {} bytes",vboBufferSize, eboBufferSize);
 
         GPUData {
             cubeVao,
