@@ -5,7 +5,7 @@
 #![allow(non_upper_case_globals)]
 
 // might use these later
-//#![allow(unused_imports)]
+#![allow(unused_imports)]
 
 #![allow(dead_code)]
 #![allow(unused_mut)]
@@ -29,8 +29,6 @@ pub mod GPUData; // where the vbo vao ebo, and vertex and index buffers are as w
 
 fn main() {
 
-
     MainGameLoop::RunMainGameLoop();
 
-    
 }
