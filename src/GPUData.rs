@@ -1,11 +1,21 @@
-
+use crate::Settings::*;
 
 pub struct GPUData {
     pub cubeVao: u32,
     pub cubeVbo: u32,
     pub cubeEbo: u32,
+    pub cubeInstanceVbo: u32,
+    pub cubeColoursVbo: u32,
+
+    pub instancesUsed: u32, // how many of the instances am i actually using this frame
+
     pub cubeVerticies: Vec<i32>,
     pub cubeTrisIndices: Vec<u16>, 
+    pub cubeInstanceModelMatricies: [[[f32; 4]; 4]; maxBlocksRendered],
+
+    pub cubeColours: [[f32; 4]; maxBlocksRendered], // temporary for now until i use textures
+
+
 }
 
 
@@ -38,6 +48,11 @@ impl GPUData {
             // Right face
             1, 5, 6, 1, 6, 2
         ];
+
+        // instance array
+        let cubeInstanceModelMatricies: [[[f32; 4]; 4]; maxBlocksRendered] = [[[0.0; 4]; 4]; maxBlocksRendered];
+
+        let cubeColours: [[f32; 4]; maxBlocksRendered] = [[0.0; 4]; maxBlocksRendered];
 
 
         // Create a VAO (basically how the memory is layed out)
@@ -81,14 +96,77 @@ impl GPUData {
             );
         }
 
+        // VBO for instance model matrices
+        let mut cubeInstanceVbo: u32 = 0;
+        unsafe {
+            gl::GenBuffers(1, &mut cubeInstanceVbo);
+            gl::BindBuffer(gl::ARRAY_BUFFER, cubeInstanceVbo);
+            gl::BufferData(
+                gl::ARRAY_BUFFER,
+                (maxBlocksRendered * std::mem::size_of::<[[f32; 4]; 4]>()) as isize,
+                cubeInstanceModelMatricies.as_ptr() as *const gl::types::GLvoid,
+                gl::DYNAMIC_DRAW,
+            );
+
+            // Set attribute pointers for instance model matrices
+            let stride: i32 = std::mem::size_of::<[[f32; 4]; 4]>() as i32;
+            let pointerSize: u32 = std::mem::size_of::<[f32; 4]>() as u32;
+            for i in 0..4 as u32 {
+                gl::EnableVertexAttribArray(1 + i);
+                gl::VertexAttribPointer(
+                    1 + i,
+                    4,
+                    gl::FLOAT,
+                    gl::FALSE,
+                    stride,
+                    (i * pointerSize) as *const gl::types::GLvoid,
+                );
+                gl::VertexAttribDivisor(1 + i, 1); // Tell OpenGL this is instanced data
+            }
+        }
+
+        let mut cubeColoursVbo: u32 = 0;
+        unsafe {
+            gl::GenBuffers(1, &mut cubeColoursVbo);
+            gl::BindBuffer(gl::ARRAY_BUFFER, cubeColoursVbo);
+            gl::BufferData(
+                gl::ARRAY_BUFFER,
+                (maxBlocksRendered * std::mem::size_of::<[f32; 4]>()) as isize,
+                cubeColours.as_ptr() as *const gl::types::GLvoid,
+                gl::STATIC_DRAW,
+            );
+
+
+            gl::EnableVertexAttribArray(5);
+            gl::VertexAttribPointer(
+                5,
+                4,
+                gl::FLOAT,
+                gl::FALSE,
+                0,
+                std::ptr::null(),
+            );
+            gl::VertexAttribDivisor(5, 1); // Tell OpenGL this is instanced data
+        }
+
+
         println!("VBO Buffer Size: {} bytes \nEBO Buffer Size: {} bytes",vboBufferSize, eboBufferSize);
 
         GPUData {
             cubeVao,
             cubeVbo,
             cubeEbo,
+            cubeInstanceVbo,
+            cubeColoursVbo,
+
+            instancesUsed: 0,
+
             cubeVerticies,
             cubeTrisIndices, 
+            cubeInstanceModelMatricies,
+
+            cubeColours,
+
         }
 
     }
