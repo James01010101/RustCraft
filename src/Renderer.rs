@@ -29,7 +29,6 @@ pub struct Renderer {
     pub camera: Camera,
 
     // gpu memory locations
-    pub modelMatrixLocation: i32,
     pub viewMatrixLocation: i32,
     pub projectionMatrixLocation: i32,
 
@@ -80,11 +79,9 @@ impl Renderer {
         let camera: Camera = Camera::new(fieldOfView, width, height);
 
         // shader variables locations
-        let mut modelLocation: i32 = 0;
         let mut viewLocation: i32 = 0;
         let mut projectionLocation: i32 = 0;
         unsafe {
-            modelLocation = gl::GetUniformLocation(openGLProgram, CString::new("model").unwrap().as_ptr());
             viewLocation = gl::GetUniformLocation(openGLProgram, CString::new("view").unwrap().as_ptr());
             projectionLocation = gl::GetUniformLocation(openGLProgram, CString::new("projection").unwrap().as_ptr());
         }
@@ -106,8 +103,6 @@ impl Renderer {
 
             camera: camera,
 
-            // gpu memory locations
-            modelMatrixLocation: modelLocation,
             viewMatrixLocation: viewLocation,
             projectionMatrixLocation: projectionLocation,
         }
