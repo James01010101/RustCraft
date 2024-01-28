@@ -1,7 +1,9 @@
 
 use crate::Renderer::*;
+use crate::Settings::maxBlocksRendered;
 use crate::World::*;
 use crate::GPUData::GPUData;
+use crate::Objects::*;
 
 extern crate gl;
 extern crate glfw;
@@ -9,11 +11,16 @@ extern crate glfw;
 use glfw::Context;
 
 use std::time::Instant;
+use std::mem;
 
 use nalgebra::{Point3, Vector3};
 
 
 pub fn RunMainGameLoop() {
+
+    let sizeOfBlock: usize = mem::size_of::<Block>();
+    println!("Size of Block: {} bytes", sizeOfBlock);
+
 
     // create Renderer and window
     let mut renderer: Renderer = Renderer::new(1920, 1080, 80.0);
@@ -22,14 +29,48 @@ pub fn RunMainGameLoop() {
     //let kernels: Kernels = CreateKernels(&renderer);
 
     // create my world
-    let world: World = CreateWorld();
+    let mut world: World = CreateWorld();
 
     // create the gpudata (vao, vbo, ebo)
-    let gpuData: GPUData = GPUData::new();
+    let mut gpuData: GPUData = GPUData::new();
+
+
+    // update the instances buffer with the blocks model matricies
+    gpuData.instancesUsed = world.testBlocks.len() as u32;
+
+    // Instance model matricies, each element is a model matrix of a block
+    for i in 0..gpuData.instancesUsed {
+        let i: usize = i as usize;
+        gpuData.cubeInstanceModelMatricies[i] = world.testBlocks[i].modelMatrix;
+        gpuData.cubeColours[i] = world.testBlocks[i].colour;
+
+        //println!("Instanced Model Matricies [{}]: {:?}", i, instanceModelMatricies[i]);
+    }
+
+    // update the data on the gpu
+    unsafe {
+        // model matrix
+        gl::BindBuffer(gl::ARRAY_BUFFER, gpuData.cubeInstanceVbo);
+        gl::BufferSubData(
+            gl::ARRAY_BUFFER,
+            0,
+            (gpuData.instancesUsed as usize * std::mem::size_of::<[[f32; 4]; 4]>()) as isize,
+            gpuData.cubeInstanceModelMatricies.as_ptr() as *const gl::types::GLvoid,
+        );
+
+        // colour
+        gl::BindBuffer(gl::ARRAY_BUFFER, gpuData.cubeColoursVbo);
+        gl::BufferSubData(
+            gl::ARRAY_BUFFER,
+            0,
+            (gpuData.instancesUsed as usize * std::mem::size_of::<[f32; 4]>()) as isize,
+            gpuData.cubeColours.as_ptr() as *const gl::types::GLvoid,
+        );
+    }
     
 
     
-
+    
     let mut angle: f32 = 0.0; // Current angle of rotation
     let rotation_speed: f32 = 0.0001; // Speed of rotation
     let radius: f32 = 2.0; // Distance from the center
@@ -42,10 +83,8 @@ pub fn RunMainGameLoop() {
 
         // ... event handling ...
 
-        // Update the angle
+        // rotate the camera for testing
         angle += rotation_speed;
-
-        // Calculate the camera's new position
         renderer.camera.position.x = radius * angle.cos();
         renderer.camera.position.z = radius * angle.sin();
 
@@ -75,26 +114,27 @@ pub fn RunMainGameLoop() {
         let target = Point3::new(renderer.camera.target.x, renderer.camera.target.y, renderer.camera.target.z);
         let viewMatrix = nalgebra::Isometry3::look_at_rh(&eye, &target, &-Vector3::y()).to_homogeneous();
         
-        // Create a model matrix (for translation) once per object, this is where i put its actual world location eg (30, 20, -12)
-        let modelMatrix = nalgebra::Translation3::new(
-            0.0,
-            0.0,
-            0.0
-        ).to_homogeneous();
-
-        
+       
         unsafe {
             // upload these to the gpu
             gl::UniformMatrix4fv(renderer.viewMatrixLocation, 1, gl::FALSE, viewMatrix.as_ptr());
             gl::UniformMatrix4fv(renderer.projectionMatrixLocation, 1, gl::FALSE, projectionMatrix.as_ptr());
-            gl::UniformMatrix4fv(renderer.modelMatrixLocation, 1, gl::FALSE, modelMatrix.as_ptr()); 
             
             // draw
+            /*
             gl::DrawElements(
                 gl::TRIANGLES,        // Mode
                 36,                   // Count of indices
                 gl::UNSIGNED_SHORT,   // Type of the indices
                 std::ptr::null()      // Offset to the EBO
+            );
+            */
+            gl::DrawElementsInstanced(
+                gl::TRIANGLES,
+                gpuData.cubeTrisIndices.len() as i32, // Assuming cube_indices is defined
+                gl::UNSIGNED_SHORT,
+                std::ptr::null(),
+                gpuData.instancesUsed as i32,
             );
         }
             
