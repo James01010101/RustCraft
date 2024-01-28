@@ -10,3 +10,6 @@ pub const chunkOffestZ: usize = chunkSizeZ / 2; // this is what ill take away wh
 
 // Render Distance is x and y directions, so 5 would be 25 chunks loaded
 pub const renderDistance: usize = 5;
+
+// the size of the instance buffer to render all of the blocks, might be different for each type???
+pub const maxBlocksRendered: usize = 10;
