@@ -36,39 +36,7 @@ pub fn RunMainGameLoop() {
 
 
     // update the instances buffer with the blocks model matricies
-    gpuData.instancesUsed = world.testBlocks.len() as u32;
-
-    // Instance model matricies, each element is a model matrix of a block
-    for i in 0..gpuData.instancesUsed {
-        let i: usize = i as usize;
-        gpuData.cubeInstanceModelMatricies[i] = world.testBlocks[i].modelMatrix;
-        gpuData.cubeColours[i] = world.testBlocks[i].blockType.BlockColour();
-
-        //println!("Instanced Model Matricies [{}]: {:?}", i, instanceModelMatricies[i]);
-    }
-
-    // update the data on the gpu
-    unsafe {
-        // model matrix
-        gl::BindBuffer(gl::ARRAY_BUFFER, gpuData.cubeInstanceVbo);
-        gl::BufferSubData(
-            gl::ARRAY_BUFFER,
-            0,
-            (gpuData.instancesUsed as usize * std::mem::size_of::<[[f32; 4]; 4]>()) as isize,
-            gpuData.cubeInstanceModelMatricies.as_ptr() as *const gl::types::GLvoid,
-        );
-
-        // colour
-        gl::BindBuffer(gl::ARRAY_BUFFER, gpuData.cubeColoursVbo);
-        gl::BufferSubData(
-            gl::ARRAY_BUFFER,
-            0,
-            (gpuData.instancesUsed as usize * std::mem::size_of::<[f32; 4]>()) as isize,
-            gpuData.cubeColours.as_ptr() as *const gl::types::GLvoid,
-        );
-    }
-    
-
+    gpuData.UpdateCubeInstances(&mut world);
     
     
     let mut angle: f32 = 0.0; // Current angle of rotation

@@ -1,5 +1,6 @@
 use crate::Settings::*;
 use crate::Renderer::*;
+use crate::World::*;
 
 use nalgebra::{Point3, Vector3};
 use glfw::Context;
@@ -221,6 +222,42 @@ impl GPUData {
             
 
         renderer.window.swap_buffers();
+    }
+
+
+    pub fn UpdateCubeInstances(&mut self, world: &mut World) {
+
+        self.instancesUsed = world.testBlocks.len() as u32;
+
+        // Instance model matricies, each element is a model matrix of a block
+        for i in 0..self.instancesUsed {
+            let i: usize = i as usize;
+
+            self.cubeInstanceModelMatricies[i] = world.testBlocks[i].modelMatrix;
+            self.cubeColours[i] = world.testBlocks[i].blockType.BlockColour();
+        }
+
+        // update the data on the gpu
+        unsafe {
+            // model matrix
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.cubeInstanceVbo);
+            gl::BufferSubData(
+                gl::ARRAY_BUFFER,
+                0,
+                (self.instancesUsed as usize * std::mem::size_of::<[[f32; 4]; 4]>()) as isize,
+                self.cubeInstanceModelMatricies.as_ptr() as *const gl::types::GLvoid,
+            );
+
+            // colour
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.cubeColoursVbo);
+            gl::BufferSubData(
+                gl::ARRAY_BUFFER,
+                0,
+                (self.instancesUsed as usize * std::mem::size_of::<[f32; 4]>()) as isize,
+                self.cubeColours.as_ptr() as *const gl::types::GLvoid,
+            );
+        }
+
     }
 
 
