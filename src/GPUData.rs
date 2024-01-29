@@ -1,4 +1,9 @@
 use crate::Settings::*;
+use crate::Renderer::*;
+
+use nalgebra::{Point3, Vector3};
+use glfw::Context;
+
 
 pub struct GPUData {
     pub cubeVao: u32,
@@ -170,4 +175,53 @@ impl GPUData {
         }
 
     }
+
+
+    pub fn RenderFrame(&self, renderer: &mut Renderer) {
+
+        // clean screen
+        unsafe {
+            gl::UseProgram(renderer.openGLProgram);
+            
+            gl::ClearColor(0.0, 0.0, 0.0, 1.0); // Set clear color (black in this case)
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT); // Clear the screen
+
+            // bind the specific vao for this object
+            gl::BindVertexArray(self.cubeVao);
+        }
+
+        // Create a perspective projection matrix
+        let projectionMatrix = nalgebra::Perspective3::new(
+            renderer.camera.aspectRatio, 
+            renderer.camera.fov, 
+            renderer.camera.nearPlane, 
+            renderer.camera.farPlane
+        ).to_homogeneous();
+
+        // Create a view matrix
+        let eye = Point3::new(renderer.camera.position.x, renderer.camera.position.y, renderer.camera.position.z);
+        let target = Point3::new(renderer.camera.target.x, renderer.camera.target.y, renderer.camera.target.z);
+        let viewMatrix = nalgebra::Isometry3::look_at_rh(&eye, &target, &Vector3::y()).to_homogeneous();
+        
+       
+        unsafe {
+            // upload these to the gpu
+            gl::UniformMatrix4fv(renderer.viewMatrixLocation, 1, gl::FALSE, viewMatrix.as_ptr());
+            gl::UniformMatrix4fv(renderer.projectionMatrixLocation, 1, gl::FALSE, projectionMatrix.as_ptr());
+            
+
+            gl::DrawElementsInstanced(
+                gl::TRIANGLES,
+                self.cubeTrisIndices.len() as i32, // Assuming cube_indices is defined
+                gl::UNSIGNED_SHORT,
+                std::ptr::null(),
+                self.instancesUsed as i32,
+            );
+        }
+            
+
+        renderer.window.swap_buffers();
+    }
+
+
 }
