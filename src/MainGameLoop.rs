@@ -1,4 +1,5 @@
 
+use crate::FileSystem::FileSystem;
 use crate::Renderer::*;
 use crate::Settings::{maxBlocksRendered, screenFOV, screenHeight, screenWidth};
 use crate::World::*;
@@ -19,7 +20,7 @@ use nalgebra::{Point3, Vector3};
 pub fn RunMainGameLoop() {
 
     let sizeOfBlock: usize = mem::size_of::<Block>();
-    println!("Size of Block: {} bytes", sizeOfBlock);
+    //println!("Size of Block: {} bytes", sizeOfBlock);
 
 
     // create Renderer and window
@@ -28,8 +29,22 @@ pub fn RunMainGameLoop() {
     // create my kernels objects which will compile all my kernels
     //let kernels: Kernels = CreateKernels(&renderer);
 
+    // create MY file system struct
+    let mut fileSystem: FileSystem = FileSystem::new();
+
+    // check the filesystem has folders and structure i expect
+    fileSystem.CheckFileSystem();
+
+    // create the folders and files needed for this world if they havent been already
+
+
+
     // create my world
     let mut world: World = World::new();
+
+    // temp, add some blocks for testing
+    world.AddTestBlocks();
+
 
     // create the gpudata (vao, vbo, ebo)
     let mut gpuData: GPUData = GPUData::new();
