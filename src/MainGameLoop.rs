@@ -29,7 +29,7 @@ pub fn RunMainGameLoop() {
     //let kernels: Kernels = CreateKernels(&renderer);
 
     // create my world
-    let mut world: World = CreateWorld();
+    let mut world: World = World::new();
 
     // create the gpudata (vao, vbo, ebo)
     let mut gpuData: GPUData = GPUData::new();

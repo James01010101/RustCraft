@@ -15,45 +15,46 @@ pub struct World {
 }
 
 
-// TODO: #22 Make the create world function
-pub fn CreateWorld() -> World {
+impl World {
+    pub fn new() -> World {
 
-    let mut world: World = World { chunks: HashMap::new(), testBlocks: Vec::new() };
+        let mut world: World = World { chunks: HashMap::new(), testBlocks: Vec::new() };
 
 
-    // Create some blocks to put into the testBlocks array
-    world.testBlocks.push(Block::new(
-        BlockType::Air, 
-        1, 0, 0)
-    );
+        // Create some blocks to put into the testBlocks array
+        world.testBlocks.push(Block::new(
+            BlockType::Air, 
+            1, 0, 0)
+        );
 
-    world.testBlocks.push(Block::new(
-        BlockType::Dirt, 
-        0, 0, 0)
-    );
+        world.testBlocks.push(Block::new(
+            BlockType::Dirt, 
+            0, 0, 0)
+        );
 
-    world.testBlocks.push(Block::new(
-        BlockType::Grass, 
-        -1, 0, 0)
-    );
+        world.testBlocks.push(Block::new(
+            BlockType::Grass, 
+            -1, 0, 0)
+        );
 
-    world.testBlocks.push(Block::new(
-        BlockType::Sand, 
-        -2, 0, 0)
-    );
+        world.testBlocks.push(Block::new(
+            BlockType::Sand, 
+            -2, 0, 0)
+        );
 
-    world.testBlocks.push(Block::new(
-        BlockType::Stone, 
-        -3, 0, 0)
-    );
+        world.testBlocks.push(Block::new(
+            BlockType::Stone, 
+            -3, 0, 0)
+        );
 
-    world.testBlocks.push(Block::new(
-        BlockType::Cobblestone, 
-        -4, 0, 0)
-    );
+        world.testBlocks.push(Block::new(
+            BlockType::Cobblestone, 
+            -4, 0, 0)
+        );
 
-    
-    return world;
+        
+        return world;
+    }
 }
 
 
