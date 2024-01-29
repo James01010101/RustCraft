@@ -37,6 +37,8 @@ pub fn CreateChunk() {
 // if this chunk has beenc created before then i create a Chunk obj, and fill it from wherever
 pub fn LoadChunk() {
 
+    // first check if the chunk has been created before
+
 }
 
 // TODO: #23 Implement saving chunks back to a file
