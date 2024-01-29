@@ -22,20 +22,35 @@ pub fn CreateWorld() -> World {
 
 
     // Create some blocks to put into the testBlocks array
-    let block1: Block = Block::new(BlockType::Dirt, 0, 0, 0, 255.0, 0.0, 255.0);
-    world.testBlocks.push(block1);
+    world.testBlocks.push(Block::new(
+        BlockType::Air, 
+        1, 0, 0)
+    );
 
-    let block2: Block = Block::new(BlockType::Grass, 2, 0, 0, 255.0, 0.0, 0.0);
-    world.testBlocks.push(block2);
+    world.testBlocks.push(Block::new(
+        BlockType::Dirt, 
+        0, 0, 0)
+    );
 
-    let block3: Block = Block::new(BlockType::Sand, -1, 1, 3, 0.0, 255.0, 0.0);
-    world.testBlocks.push(block3);
+    world.testBlocks.push(Block::new(
+        BlockType::Grass, 
+        -1, 0, 0)
+    );
 
-    let block4: Block = Block::new(BlockType::Grass, -1, 0, 1, 0.0, 0.0, 255.0);
-    world.testBlocks.push(block4);
+    world.testBlocks.push(Block::new(
+        BlockType::Sand, 
+        -2, 0, 0)
+    );
 
-    let block5: Block = Block::new(BlockType::Grass, -1, 0, -1, 255.0, 255.0, 0.0);
-    world.testBlocks.push(block5);
+    world.testBlocks.push(Block::new(
+        BlockType::Stone, 
+        -3, 0, 0)
+    );
+
+    world.testBlocks.push(Block::new(
+        BlockType::Cobblestone, 
+        -4, 0, 0)
+    );
 
     
     return world;
