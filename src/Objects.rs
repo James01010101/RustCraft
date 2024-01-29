@@ -29,6 +29,21 @@ impl BlockType {
             BlockType::Cobblestone => false,
         }
     }
+
+    pub fn BlockColour(&self) -> [f32; 4] {
+        // go through it and divide by 255 and return
+        match self {
+            BlockType::Air => [175.0, 250.0, 250.0, 50.0].map(|x: f32| x / 255.0),
+
+            BlockType::Grass => [75.0, 150.0, 50.0, 255.0].map(|x: f32| x / 255.0),
+            BlockType::Dirt => [75.0, 50.0, 0.0, 255.0].map(|x: f32| x / 255.0),
+
+            BlockType::Sand => [200.0, 200.0, 50.0, 255.0].map(|x: f32| x / 255.0),
+
+            BlockType::Stone => [100.0, 100.0, 100.0, 255.0].map(|x: f32| x / 255.0),
+            BlockType::Cobblestone => [150.0, 150.0, 150.0, 255.0].map(|x: f32| x / 255.0),
+        }
+    }
 }
 
 
@@ -46,13 +61,11 @@ pub struct Block {
 
     // this stores the transform to the camera for this block from world space to camera
     pub modelMatrix: [[f32; 4]; 4],
-
-    pub colour: [f32; 4],
 }
 
 
 impl Block {
-    pub fn new(blockType: BlockType, posX: i32, posY: i16, posZ: i32, R: f32, G: f32, B: f32) -> Block {
+    pub fn new(blockType: BlockType, posX: i32, posY: i16, posZ: i32) -> Block {
         
 
         let modelMatrix: [[f32; 4]; 4] = nalgebra::Translation3::new(
@@ -67,7 +80,6 @@ impl Block {
             blockType,
             position: Position { x: posX, y: posY, z: posZ },
             modelMatrix,
-            colour: [R, G, B, 1.0],
         }
     }
 }

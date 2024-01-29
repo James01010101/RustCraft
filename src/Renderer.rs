@@ -20,8 +20,6 @@ pub struct Renderer {
     pub window: PWindow,
     pub events: GlfwReceiver<(f64, WindowEvent)>,
 
-    pub screenWidth: u32,
-    pub screenHeight: u32,
     pub totalPixels: u32,
 
     pub openGLProgram: u32,
@@ -59,9 +57,15 @@ impl Renderer {
         // other important gl functions
         unsafe {
             // uncap the frame rate (0: uncapped, otherwise fps is monitorRefresh / n)
+            // TODO: #36 timedelta so movement isnt relative to fps
             glfwSwapInterval(0);
             
             gl::Enable(gl::DEPTH_TEST);
+            
+            // use blending to use alpha channel for colours
+            gl::Enable(gl::BLEND);
+            gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+
         }
 
 
@@ -95,8 +99,6 @@ impl Renderer {
             window: window,
             events: events,
 
-            screenWidth: width,
-            screenHeight: height,
             totalPixels: totalPixels,
 
             openGLProgram: openGLProgram,
