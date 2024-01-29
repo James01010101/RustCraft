@@ -2,14 +2,20 @@
 use crate::Chunk::*;
 use crate::Objects::*;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+
+
+
 
 
 // this struct will hold all of the Chunks as well as arrays of mobs
 pub struct World {
 
     // TODO: #25 Use a hashmap to store currently loaded chunks
-    pub chunks: HashMap<i32, Chunk>,
+    pub chunks: HashMap<[i32; 2], Chunk>,
+
+    // stores all of the chunks that have been created before
+    pub createdChunks: HashSet<(i32, i32)>,
 
     pub testBlocks: Vec<Block>,
 }
@@ -18,43 +24,69 @@ pub struct World {
 impl World {
     pub fn new() -> World {
 
-        let mut world: World = World { chunks: HashMap::new(), testBlocks: Vec::new() };
+        // stores all alive chunks in this so they can be rendered and used
+        let mut chunks: HashMap<[i32; 2], Chunk> = HashMap::new();
 
+        // a table of all of the chunks that have been calculated before
+        let mut createdChunks: HashSet<(i32, i32)> = HashSet::new();
+
+        // a temp vec of blocks to put into the world without world gen
+        let mut testBlocks: Vec<Block> = Vec::new();
+
+        // create and return the world
+        World { 
+            chunks, 
+            createdChunks,
+            testBlocks, 
+        }
+
+    }
+
+    pub fn AddTestBlocks(&mut self) {
 
         // Create some blocks to put into the testBlocks array
-        world.testBlocks.push(Block::new(
+        self.testBlocks.push(Block::new(
             BlockType::Air, 
             1, 0, 0)
         );
 
-        world.testBlocks.push(Block::new(
+        self.testBlocks.push(Block::new(
             BlockType::Dirt, 
             0, 0, 0)
         );
 
-        world.testBlocks.push(Block::new(
+        self.testBlocks.push(Block::new(
             BlockType::Grass, 
             -1, 0, 0)
         );
 
-        world.testBlocks.push(Block::new(
+        self.testBlocks.push(Block::new(
             BlockType::Sand, 
             -2, 0, 0)
         );
 
-        world.testBlocks.push(Block::new(
+        self.testBlocks.push(Block::new(
             BlockType::Stone, 
             -3, 0, 0)
         );
 
-        world.testBlocks.push(Block::new(
+        self.testBlocks.push(Block::new(
             BlockType::Cobblestone, 
             -4, 0, 0)
         );
-
-        
-        return world;
     }
+
+
+
+    
+
+
+    // takes in the created chunks hashmap, loads the file where all of the chunks that have been created live and writes them to the hashmap
+    pub fn LoadCreatedChunks(createdChunks: &mut HashSet<(i32, i32)>) {
+
+        // open the file with this data and load it all into the hashmap
+    }
+
 }
 
 
