@@ -25,7 +25,7 @@ impl Camera {
         let target: FPosition = FPosition::new(0.0, 0.0, 0.0);
 
         Camera {
-            fov: fov,
+            fov: fov.to_radians(),
             aspectRatio,
             nearPlane,
             farPlane,

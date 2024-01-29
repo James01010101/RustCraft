@@ -13,3 +13,7 @@ pub const renderDistance: usize = 5;
 
 // the size of the instance buffer to render all of the blocks, might be different for each type???
 pub const maxBlocksRendered: usize = 10;
+
+pub const screenWidth: usize = 1920;
+pub const screenHeight: usize = 1080;
+pub const screenFOV: f32 = 90.0; // degrees, it will be converted to radians for actual calculations
