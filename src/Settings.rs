@@ -1,5 +1,8 @@
 
 
+// the name of the current world im loading
+pub const worldName: &str = "James's World";
+
 // Chunk Size
 pub const chunkSizeX: usize = 32;
 pub const chunkSizeY: usize = 32;
