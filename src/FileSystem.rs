@@ -10,6 +10,8 @@ use crate::Settings::*;
 
 pub struct FileSystem {
     pub dataDirectory: PathBuf,
+    pub myWorldDirectory: PathBuf, // the directory of blah/james's World/
+
 }
 
 
@@ -17,6 +19,7 @@ impl FileSystem {
     pub fn new() -> FileSystem {
         FileSystem {
             dataDirectory: PathBuf::new(),
+            myWorldDirectory: PathBuf::new(),
         }
     }
 
@@ -102,6 +105,8 @@ impl FileSystem {
                 }
             }
         }
+        
+        self.myWorldDirectory = path.clone();
 
 
         path.push("Chunks");
