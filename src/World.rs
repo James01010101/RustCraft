@@ -93,6 +93,7 @@ impl World {
 // other important structs
 // a basic 3 int position position struct to store the xyz position of a block
 // its position is the bottom left back part of the square
+#[derive(Clone, Copy)]
 pub struct Position {
     pub x: i32,
     pub y: i16,
@@ -112,6 +113,7 @@ impl Position {
 
 
 // same but a float position
+#[derive(Clone, Copy)]
 pub struct FPosition {
     pub x: f32,
     pub y: f32,
