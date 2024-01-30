@@ -3,13 +3,14 @@
 # build all
 build: clear
 	cargo build --release
+	
 
 # run the game with release settings
 run: clear build
 	cargo run --release
 
 # test crates
-test_game: clear
+test: clear
 	cargo test
 
 #clean

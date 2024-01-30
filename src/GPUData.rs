@@ -156,8 +156,6 @@ impl GPUData {
         }
 
 
-        println!("VBO Buffer Size: {} bytes \nEBO Buffer Size: {} bytes",vboBufferSize, eboBufferSize);
-
         GPUData {
             cubeVao,
             cubeVbo,

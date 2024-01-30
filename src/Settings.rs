@@ -1,5 +1,8 @@
 
 
+// the name of the current world im loading
+pub const worldName: &str = "James's World";
+
 // Chunk Size
 pub const chunkSizeX: usize = 32;
 pub const chunkSizeY: usize = 32;
@@ -12,7 +15,8 @@ pub const chunkOffestZ: usize = chunkSizeZ / 2; // this is what ill take away wh
 pub const renderDistance: usize = 5;
 
 // the size of the instance buffer to render all of the blocks, might be different for each type???
-pub const maxBlocksRendered: usize = 10;
+// TODO: #40 make sure the active rendered cant go above this
+pub const maxBlocksRendered: usize = 100;
 
 pub const screenWidth: usize = 1920;
 pub const screenHeight: usize = 1080;
