@@ -3,9 +3,9 @@ use crate::Chunk::*;
 use crate::FileSystem::FileSystem;
 use crate::Objects::*;
 
-use std::collections::{HashMap, HashSet};
-
-
+use std::{collections::{HashMap, HashSet}, path::PathBuf};
+use std::io::{self, BufRead};
+use std::fs::File;
 
 
 
@@ -28,7 +28,8 @@ impl World {
         // stores all alive chunks in this so they can be rendered and used
         let mut chunks: HashMap<[i32; 2], Chunk> = HashMap::new();
 
-        // a table of all of the chunks that have been calculated before
+        // a table of all of the chunks that have been calculated before, Key: (chunkIDx, chunkIDy)
+        // the order the hashset is printed changes every run
         let mut createdChunks: HashSet<(i32, i32)> = HashSet::new();
 
         // a temp vec of blocks to put into the world without world gen
@@ -78,14 +79,63 @@ impl World {
     }
 
 
-
-    
-
-
     // takes in the filesystem, loads the file where all of the chunks that have been created live and writes them to the hashmap
     pub fn LoadCreatedChunksFile(&mut self, myFileSystem: &mut FileSystem) {
 
-        // open the file with this data and load it all into the hashmap
+        // get the path to the ChunksCreated.txt file
+        let mut chunksCreatedPath: PathBuf = myFileSystem.myWorldDirectory.clone();
+        chunksCreatedPath.push("ChunksCreated.txt");
+
+        let chunksCreatedFile: File = File::open(chunksCreatedPath).unwrap();
+
+        let reader: io::BufReader<File> = io::BufReader::new(chunksCreatedFile);
+
+        let mut lines = reader.lines();
+
+
+        // read the first line to get the total created chunks
+        let line1: String = lines.next()
+            .expect("Failed to get next line in ChunksCreated.txt, as it is at EOF")
+            .unwrap();
+
+        let totalCreatedChunks: i32 = line1.split_whitespace()
+            .last()
+            .expect("Failed to get last element in split whitespace string (ChunksCreated.txt)")
+            .parse::<i32>()
+            .unwrap();
+        
+        // skip the next 2 lines
+        lines.next();
+        lines.next();
+
+        // now read the next totalCreatedChunks lines and insert them into the hashmap
+        let mut line: String;
+        let mut x: i32 = 0;
+        let mut y: i32 = 0;
+        for i in 0..totalCreatedChunks {
+            line = lines.next()
+                .expect("Failed to get next line in ChunksCreated.txt, as it is at EOF")
+                .unwrap();
+
+            let mut splitLine = line.split_whitespace();
+            x = splitLine.next()
+            .expect("Failed to get next element of split whitespace line while reading ChunksCreated.txt")
+            .parse::<i32>()
+            .unwrap();
+
+
+            y = splitLine.next()
+            .expect("Failed to get next element of split whitespace line while reading ChunksCreated.txt")
+            .parse::<i32>()
+            .unwrap();
+
+
+            // insert these into the hashset and check if it is a dupe
+            if !self.createdChunks.insert((x, y)) {
+                // if insert returns false then it was already in the hashmap
+                eprintln!("Duplicate key found when reading chunk ids from ChunksCreated.txt: ({}, {})", x, y);
+            }
+        }
     }
 
 }
