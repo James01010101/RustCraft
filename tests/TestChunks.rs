@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 extern crate RustCraft;
-use RustCraft::Chunk::*;
+use RustCraft::Chunk::ChunkFunctions::*;
 
 
 

@@ -1,5 +1,6 @@
 
 use crate::Chunk::*;
+use crate::FileSystem::FileSystem;
 use crate::Objects::*;
 
 use std::collections::{HashMap, HashSet};
@@ -81,8 +82,8 @@ impl World {
     
 
 
-    // takes in the created chunks hashmap, loads the file where all of the chunks that have been created live and writes them to the hashmap
-    pub fn LoadCreatedChunks(createdChunks: &mut HashSet<(i32, i32)>) {
+    // takes in the filesystem, loads the file where all of the chunks that have been created live and writes them to the hashmap
+    pub fn LoadCreatedChunksFile(&mut self, myFileSystem: &mut FileSystem) {
 
         // open the file with this data and load it all into the hashmap
     }
