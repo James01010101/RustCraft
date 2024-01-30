@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::env;
 
 use std::ffi::OsStr;
-use std::fs;
+use std::fs::{create_dir_all, File};
 
 use crate::Settings::*;
 
@@ -25,12 +25,8 @@ impl FileSystem {
 
         // first check that the data folder exists
         let mut dataDirectory: PathBuf = match self.CheckDataFolder() {
-            Ok(path) => {
-                path // return this out
-            },
-            Err(e) => {
-                panic!("Failed to find data directory: {:?}", e);
-            }
+            Ok(path) => { path },
+            Err(e) => { panic!("Failed to find data directory: {:?}", e); }
         };
 
         // now check if this game world has a folder and files, if it doesnt ill make them
@@ -76,7 +72,7 @@ impl FileSystem {
         path.push("Worlds");
         if !path.exists() {
             // Create the directory if it does not exist
-            match fs::create_dir_all(&path) {
+            match create_dir_all(&path) {
                 Ok(_) => {
                     println!("Created Worlds Directory");
                 }
@@ -90,7 +86,7 @@ impl FileSystem {
         path.push(worldName);
         if !path.exists() {
             // Create the directory if it does not exist
-            match fs::create_dir_all(&path) {
+            match create_dir_all(&path) {
                 Ok(_) => {
                     println!("Created new game world directory: {:?}", worldName);
                 }
@@ -101,7 +97,35 @@ impl FileSystem {
         }
 
 
-        // TODO: #39 Check for chunk folder and chunk created file
+        // TODO: #39 Check for chunk folder 
+        path.push("Chunks");
+        if !path.exists() {
+            // Create the directory if it does not exist
+            match create_dir_all(&path) {
+                Ok(_) => {
+                    println!("Created chunks directory for world: {:?}", worldName);
+                }
+                Err(e) => {
+                    eprintln!("Failed to create chunks directory at path: {:?}", path)
+                }
+            }
+        }
+
+        // chunks created file
+        path.pop();
+        path.push("ChunksCreated.txt");
+
+        // if the file doesnt exist make it
+        if !path.exists() {
+            match File::create(&path) {
+                Ok(_) => {
+                    println!("Created ChunksCreated.txt file for world: {:?}", worldName);
+                }
+                Err(e) => {
+                    eprintln!("Failed to create ChunksCreated.txt at path: {:?}", path)
+                }
+            }
+        }
     }
 
 }
