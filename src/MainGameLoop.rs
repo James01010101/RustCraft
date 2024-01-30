@@ -19,6 +19,9 @@ use nalgebra::{Point3, Vector3};
 
 pub fn RunMainGameLoop() {
 
+    let dontStartScreen: bool = true;
+
+
     let sizeOfBlock: usize = mem::size_of::<Block>();
     //println!("Size of Block: {} bytes", sizeOfBlock);
 
@@ -57,6 +60,10 @@ pub fn RunMainGameLoop() {
     let mut angle: f32 = 0.0; // Current angle of rotation
     let rotation_speed: f32 = 0.0001; // Speed of rotation
     let radius: f32 = 3.0; // Distance from the center
+
+
+    // so i dont need to load the screen all the time if im just debugging
+    if dontStartScreen { return; }
     
     // stats before starting
     let mut frameNumber: u64 = 0;
@@ -79,6 +86,8 @@ pub fn RunMainGameLoop() {
         renderer.glfw.poll_events();
 
     }
+
+    // TODO: #44 implement clean up when window exit
 
 
     let totalWindowDuration_ms = windowStartTime.elapsed().as_millis();
