@@ -4,6 +4,7 @@ use std::env;
 
 use std::ffi::OsStr;
 use std::fs::{create_dir_all, File};
+use std::io::Write;
 
 use crate::Settings::*;
 
@@ -81,7 +82,8 @@ impl FileSystem {
                     println!("Created Worlds Directory");
                 }
                 Err(e) => {
-                    eprintln!("Failed to create World Directory at path: {:?}", path)
+                    eprintln!("Failed to create World Directory at path: {:?}", path);
+                    panic!("Error: {}", e);
                 }
             }
         }
@@ -95,7 +97,8 @@ impl FileSystem {
                     println!("Created new game world directory: {:?}", worldName);
                 }
                 Err(e) => {
-                    eprintln!("Failed to create new game world directory at path: {:?}", path)
+                    eprintln!("Failed to create new game world directory at path: {:?}", path);
+                    panic!("Error: {}", e);
                 }
             }
         }
@@ -109,7 +112,8 @@ impl FileSystem {
                     println!("Created chunks directory for world: {:?}", worldName);
                 }
                 Err(e) => {
-                    eprintln!("Failed to create chunks directory at path: {:?}", path)
+                    eprintln!("Failed to create chunks directory at path: {:?}", path);
+                    panic!("Error: {}", e);
                 }
             }
         }
@@ -119,16 +123,38 @@ impl FileSystem {
         path.push("ChunksCreated.txt");
 
         // if the file doesnt exist make it
+        let mut file: File;
+
         if !path.exists() {
-            match File::create(&path) {
-                Ok(_) => {
+            file = match File::create(&path) {
+                Ok(file) => {
                     println!("Created ChunksCreated.txt file for world: {:?}", worldName);
+                    file
                 }
                 Err(e) => {
-                    eprintln!("Failed to create ChunksCreated.txt at path: {:?}", path)
+                    eprintln!("Failed to create ChunksCreated.txt at path: {:?}", path);
+                    panic!("Error: {}", e);
+                }
+            };
+
+            // now write the headings to the file
+            let mut data: String = String::new();
+            data.push_str("Total Chunks Created : 0\n");
+            data.push_str(&format!("Chunk Sizes: ({}, {}, {})\n", chunkSizeX, chunkSizeY, chunkSizeZ));
+            // any other data i might want to save can go here
+            
+            data.push_str(&format!("Created Chunks:\n",));
+
+            // Write data to the file
+            match file.write_all(data.as_bytes()) {
+                Ok(_) => {}
+                Err(e) => { 
+                    eprintln!("Failed to write to ChunksCreated.txt");
+                    panic!("Error: {}", e);
                 }
             }
         }
+            
 
 
     }
