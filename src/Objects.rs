@@ -1,9 +1,12 @@
 use crate::World::Position;
 
 // what type of block is it
+#[derive(Clone, Copy)]
 pub enum BlockType {
     Air, // no block
 
+
+    // enviroment
     Grass,
     Dirt,
 
@@ -11,6 +14,11 @@ pub enum BlockType {
 
     Stone,
     Cobblestone,
+
+
+    // structure
+
+    // food
 
 }
 
@@ -52,6 +60,7 @@ impl BlockType {
 
 // the main strut to hold all info related to a block
 // previously 448 Bytes now 136 static (not including vector faces)
+#[derive(Clone, Copy)]
 pub struct Block {
     // what kind of object is it
     pub blockType: BlockType,
