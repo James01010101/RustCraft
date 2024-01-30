@@ -29,13 +29,12 @@ pub fn RunMainGameLoop() {
     // create my kernels objects which will compile all my kernels
     //let kernels: Kernels = CreateKernels(&renderer);
 
+
     // create MY file system struct
     let mut fileSystem: FileSystem = FileSystem::new();
 
     // check the filesystem has folders and structure i expect
     fileSystem.CheckFileSystem();
-
-    // create the folders and files needed for this world if they havent been already
 
 
 
@@ -44,11 +43,12 @@ pub fn RunMainGameLoop() {
 
     // temp, add some blocks for testing
     world.AddTestBlocks();
+    world.LoadCreatedChunksFile(&mut fileSystem);
+
 
 
     // create the gpudata (vao, vbo, ebo)
     let mut gpuData: GPUData = GPUData::new();
-
 
     // update the instances buffer with the blocks model matricies
     gpuData.UpdateCubeInstances(&mut world);
@@ -60,7 +60,7 @@ pub fn RunMainGameLoop() {
     
     // stats before starting
     let mut frameNumber: u64 = 0;
-    let windowStartTime = Instant::now();
+    let windowStartTime: Instant = Instant::now();
     while !renderer.window.should_close() {
         frameNumber += 1; // keep increasing frame number
 
@@ -83,7 +83,7 @@ pub fn RunMainGameLoop() {
 
     let totalWindowDuration_ms = windowStartTime.elapsed().as_millis();
     let AvgFPS: f32 = frameNumber as f32 / (totalWindowDuration_ms as f32 / 1000.0);
-    println!("Total Window Time (ms): {:?}", totalWindowDuration_ms);
+    println!("\nTotal Window Time (ms): {:?}", totalWindowDuration_ms);
     println!("Total Frames Rendered: {}", frameNumber);
     println!("Average Frame Rate: {}", AvgFPS);
 }

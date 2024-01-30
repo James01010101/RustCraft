@@ -8,14 +8,14 @@ use std::fs::{create_dir_all, File};
 use crate::Settings::*;
 
 pub struct FileSystem {
-
+    pub dataDirectory: PathBuf,
 }
 
 
 impl FileSystem {
     pub fn new() -> FileSystem {
         FileSystem {
-
+            dataDirectory: PathBuf::new(),
         }
     }
 
@@ -24,13 +24,14 @@ impl FileSystem {
     pub fn CheckFileSystem(&mut self) {
 
         // first check that the data folder exists
-        let mut dataDirectory: PathBuf = match self.CheckDataFolder() {
+        self.dataDirectory = match self.CheckDataFolder() {
             Ok(path) => { path },
             Err(e) => { panic!("Failed to find data directory: {:?}", e); }
         };
 
+
         // now check if this game world has a folder and files, if it doesnt ill make them
-        self.CheckGameFiles(dataDirectory);
+        self.CheckGameFiles();
     }
 
 
@@ -66,7 +67,10 @@ impl FileSystem {
     }
 
 
-    pub fn CheckGameFiles(&mut self, mut path: PathBuf) {
+    pub fn CheckGameFiles(&mut self) {
+
+        // clone this so i can work on it without changing the data dir
+        let mut path: PathBuf = self.dataDirectory.clone();
 
         // check if the world folder exists
         path.push("Worlds");
@@ -97,7 +101,6 @@ impl FileSystem {
         }
 
 
-        // TODO: #39 Check for chunk folder 
         path.push("Chunks");
         if !path.exists() {
             // Create the directory if it does not exist
@@ -126,6 +129,8 @@ impl FileSystem {
                 }
             }
         }
+
+
     }
 
 }
