@@ -1,7 +1,7 @@
 
 use crate::Chunk::*;
 use crate::FileSystem::FileSystem;
-use crate::Objects::*;
+use crate::Block::*;
 
 use std::{collections::{HashMap, HashSet}, path::PathBuf};
 use std::io::{self, BufRead};
@@ -13,7 +13,7 @@ use std::fs::File;
 pub struct World {
 
     // TODO: #25 Use a hashmap to store currently loaded chunks
-    pub chunks: HashMap<[i32; 2], Chunk>,
+    pub chunks: HashMap<(i32, i32), Chunk>,
 
     // stores all of the chunks that have been created before
     pub createdChunks: HashSet<(i32, i32)>,
@@ -26,7 +26,7 @@ impl World {
     pub fn new() -> World {
 
         // stores all alive chunks in this so they can be rendered and used
-        let mut chunks: HashMap<[i32; 2], Chunk> = HashMap::new();
+        let mut chunks: HashMap<(i32, i32), Chunk> = HashMap::new();
 
         // a table of all of the chunks that have been calculated before, Key: (chunkIDx, chunkIDy)
         // the order the hashset is printed changes every run
@@ -77,6 +77,45 @@ impl World {
             -4, 0, 0)
         );
     }
+
+
+    pub fn AddTestChunks(&mut self) {
+        // create the new chunk
+        let mut k = (0, 0);
+        let mut c = Chunk::new(k.0, k.1, -1);
+
+        // fill the chunk with blocks
+        c.LoadChunk();
+
+        // insert into the hashmap
+        self.chunks.insert(k, c);
+
+        // create the new chunk
+        k = (0, 0);
+        c = Chunk::new(k.0, k.1, -1);
+        c.LoadChunk();
+        self.chunks.insert(k, c);
+
+        // create the new chunk
+        k = (2, 1);
+        c = Chunk::new(k.0, k.1, -1);
+        c.LoadChunk();
+        self.chunks.insert(k, c);
+
+        // create the new chunk
+        k = (-2, 1);
+        c = Chunk::new(k.0, k.1, -1);
+        c.LoadChunk();
+        self.chunks.insert(k, c);
+
+        // create the new chunk
+        k = (0, -1);
+        c = Chunk::new(k.0, k.1, -1);
+        c.LoadChunk();
+        self.chunks.insert(k, c);
+
+    }
+
 
 
     // takes in the filesystem, loads the file where all of the chunks that have been created live and writes them to the hashmap
