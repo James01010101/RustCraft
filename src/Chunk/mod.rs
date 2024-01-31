@@ -1,7 +1,12 @@
 
 
-use crate::Objects::*;
+use std::mem;
+
+use std::collections::HashMap;
+
+use crate::Block::*;
 use crate::Settings::*;
+use crate::World::*;
 
 pub mod ChunkFunctions;
 pub mod CreateChunks;
@@ -9,9 +14,9 @@ pub mod CreateChunks;
 
 // This will store all of the blocks and objects within a chunk
 pub struct Chunk {
-    // Blocks, These are all of the mostly static blocks that will be in the world, that fit into a single block
-    pub chunkBlocks: [[[Option<Block>; chunkSizeZ]; chunkSizeY]; chunkSizeX],
-
+    // Blocks, These are all of the mostly static blocks that will be in the world
+    // using a tuple as key so i can access it without needing to create a position struct just to get it
+    pub chunkBlocks: HashMap<(i32, i16, i32), Block>,
 
     // other objects like mobs that dont fit into a single block
     //pub chunkObjects: Vec
@@ -24,11 +29,21 @@ pub struct Chunk {
 
 
 impl Chunk {
-    pub fn new(idx: i32, idy: i32) -> Chunk {
-        Chunk {
-            chunkBlocks: [[[None; chunkSizeZ]; chunkSizeY]; chunkSizeX],
-            chunkIDx: idx,
-            chunkIDy: idy,
+    pub fn new(idx: i32, idy: i32, numBlocks: i32) -> Chunk {
+
+        // if a numBlocks was passed in ill allocate the hashmap of that size
+        if numBlocks != -1 {
+            Chunk {
+                chunkBlocks: HashMap::with_capacity(numBlocks as usize),
+                chunkIDx: idx,
+                chunkIDy: idy,
+            }
+        } else { // if the number of blocks needed is unknown ill just let it do its thing
+            Chunk {
+                chunkBlocks: HashMap::new(),
+                chunkIDx: idx,
+                chunkIDy: idy,
+            }
         }
     }
 }
