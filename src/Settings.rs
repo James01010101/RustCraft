@@ -11,7 +11,7 @@ pub const chunkSizeZ: usize = 256; // half under, half above
 // TODO: #24 work out how to offert indexess so z=0 is water level and negative is under
 pub const chunkOffestZ: usize = chunkSizeZ / 2; // this is what ill take away when indexing so that z=0 is water and under is negative
 
-// Render Distance is x and y directions, so 5 would be 25 chunks loaded
+// Render Distance is the radius of the circle
 pub const renderDistance: usize = 5;
 
 // the size of the instance buffer to render all of the blocks, might be different for each type???
