@@ -19,7 +19,7 @@ pub mod Renderer;
 pub mod Camera; // anything to do with camera
 pub mod GPUKernels; // where i write all gpu kernels
 pub mod Kernels;    // where i store the compiled kernels
-pub mod Objects; // where i create my basic objects like spheres and squares
+pub mod Block; // where i create my basic objects like spheres and squares
 pub mod World; // this is where all of the objects in the world are stored
 pub mod Settings; // this is a const settings file for things like chunk size, ray bounces ect.\
 pub mod Chunk; // where the blocks and chunks are stored
