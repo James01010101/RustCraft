@@ -4,7 +4,9 @@ use crate::Renderer::*;
 use crate::Settings::{maxBlocksRendered, screenFOV, screenHeight, screenWidth};
 use crate::World::*;
 use crate::GPUData::GPUData;
-use crate::Objects::*;
+use crate::Block::*;
+use crate::Chunk::*;
+
 
 extern crate gl;
 extern crate glfw;
@@ -22,8 +24,9 @@ pub fn RunMainGameLoop() {
     let dontStartScreen: bool = true;
 
 
-    let sizeOfBlock: usize = mem::size_of::<Block>();
-    //println!("Size of Block: {} bytes", sizeOfBlock);
+    println!("Size of Block: {} bytes", mem::size_of::<Block>());
+    println!("Size of Chunk: {} bytes\n", mem::size_of::<Chunk>());
+
 
 
     // create Renderer and window
@@ -46,6 +49,7 @@ pub fn RunMainGameLoop() {
 
     // temp, add some blocks for testing
     world.AddTestBlocks();
+    world.AddTestChunks();
     world.LoadCreatedChunksFile(&mut fileSystem);
 
 
@@ -62,14 +66,14 @@ pub fn RunMainGameLoop() {
     let radius: f32 = 3.0; // Distance from the center
 
 
-    // so i dont need to load the screen all the time if im just debugging
-    if dontStartScreen { return; }
-    
+ 
     // stats before starting
     let mut frameNumber: u64 = 0;
     let windowStartTime: Instant = Instant::now();
     while !renderer.window.should_close() {
         frameNumber += 1; // keep increasing frame number
+
+        if dontStartScreen { break; }
 
         // ... event handling ...
 
@@ -88,6 +92,7 @@ pub fn RunMainGameLoop() {
     }
 
     // TODO: #44 implement clean up when window exit
+    CleanUp(&mut world);
 
 
     let totalWindowDuration_ms = windowStartTime.elapsed().as_millis();
@@ -95,4 +100,25 @@ pub fn RunMainGameLoop() {
     println!("\nTotal Window Time (ms): {:?}", totalWindowDuration_ms);
     println!("Total Frames Rendered: {}", frameNumber);
     println!("Average Frame Rate: {}", AvgFPS);
+}
+
+
+// this will clean up all data before the program ends
+pub fn CleanUp(world: &mut World) {
+
+    let hashmapChunkKeys: Vec<(i32, i32)> = world.chunks.keys().cloned().collect();
+
+    // go through each chunk and call unload on it
+    let mut chunk: &Chunk;
+
+    for key in  hashmapChunkKeys {
+        // remove the chunk from the hashmap and return it
+        if let Some(mut chunk) = world.chunks.remove(&key) {
+            chunk.SaveChunkToFile();
+        } else {
+            // if the key doesnt match a value ill print this but not panic so i can save the rest
+            eprintln!("Failed CleanUp: cannot to find value with key {:?}", key);
+        }
+    }
+
 }
