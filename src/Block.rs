@@ -83,13 +83,13 @@ impl Block {
             posZ as f32
         ).to_homogeneous().into(); // into a float 4x4 array
 
-        //println!("Model Matrix: {:?}", modelMatrix);
-
         Block {
             blockType,
             position: Position { x: posX, y: posY, z: posZ },
             modelMatrix,
         }
     }
+
+    //TODO: #51 recalculate model matrix if a block is dynamic and moves
 }
 

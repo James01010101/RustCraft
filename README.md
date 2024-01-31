@@ -20,7 +20,8 @@ X: left and right. Left is negative, going right is positive
 Y, up and down, up is positive, down is negative
 Z: forward and back, forward is positive, backwards is negative
 
-the point of a block is the back bottom left vertex
+the point of a block is the front bottom left vertex
+same for the start of a chunk
 
 **GL Functions**
 BufferData copys the data to the gpu, it allocates a new array for the data and will automatically free the unused one
