@@ -81,40 +81,40 @@ impl World {
 
     pub fn AddTestChunks(&mut self) {
         // create the new chunk
-        let mut k: (i32, i32) = (1, 1);
+        let mut k: (i32, i32) = (0, 0);
         let mut c: Chunk = Chunk::new(k.0, k.1, -1);
 
         // fill the chunk with blocks
-        c.LoadChunk();
+        c.LoadChunk(&mut self.createdChunks);
 
         // insert into the hashmap
         self.chunks.insert(k, c);
 
-        /*
+        
         // create the new chunk
         k = (0, 0);
         c = Chunk::new(k.0, k.1, -1);
-        c.LoadChunk();
+        c.LoadChunk(&mut self.createdChunks);
         self.chunks.insert(k, c);
 
         // create the new chunk
         k = (2, 1);
         c = Chunk::new(k.0, k.1, -1);
-        c.LoadChunk();
+        c.LoadChunk(&mut self.createdChunks);
         self.chunks.insert(k, c);
 
         // create the new chunk
         k = (-2, 1);
         c = Chunk::new(k.0, k.1, -1);
-        c.LoadChunk();
+        c.LoadChunk(&mut self.createdChunks);
         self.chunks.insert(k, c);
 
         // create the new chunk
         k = (0, -1);
         c = Chunk::new(k.0, k.1, -1);
-        c.LoadChunk();
+        c.LoadChunk(&mut self.createdChunks);
         self.chunks.insert(k, c);
-        */
+        
 
     }
 
