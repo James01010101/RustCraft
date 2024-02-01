@@ -13,8 +13,9 @@ impl super::Chunk {
     
     
     // if this chunk has beenc created before then i create a Chunk obj, and fill it from wherever
-    pub fn LoadChunk(&mut self, createdChunks: &HashSet<(i32, i32)>) {
+    pub fn LoadChunk(&mut self, createdChunks: &mut HashSet<(i32, i32)>) {
 
+        // TODO: #54 check that the chunk isnt loaded before creating another chunk of that id
         // create the temp chunk Vector, which creates all blocks
         let mut tempChunkVec: Vec<Vec<Vec<Block>>> = self.CreateTempChunkVector();
 
@@ -27,6 +28,9 @@ impl super::Chunk {
         } else {
             // else create a new one
             self.GenerateChunk(&mut tempChunkVec);
+
+            // add this chunk to created chunks
+            createdChunks.insert((self.chunkIDx, self.chunkIDz));
         }
 
         // fill the chunkBlocks hashmap from the temp vector
@@ -40,6 +44,8 @@ impl super::Chunk {
     pub fn SaveChunkToFile(&mut self) {
         // save the chunk to a file then free it
         println!("Saving Chunk to File: ({}, {})", self.chunkIDx, self.chunkIDz);
+
+
     }
 
     // TODO: #19 Implement loading chunks from file
