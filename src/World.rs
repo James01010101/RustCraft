@@ -81,38 +81,40 @@ impl World {
 
     pub fn AddTestChunks(&mut self) {
         // create the new chunk
-        let mut k = (0, 0);
-        let mut c = Chunk::new(k.0, k.1, -1);
+        let mut k: (i32, i32) = (0, 0);
+        let mut c: Chunk = Chunk::new(k.0, k.1, -1);
 
         // fill the chunk with blocks
-        c.LoadChunk();
+        c.LoadChunk(&mut self.createdChunks);
 
         // insert into the hashmap
         self.chunks.insert(k, c);
 
+        
         // create the new chunk
         k = (0, 0);
         c = Chunk::new(k.0, k.1, -1);
-        c.LoadChunk();
+        c.LoadChunk(&mut self.createdChunks);
         self.chunks.insert(k, c);
 
         // create the new chunk
         k = (2, 1);
         c = Chunk::new(k.0, k.1, -1);
-        c.LoadChunk();
+        c.LoadChunk(&mut self.createdChunks);
         self.chunks.insert(k, c);
 
         // create the new chunk
         k = (-2, 1);
         c = Chunk::new(k.0, k.1, -1);
-        c.LoadChunk();
+        c.LoadChunk(&mut self.createdChunks);
         self.chunks.insert(k, c);
 
         // create the new chunk
         k = (0, -1);
         c = Chunk::new(k.0, k.1, -1);
-        c.LoadChunk();
+        c.LoadChunk(&mut self.createdChunks);
         self.chunks.insert(k, c);
+        
 
     }
 
@@ -150,7 +152,7 @@ impl World {
         // now read the next totalCreatedChunks lines and insert them into the hashmap
         let mut line: String;
         let mut x: i32 = 0;
-        let mut y: i32 = 0;
+        let mut z: i32 = 0;
         for i in 0..totalCreatedChunks {
             line = lines.next()
                 .expect("Failed to get next line in ChunksCreated.txt, as it is at EOF")
@@ -163,16 +165,16 @@ impl World {
             .unwrap();
 
 
-            y = splitLine.next()
+            z = splitLine.next()
             .expect("Failed to get next element of split whitespace line while reading ChunksCreated.txt")
             .parse::<i32>()
             .unwrap();
 
 
             // insert these into the hashset and check if it is a dupe
-            if !self.createdChunks.insert((x, y)) {
+            if !self.createdChunks.insert((x, z)) {
                 // if insert returns false then it was already in the hashmap
-                eprintln!("Duplicate key found when reading chunk ids from ChunksCreated.txt: ({}, {})", x, y);
+                eprintln!("Duplicate key found when reading chunk ids from ChunksCreated.txt: ({}, {})", x, z);
             }
         }
     }
@@ -183,7 +185,7 @@ impl World {
 // other important structs
 // a basic 3 int position position struct to store the xyz position of a block
 // its position is the bottom left back part of the square
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Position {
     pub x: i32,
     pub y: i16,
@@ -203,7 +205,7 @@ impl Position {
 
 
 // same but a float position
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct FPosition {
     pub x: f32,
     pub y: f32,

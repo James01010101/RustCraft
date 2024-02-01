@@ -23,26 +23,31 @@ pub struct Chunk {
 
     // Chunk ID eg. floor(posx / chuckSizex) is the chunk
     pub chunkIDx: i32,
-    pub chunkIDy: i32,
+    pub chunkIDz: i32,
+
+    // total number of non air blocks in the chunk
+    pub aliveBlocks: i32,
 
 }
 
 
 impl Chunk {
-    pub fn new(idx: i32, idy: i32, numBlocks: i32) -> Chunk {
+    pub fn new(idx: i32, idz: i32, numBlocks: i32) -> Chunk {
 
         // if a numBlocks was passed in ill allocate the hashmap of that size
         if numBlocks != -1 {
             Chunk {
                 chunkBlocks: HashMap::with_capacity(numBlocks as usize),
                 chunkIDx: idx,
-                chunkIDy: idy,
+                chunkIDz: idz,
+                aliveBlocks: numBlocks,
             }
         } else { // if the number of blocks needed is unknown ill just let it do its thing
             Chunk {
                 chunkBlocks: HashMap::new(),
                 chunkIDx: idx,
-                chunkIDy: idy,
+                chunkIDz: idz,
+                aliveBlocks: 0,
             }
         }
     }
