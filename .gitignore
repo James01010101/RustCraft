@@ -20,4 +20,8 @@ Cargo.lock
 
 *.txt
 
+# dont need anything in the blender file
 Blender/
+
+# no image files like textures
+*.png
