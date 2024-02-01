@@ -1,10 +1,10 @@
 use crate::World::Position;
 
 // what type of block is it
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BlockType {
     Air, // no block
-
+    Bedrock, // unbreakable block
 
     // enviroment
     Grass,
@@ -27,6 +27,7 @@ impl BlockType {
     pub fn IsDynamic(&self) -> bool {
         match self {
             BlockType::Air => false,
+            BlockType::Bedrock => false,
 
             BlockType::Grass => false,
             BlockType::Dirt => false,
@@ -42,6 +43,7 @@ impl BlockType {
         // go through it and divide by 255 and return
         match self {
             BlockType::Air => [175.0, 250.0, 250.0, 50.0].map(|x: f32| x / 255.0),
+            BlockType::Bedrock => [50.0, 50.0, 50.0, 255.0].map(|x: f32| x / 255.0),
 
             BlockType::Grass => [75.0, 150.0, 50.0, 255.0].map(|x: f32| x / 255.0),
             BlockType::Dirt => [75.0, 50.0, 0.0, 255.0].map(|x: f32| x / 255.0),
