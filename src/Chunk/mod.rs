@@ -25,6 +25,9 @@ pub struct Chunk {
     pub chunkIDx: i32,
     pub chunkIDz: i32,
 
+    // total number of non air blocks in the chunk
+    pub aliveBlocks: i32,
+
 }
 
 
@@ -37,12 +40,14 @@ impl Chunk {
                 chunkBlocks: HashMap::with_capacity(numBlocks as usize),
                 chunkIDx: idx,
                 chunkIDz: idz,
+                aliveBlocks: numBlocks,
             }
         } else { // if the number of blocks needed is unknown ill just let it do its thing
             Chunk {
                 chunkBlocks: HashMap::new(),
                 chunkIDx: idx,
                 chunkIDz: idz,
+                aliveBlocks: 0,
             }
         }
     }
