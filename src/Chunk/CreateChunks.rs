@@ -29,8 +29,6 @@ impl super::Chunk {
         let mut yPos: i16 = 0;
         let mut zPos: i32 = 0;
 
-        println!("Printing XYZ Values: ");
-
         for x in 0..chunkSizeX as i32 {
             let mut temp2d: Vec<Vec<Block>> = Vec::with_capacity(chunkSizeY);
 
@@ -49,44 +47,13 @@ impl super::Chunk {
                         zPos,
                         
                     ));
-
-                    print!("({} {} {}) ", xPos, yPos, zPos);
                 }
 
                 temp2d.push(temp1d);
-                println!("");
             }
 
             tempChunkVec.push(temp2d);
-            println!("");
         }
-
-        // now check vec
-        let mut x: usize = 0;
-        let mut y: usize = 0;
-        let mut z: usize = 0;
-        println!("Vector[{}][{}][{}] = {:?}", x, y, z, tempChunkVec[x][y][z].position);
-
-        x = 1;
-        y = 0;
-        z = 0;
-        println!("Vector[{}][{}][{}] = {:?}", x, y, z, tempChunkVec[x][y][z].position);
-
-        x = 1;
-        y = 0;
-        z = 1;
-        println!("Vector[{}][{}][{}] = {:?}", x, y, z, tempChunkVec[x][y][z].position);
-
-        x = 1;
-        y = 1;
-        z = 1;
-        println!("Vector[{}][{}][{}] = {:?}", x, y, z, tempChunkVec[x][y][z].position);
-
-        x = 7;
-        y = 1;
-        z = 1;
-        println!("Vector[{}][{}][{}] = {:?}", x, y, z, tempChunkVec[x][y][z].position);
-
 
         return tempChunkVec;
 
@@ -105,6 +72,45 @@ impl super::Chunk {
 
     */
     pub fn GenerateChunk(&mut self, tempChunkVec: &mut Vec<Vec<Vec<Block>>>) {
+        
+        println!("Generating Chunk: ({}, {})", self.chunkIDx, self.chunkIDz);
+
+        // start with the bottom level being bedrock
+        for x in 0..chunkSizeX {
+            for z in 0..chunkSizeZ {
+                tempChunkVec[x][0][z].blockType = BlockType::Bedrock;
+            }
+        }
+
+        let halfY: usize = chunkSizeY as usize / 2;
+
+        // stone up until the halfway point - 3
+        for x in 0..chunkSizeX {
+            for y in 1..halfY - 3 {
+                for z in 0..chunkSizeZ {
+                    tempChunkVec[x][y][z].blockType = BlockType::Stone;
+                }
+            }
+        }
+
+        // then 2 layers of dirt
+        for x in 0..chunkSizeX {
+            for y in halfY - 3..halfY - 1 {
+                for z in 0..chunkSizeZ {
+                    tempChunkVec[x][y][z].blockType = BlockType::Dirt;
+                }
+            }
+        }
+
+
+        // then one layer of grass
+        for x in 0..chunkSizeX {
+            for y in halfY - 1..halfY {
+                for z in 0..chunkSizeZ {
+                    tempChunkVec[x][y][z].blockType = BlockType::Grass;
+                }
+            }
+        }
 
     }
 
