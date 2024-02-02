@@ -164,7 +164,7 @@ impl World {
 
 // other important structs
 // a basic 3 int position position struct to store the xyz position of a block
-// its position is the bottom left back part of the square
+// its position is the bottom left front part of the square
 #[derive(Clone, Copy, Debug)]
 pub struct Position {
     pub x: i32,

@@ -61,13 +61,12 @@ impl BlockType {
 
 
 // the main strut to hold all info related to a block
-// previously 448 Bytes now 136 static (not including vector faces)
 #[derive(Clone, Copy)]
 pub struct Block {
     // what kind of object is it
     pub blockType: BlockType,
 
-    // its bottom left back position
+    // its bottom left front position
     pub position: Position,
 
     // this stores the transform to the camera for this block from world space to camera
