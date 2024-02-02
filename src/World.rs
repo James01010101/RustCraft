@@ -81,6 +81,7 @@ impl World {
 
     pub fn AddTestChunks(&mut self) {
         // create the new chunk
+        /*
         for x in -3..=3 {
             for z in -3..=3 {
                 let k: (i32, i32) = (x, z);
@@ -89,6 +90,7 @@ impl World {
                 self.chunks.insert(k, c);
             }
         }
+        */
 
         // add 0,0 again just to check for duplicated
         let k: (i32, i32) = (0, 0);

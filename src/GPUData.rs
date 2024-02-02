@@ -224,6 +224,7 @@ impl GPUData {
     }
 
 
+    // TODO: #57 correctly load the chunks of blocks onto the gpu
     pub fn UpdateCubeInstances(&mut self, world: &mut World) {
 
         self.instancesUsed = world.testBlocks.len() as u32;
