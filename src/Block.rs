@@ -3,8 +3,13 @@ use crate::World::Position;
 // what type of block is it
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BlockType {
+    // special blocks
     Air, // no block
     Bedrock, // unbreakable block
+
+    // food
+
+    // building
 
     // enviroment
     Grass,
@@ -16,9 +21,9 @@ pub enum BlockType {
     Cobblestone,
 
 
-    // structure
+    
 
-    // food
+    
 
 }
 
@@ -26,9 +31,11 @@ pub enum BlockType {
 impl BlockType {
     pub fn IsDynamic(&self) -> bool {
         match self {
+            // special blocks
             BlockType::Air => false,
             BlockType::Bedrock => false,
 
+            // enviroment
             BlockType::Grass => false,
             BlockType::Dirt => false,
 
@@ -52,6 +59,54 @@ impl BlockType {
 
             BlockType::Stone => [100.0, 100.0, 100.0, 255.0].map(|x: f32| x / 255.0),
             BlockType::Cobblestone => [150.0, 150.0, 150.0, 255.0].map(|x: f32| x / 255.0),
+        }
+    }
+
+    pub fn ToInt(&self) -> u16 {
+        match self {
+            // special blocks 0-20
+            BlockType::Air => 0,
+            BlockType::Bedrock => 1,
+
+            // food 21-100
+
+            // building 101-300
+
+            // enviroment 301-1000
+            BlockType::Grass => 301,
+            BlockType::Dirt => 302,
+
+            BlockType::Sand => 320,
+
+            BlockType::Stone => 400,
+            BlockType::Cobblestone => 401,
+
+            
+        }
+    }
+
+
+    pub fn FromInt(id: u16) -> Self {
+        match id {
+            // special blocks 0-20
+            0 => BlockType::Air,
+            1 => BlockType::Bedrock,
+
+            // food 21-100
+
+            // building 101-300
+
+            // enviroment 301-1000
+            301 => BlockType::Grass,
+            302 => BlockType::Dirt,
+
+            320 => BlockType::Sand,
+
+            400 => BlockType::Stone,
+            401 => BlockType::Cobblestone,
+
+            // if not found panic
+            _ => panic!("BlockType not found for id: {}", id),
         }
     }
 }

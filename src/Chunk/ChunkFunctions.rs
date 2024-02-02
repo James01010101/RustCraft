@@ -1,5 +1,6 @@
 
 use std::collections::HashSet;
+use std::fs::File;
 
 use gl::TEXTURE_COMPARE_FUNC;
 
@@ -39,14 +40,7 @@ impl super::Chunk {
     }
 
 
-    // TODO: #23 Implement saving chunks back to a file
-    // Once a chunk has been loaded and is in play, and then goes out of range it is unloaded and saved back to a file at certain time periods
-    pub fn SaveChunkToFile(&mut self) {
-        // save the chunk to a file then free it
-        println!("Saving Chunk to File: ({}, {})", self.chunkIDx, self.chunkIDz);
-
-
-    }
+    
 
     // TODO: #19 Implement loading chunks from file
     pub fn ReadChunkFromFile(&mut self, tempChunkVec: &mut Vec<Vec<Vec<Block>>>) {
@@ -68,6 +62,7 @@ impl super::Chunk {
                 for z in 0..chunkSizeZ {
                     // if the block is not air then add it to the hashmap
                     if tempChunkVec[x][y][z].blockType != BlockType::Air {
+
                         self.chunkBlocks.insert(
                             (tempChunkVec[x][y][z].position.x, tempChunkVec[x][y][z].position.y, tempChunkVec[x][y][z].position.z), 
                             tempChunkVec[x][y][z]
@@ -93,10 +88,40 @@ pub fn GetChunkId(posX: i32, posZ: i32) -> (i32, i32) {
 
 
 // given a chunk x and z id and a block position relative to the origin of the chunk return the world coordinate of the block
-pub fn GetBlockPos(blockIDx: i32, blockIDz: i32, relBlockX: i32, relBlockY: i16, relBlockZ: i32) -> (i32, i16, i32) {
+pub fn GetWorldBlockPos(blockIDx: i32, blockIDz: i32, relBlockX: i32, relBlockY: i16, relBlockZ: i32) -> (i32, i16, i32) {
     let worldX: i32 = (blockIDx * chunkSizeX as i32) + relBlockX;
     let worldY: i16 = relBlockY;
     let worldZ: i32 = (blockIDz * chunkSizeZ as i32) + relBlockZ;
 
     return (worldX, worldY, worldZ);
+}
+
+
+// go from blocks world position to chunk relative position
+pub fn GetRelativeBlockPos(worldX: i32, worldY: i16, worldZ: i32) -> (i32, i16, i32) {
+
+    /* this does the same thing, as below, below is just obviously more efficient
+    let mut chunkRelativeX: i32 = 0;
+    let mut chunkRelativeZ: i32 = 0;
+    let maxX: i32 = chunkSizeX as i32;
+    let maxZ: i32 = chunkSizeZ as i32;
+
+    if worldX >= 0 {
+        chunkRelativeX = worldX % chunkSizeX as i32;
+    } else {
+        chunkRelativeX = (maxX - (worldX % maxX).abs()) % maxX;
+    }
+
+    if worldZ >= -(chunkRelativeZ as i32) {
+        chunkRelativeZ = worldZ % chunkSizeZ as i32;
+    } else {
+        chunkRelativeZ = (maxZ - (worldZ % maxZ).abs()) % maxZ;
+    }
+    */
+    
+    let chunkRelativeX: i32 = worldX.rem_euclid(chunkSizeX as i32);
+    let chunkRelativeZ: i32 = worldZ.rem_euclid(chunkSizeZ as i32);
+
+
+    return (chunkRelativeX, worldY, chunkRelativeZ);
 }
