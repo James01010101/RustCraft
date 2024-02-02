@@ -15,7 +15,7 @@ pub struct GPUData {
 
     pub instancesUsed: u32, // how many of the instances am i actually using this frame
 
-    pub cubeVerticies: Vec<i32>,
+    pub cubeVertices: Vec<i32>,
     pub cubeTrisIndices: Vec<u16>, 
     pub cubeInstanceModelMatricies: [[[f32; 4]; 4]; maxBlocksRendered],
 
@@ -27,32 +27,33 @@ pub struct GPUData {
 
 impl GPUData {
     pub fn new () -> GPUData {
-        // cube verticies (assume starts at (0,0,0))
-        let cubeVerticies: Vec<i32> = vec![
-            0, 0, 0, // Bottom Back Left
-            1, 0, 0, // Bottom Back Right
-            1, 0, 1, // Bottom Front Right
-            0, 0, 1, // Bottom Front Left
-            0, 1, 0, // Top Back Left
-            1, 1, 0, // Top Back Right
-            1, 1, 1, // Top Front Right
-            0, 1, 1, // Top Front Left
+        // cube vertices (assume starts at (0,0,0))
+        let cubeVertices: Vec<i32> = vec![
+            0, 0, 0, // Bottom Front Left
+            1, 0, 0, // Bottom Front Right
+            1, 0, 1, // Bottom Back Right
+            0, 0, 1, // Bottom Back Left
+
+            0, 1, 0, // Top Front Left
+            1, 1, 0, // Top Front Right
+            1, 1, 1, // Top Back Right
+            0, 1, 1, // Top Back Left
         ];
 
-        // this is the indexes into the cubeVerticies array, so it knows what verticies to use for what triangles
+        // this is the indexes into the cubeVertices array, so it knows what vertices to use for what triangles
         let cubeTrisIndices: Vec<u16> = vec![
+            // Front face
+            0, 1, 5, 0, 5, 4,
+            // Back face
+            3, 2, 6, 3, 6, 7,
             // Bottom face
             0, 1, 2, 0, 2, 3,
             // Top face
             4, 5, 6, 4, 6, 7,
-            // Front face
-            3, 2, 6, 3, 6, 7,
-            // Back face
-            4, 5, 1, 4, 1, 0,
             // Left face
-            4, 0, 3, 4, 3, 7,
+            0, 3, 7, 0, 7, 4,
             // Right face
-            1, 5, 6, 1, 6, 2
+            1, 2, 6, 1, 6, 5
         ];
 
         // instance array
@@ -70,14 +71,14 @@ impl GPUData {
 
         // Create a VBO (Stores the verticies data)
         let mut cubeVbo: u32 = 0;
-        let vboBufferSize: usize = cubeVerticies.len() * std::mem::size_of::<i32>();
+        let vboBufferSize: usize = cubeVertices.len() * std::mem::size_of::<i32>();
         unsafe {
             gl::GenBuffers(1, &mut cubeVbo);
             gl::BindBuffer(gl::ARRAY_BUFFER, cubeVbo);
             gl::BufferData(
                 gl::ARRAY_BUFFER, 
                 vboBufferSize as gl::types::GLsizeiptr,
-                cubeVerticies.as_ptr() as *const gl::types::GLvoid, 
+                cubeVertices.as_ptr() as *const gl::types::GLvoid, 
                 gl::STATIC_DRAW
             );
 
@@ -165,7 +166,7 @@ impl GPUData {
 
             instancesUsed: 0,
 
-            cubeVerticies,
+            cubeVertices,
             cubeTrisIndices, 
             cubeInstanceModelMatricies,
 
