@@ -91,8 +91,7 @@ pub fn RunMainGameLoop() {
 
     }
 
-    // TODO: #44 implement clean up when window exit
-    CleanUp(&mut world);
+    CleanUp(&mut world, &mut fileSystem);
 
 
     let totalWindowDuration_ms = windowStartTime.elapsed().as_millis();
@@ -103,8 +102,9 @@ pub fn RunMainGameLoop() {
 }
 
 
+
 // this will clean up all data before the program ends
-pub fn CleanUp(world: &mut World) {
+pub fn CleanUp(world: &mut World, fileSystem: &mut FileSystem) {
 
     let hashmapChunkKeys: Vec<(i32, i32)> = world.chunks.keys().cloned().collect();
 
@@ -114,11 +114,13 @@ pub fn CleanUp(world: &mut World) {
     for key in  hashmapChunkKeys {
         // remove the chunk from the hashmap and return it
         if let Some(mut chunk) = world.chunks.remove(&key) {
-            chunk.SaveChunkToFile();
+            fileSystem.SaveChunkToFile(chunk);
         } else {
             // if the key doesnt match a value ill print this but not panic so i can save the rest
             eprintln!("Failed CleanUp: cannot to find value with key {:?}", key);
         }
     }
+
+    // TODO: #58 save the created chunks file
 
 }
