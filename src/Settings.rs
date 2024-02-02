@@ -8,8 +8,7 @@ pub const chunkSizeX: usize = 32; //32;
 pub const chunkSizeY: usize = 256; //256; // half under, half above, Y is up down
 pub const chunkSizeZ: usize = 32; //32; 
 
-// TODO: #24 work out how to offert indexess so z=0 is water level and negative is under
-pub const chunkOffestZ: usize = chunkSizeZ / 2; // this is what ill take away when indexing so that z=0 is water and under is negative
+pub const halfChunkY: usize = chunkSizeY / 2; // this is what ill take away when indexing so that z=0 is water and under is negative
 
 // Render Distance is the radius of the circle
 pub const renderDistance: usize = 5;

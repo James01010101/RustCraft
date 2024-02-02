@@ -3,9 +3,7 @@
 This file will be all of the rules for creating chunks and all the blocks within them
  */
 
-use super::chunkSizeX;
-use super::chunkSizeY;
-use super::chunkSizeZ;
+use crate::Settings::{chunkSizeX, chunkSizeY, chunkSizeZ, halfChunkY};
 use super::Block;
 use super::BlockType;
 
@@ -23,7 +21,6 @@ impl super::Chunk {
         let mut defaultBlock: Block = Block::new(BlockType::Air, 0, 0, 0);
 
         let mut tempChunkVec: Vec<Vec<Vec<Block>>> = Vec::with_capacity(chunkSizeX);
-        let halfY: i16 = chunkSizeY as i16 / 2;
 
         let mut xPos: i32 = 0;
         let mut yPos: i16 = 0;
@@ -37,7 +34,7 @@ impl super::Chunk {
 
                 for z in 0..chunkSizeZ as i32 {
                     xPos = (self.chunkIDx * chunkSizeX as i32) + x as i32;
-                    yPos = y - halfY;
+                    yPos = y - halfChunkY as i16;
                     zPos = (self.chunkIDz * chunkSizeZ as i32) + z as i32;
 
                     temp1d.push(Block::new(
@@ -60,8 +57,6 @@ impl super::Chunk {
     }
 
 
-
-    // TODO: #20 Implement Creating chunks if they havent been created before 
     /*
     if i havent created this chunk before then i create it, by creating a new chunk object and filling it with all the data it needs
 
@@ -82,11 +77,10 @@ impl super::Chunk {
             }
         }
 
-        let halfY: usize = chunkSizeY as usize / 2;
 
         // stone up until the halfway point - 3
         for x in 0..chunkSizeX {
-            for y in 1..halfY - 3 {
+            for y in 1..halfChunkY - 3 {
                 for z in 0..chunkSizeZ {
                     tempChunkVec[x][y][z].blockType = BlockType::Stone;
                 }
@@ -95,7 +89,7 @@ impl super::Chunk {
 
         // then 2 layers of dirt
         for x in 0..chunkSizeX {
-            for y in halfY - 3..halfY - 1 {
+            for y in halfChunkY - 3..halfChunkY - 1 {
                 for z in 0..chunkSizeZ {
                     tempChunkVec[x][y][z].blockType = BlockType::Dirt;
                 }
@@ -105,7 +99,7 @@ impl super::Chunk {
 
         // then one layer of grass
         for x in 0..chunkSizeX {
-            for y in halfY - 1..halfY {
+            for y in halfChunkY - 1..halfChunkY {
                 for z in 0..chunkSizeZ {
                     tempChunkVec[x][y][z].blockType = BlockType::Grass;
                 }
