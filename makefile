@@ -8,7 +8,7 @@ build: clear
 # run the game with release settings
 run: clear build
 	cargo run --release 
-	# > testOutput.txt
+# > testOutput.txt
 
 # test crates
 test: clear
