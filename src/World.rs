@@ -175,7 +175,6 @@ pub struct Position {
     pub z: i32,
 }   
 
-// TODO: make sure all positions use f32 for now since all gpu calculations use f32
 impl Position {
     pub fn new(x: i32, y: i16, z: i32) -> Position {
         Position {
@@ -195,7 +194,6 @@ pub struct FPosition {
     pub z: f32,
 }   
 
-// TODO: make sure all positions use f32 for now since all gpu calculations use f32
 impl FPosition {
     pub fn new(x: f32, y: f32, z: f32) -> FPosition {
         FPosition {

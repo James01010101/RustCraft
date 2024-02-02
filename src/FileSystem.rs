@@ -220,7 +220,6 @@ impl FileSystem {
     }
 
 
-    // TODO: #23 Implement saving chunks back to a file
     // Once a chunk has been loaded and is in play, and then goes out of range it is unloaded and saved back to a file
     // the chunk is not borrowed here so after this call it goes out of scope and is dropped
     pub fn SaveChunkToFile(&mut self, chunk: Chunk) {
@@ -272,12 +271,14 @@ impl FileSystem {
             data.push_str("\n");
         }
 
+        // TODO: #61 add some compression to the data before writing to the file
+
         // now write the data string to the file
         file.write_all(data.as_bytes()).unwrap();
     }
 
 
-    // TODO: #58 save the created chunks file
+    // save the created chunks file
     pub fn SaveCreatedChunksFile(&mut self, world: &mut World) {
         let mut data: String = String::new();
 

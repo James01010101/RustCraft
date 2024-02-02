@@ -42,7 +42,7 @@ impl super::Chunk {
 
     
 
-    // TODO: #19 Implement loading chunks from file
+    // TODO: #62 Implement loading chunks from file
     pub fn ReadChunkFromFile(&mut self, tempChunkVec: &mut Vec<Vec<Vec<Block>>>) {
         // read the chunk from a file and fill the temp vector with the data
         println!("Reading Chunk from File: ({}, {}) -> NOT IMPLEMENTED YET", self.chunkIDx, self.chunkIDz);
@@ -50,7 +50,7 @@ impl super::Chunk {
     }
 
 
-    // TODO: #52 convert the temp chunks vector into the hashmap
+    // convert the temp chunks vector into the hashmap
     pub fn FillChunksHashMap(&mut self, tempChunkVec: Vec<Vec<Vec<Block>>>) {
 
         // loop through the temp vector and fill the hashmap
