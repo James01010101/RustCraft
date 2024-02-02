@@ -153,13 +153,65 @@ impl FileSystem {
             data.push_str(&format!("Created Chunks:\n",));
 
             // Write data to the file
-            match file.write_all(data.as_bytes()) {
-                Ok(_) => {}
-                Err(e) => { 
-                    eprintln!("Failed to write to ChunksCreated.txt");
+            file.write_all(data.as_bytes()).unwrap()
+        }
+
+
+        // create a world info file
+        path.pop();
+        path.push("WorldInfo.txt");
+
+        // if the file doesnt exist make it
+        if !path.exists() {
+            file = match File::create(&path) {
+                Ok(file) => {
+                    println!("Created WorldInfo.txt file for world: {:?}", worldName);
+                    file
+                }
+                Err(e) => {
+                    eprintln!("Failed to create WorldInfo.txt at path: {:?}", path);
                     panic!("Error: {}", e);
                 }
-            }
+            };
+
+            // now write the headings to the file
+            let mut data: String = String::new();
+            data.push_str("Important Info Goes Here: \n");
+            file.write_all(data.as_bytes()).unwrap()
+        }
+
+
+        // create a stats info file
+        path.pop();
+        path.push("Stats.txt");
+
+        // if the file doesnt exist make it
+        if !path.exists() {
+            file = match File::create(&path) {
+                Ok(file) => {
+                    println!("Created Stats.txt file for world: {:?}", worldName);
+                    file
+                }
+                Err(e) => {
+                    eprintln!("Failed to create Stats.txt at path: {:?}", path);
+                    panic!("Error: {}", e);
+                }
+            };
+
+            // now write the headings to the file
+            let mut data: String = String::new();
+            data.push_str("TimeSpent: 0\n");
+            data.push_str("DistanceTravelled: 0\n");
+            data.push_str("BlocksPlaced: 0\n");
+            data.push_str("BlocksDestroyed: 0\n");
+            data.push_str("Deaths: 0\n");
+            data.push_str("DamageTaken: 0\n");
+            data.push_str("DamageDelt: 0\n");
+            data.push_str("MobsKilled: 0\n");
+
+
+            // Write data to the file
+            file.write_all(data.as_bytes()).unwrap()
         }
             
 
