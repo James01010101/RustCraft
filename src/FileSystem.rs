@@ -9,6 +9,7 @@ use std::io::Write;
 use crate::Settings::*;
 use crate::Chunk::*;
 use crate::Block::*;
+use crate::World::*;
 
 pub struct FileSystem {
     pub dataDirectory: PathBuf,
@@ -230,10 +231,7 @@ impl FileSystem {
         filePath.push(format!("{}_{}.txt", chunk.chunkIDx, chunk.chunkIDz));
 
         // first create the file, and overwrite it if it already exists
-        let mut file: File = match File::create(filePath) {
-            Ok(file) => { file },
-            Err(e) => { panic!("Failed to create chunk file: {:?}", e); }
-        };
+        let mut file: File = File::create(filePath).unwrap();
 
         /* 
         now write the chunk data to the file
@@ -275,16 +273,29 @@ impl FileSystem {
         }
 
         // now write the data string to the file
-        match file.write_all(data.as_bytes()) {
-            Ok(_) => {}
-            Err(e) => { 
-                eprintln!("Failed to write to chunk file: {:?}", e);
-                panic!("Error: {}", e);
-            }
-        }
-        
-        
+        file.write_all(data.as_bytes()).unwrap();
+    }
 
+
+    // TODO: #58 save the created chunks file
+    pub fn SaveCreatedChunksFile(&mut self, world: &mut World) {
+        let mut data: String = String::new();
+
+        // write the header lines
+        data.push_str(&format!("Total Chunks Created : {:?}\n", world.createdChunks.len()));
+        data.push_str(&format!("Chunk Sizes: ({}, {}, {})\n", chunkSizeX, chunkSizeY, chunkSizeZ));
+        data.push_str("Created Chunks: \n");
+        for key in world.createdChunks.drain() {
+            data.push_str(&format!("{} {}\n", key.0, key.1));
+        }
+
+        // open the file
+        let mut path: PathBuf = self.myWorldDirectory.clone();
+        path.push("ChunksCreated.txt");
+        let mut file: File = File::create(path).unwrap();
+
+        // now write the data string to the file
+        file.write_all(data.as_bytes()).unwrap();
     }
 
 }

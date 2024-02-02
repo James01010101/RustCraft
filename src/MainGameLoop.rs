@@ -21,7 +21,7 @@ use nalgebra::{Point3, Vector3};
 
 pub fn RunMainGameLoop() {
 
-    let dontStartScreen: bool = true;
+    let dontStartScreen: bool = false;
 
 
     println!("Size of Block: {} bytes", mem::size_of::<Block>());
@@ -48,9 +48,10 @@ pub fn RunMainGameLoop() {
     let mut world: World = World::new();
 
     // temp, add some blocks for testing
+    world.LoadCreatedChunksFile(&mut fileSystem);
     world.AddTestBlocks();
     world.AddTestChunks();
-    world.LoadCreatedChunksFile(&mut fileSystem);
+    
 
 
 
@@ -109,7 +110,7 @@ pub fn CleanUp(world: &mut World, fileSystem: &mut FileSystem) {
     let hashmapChunkKeys: Vec<(i32, i32)> = world.chunks.keys().cloned().collect();
 
     // go through each chunk and call unload on it
-    let mut chunk: &Chunk;
+    //let mut chunk: &Chunk;
 
     for key in  hashmapChunkKeys {
         // remove the chunk from the hashmap and return it
@@ -121,6 +122,6 @@ pub fn CleanUp(world: &mut World, fileSystem: &mut FileSystem) {
         }
     }
 
-    // TODO: #58 save the created chunks file
+    fileSystem.SaveCreatedChunksFile(world);
 
 }
