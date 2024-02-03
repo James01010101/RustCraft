@@ -12,7 +12,7 @@ use crate::Block::*;
 use crate::World::*;
 
 pub struct FileSystem {
-    pub dataDirectory: PathBuf,
+    pub assetsDirectory: PathBuf, // the directory of the assets folder
     pub myWorldDirectory: PathBuf, // the directory of blah/james's World/
 
 }
@@ -21,7 +21,7 @@ pub struct FileSystem {
 impl FileSystem {
     pub fn new() -> FileSystem {
         FileSystem {
-            dataDirectory: PathBuf::new(),
+            assetsDirectory: PathBuf::new(),
             myWorldDirectory: PathBuf::new(),
         }
     }
@@ -40,35 +40,32 @@ impl FileSystem {
 
     pub fn CheckDataFolder(&mut self) {
 
-        let mut dataDirectory: PathBuf = PathBuf::new();
+        let mut path: PathBuf = env::current_exe().unwrap();
+        println!("Current exe path: {:?}", path);
+        for _ in 0..exeDirectoryLevel {
+            path.pop();
+            println!("Popping back a directory: {:?}", path);
+        }
+        path.push("assets");
 
-        // Get a path from the executable to the datya folder
-        let exePath: PathBuf = env::current_exe().unwrap();
+        // save this as the assets directory
+        self.assetsDirectory = path.clone();
 
-        // Create a PathBuf from the executable's path
-        dataDirectory = PathBuf::from(exePath);
+        // continue to check the data directory
+        path.push("data");
+        println!("Data Directory: {:?}", path);
 
-        // Navigate back out until you find the data folder
-        dataDirectory.pop(); // Remove the executable name
-        dataDirectory.pop(); // Remove release dir
-        dataDirectory.pop(); // Remove target dir
-
-        // Append the relative path to the 'data' directory
-        dataDirectory.push("data");
-
-
-        if !dataDirectory.exists() || !dataDirectory.is_dir() {
-            panic!("Data directory does not exist or is not a directory");
+        if !path.exists() || !path.is_dir() {
+            panic!("Data directory ({:?}) does not exist or is not a directory", path);
         } 
-
-        self.dataDirectory = dataDirectory;
     }
 
 
     pub fn CheckGameFiles(&mut self) {
 
-        // clone this so i can work on it without changing the data dir
-        let mut path: PathBuf = self.dataDirectory.clone();
+        // get to the data dir
+        let mut path: PathBuf = self.assetsDirectory.clone();
+        path.push("data");
 
         // check if the world folder exists
         path.push("Worlds");

@@ -46,8 +46,10 @@ impl Renderer {
             glfw::WindowMode::Windowed
         )
             .expect("Failed to create GLFW window.");
-
+        
+        window.set_char_polling(true);
         window.set_key_polling(true);
+        window.set_mouse_button_polling(true);
         window.make_current();
         
 
@@ -177,4 +179,5 @@ fn CreateOpenGLProgram() -> u32 {
 
 
 }
+
 

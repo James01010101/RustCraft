@@ -11,7 +11,7 @@ use crate::Chunk::*;
 extern crate gl;
 extern crate glfw;
 
-use glfw::Context;
+use glfw::{Context, Key, Action};
 
 use std::time::Instant;
 use std::mem;
@@ -76,19 +76,73 @@ pub fn RunMainGameLoop() {
 
         if dontStartScreen { break; }
 
-        // ... event handling ...
-
         // rotate the camera for testing
         angle += rotation_speed;
         renderer.camera.position.x = radius * angle.cos();
         renderer.camera.position.z = radius * angle.sin();
+
+
+        // TODO: #35 deal with events
+        renderer.glfw.poll_events();
+        for (_, event) in glfw::flush_messages(&renderer.events) {
+            match event {
+
+                // any key event
+                glfw::WindowEvent::Key(key, scancode, action, modifiers) => {
+                    match (key, action) {
+                        (Key::Escape, Action::Press) => {
+                            renderer.window.set_should_close(true);
+                        },
+                        (Key::Space, Action::Press) => {
+                            println!("Space Pressed")
+                        },
+                        _ => {} // default
+                    }
+                },
+
+                // cursor moved
+                glfw::WindowEvent::CursorPos(newX, newY) => {
+                    println!("cursor moved to: {:?}", (newX, newY));
+                },
+
+                // mouse click
+                glfw::WindowEvent::MouseButton(button, action, modifiers) => {
+                    match (button, action) {
+                        (glfw::MouseButton::Button1, glfw::Action::Press) => {
+                            println!("Left Mouse Button Pressed");
+                        },
+                        (glfw::MouseButton::Button2, glfw::Action::Press) => {
+                            println!("Right Mouse Button Pressed");
+                        },
+                        _ => {} // default
+                    }
+                },
+
+                // deal with resize events here
+                glfw::WindowEvent::FramebufferSize(width, height) => {
+                    renderer.camera.aspectRatio = width as f32 / height as f32;
+                    unsafe { gl::Viewport(0, 0, width, height); }
+                },
+
+                // deal with user typing characters
+                glfw::WindowEvent::Char(character) => {
+                    println!("User Typed Character: {:?}", character);
+
+                    // TODO: #69 deal with user typing input
+                },
+
+                // default
+                _ => {}
+            }
+        }
+
+        // other calculations for this frame
     
 
         // Render the frame
         gpuData.RenderFrame(&mut renderer);
         
-        // TODO: #35 deal with events
-        renderer.glfw.poll_events();
+        
 
     }
 
