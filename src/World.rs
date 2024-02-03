@@ -162,6 +162,13 @@ impl World {
         }
     }
 
+    // TODO: #63 set world block from world coords
+
+    // TODO: #64 Get world block from world coords
+
+    // TODO: #65 Place block function
+
+    // TODO: #66 Break block function
 }
 
 
