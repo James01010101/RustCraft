@@ -31,46 +31,37 @@ impl FileSystem {
     pub fn CheckFileSystem(&mut self) {
 
         // first check that the data folder exists
-        self.dataDirectory = match self.CheckDataFolder() {
-            Ok(path) => { path },
-            Err(e) => { panic!("Failed to find data directory: {:?}", e); }
-        };
-
+        self.CheckDataFolder();
 
         // now check if this game world has a folder and files, if it doesnt ill make them
         self.CheckGameFiles();
     }
 
 
-    pub fn CheckDataFolder(&self) -> Result<PathBuf, PathBuf> {
+    pub fn CheckDataFolder(&mut self) {
 
         let mut dataDirectory: PathBuf = PathBuf::new();
 
         // Get a path from the executable to the datya folder
-        match env::current_exe() {
-            Ok(exePath) => {
-                // Create a PathBuf from the executable's path
-                dataDirectory = PathBuf::from(exePath);
+        let exePath: PathBuf = env::current_exe().unwrap();
 
-                // Navigate back out until you find the data folder
-                dataDirectory.pop(); // Remove the executable name
-                dataDirectory.pop(); // Remove release dir
-                dataDirectory.pop(); // Remove target dir
+        // Create a PathBuf from the executable's path
+        dataDirectory = PathBuf::from(exePath);
 
-                // Append the relative path to the 'data' directory
-                dataDirectory.push("data");
-            },
-            Err(e) => {
-                eprintln!("Failed to get current executable path: {}", e);
-            }
-        }
+        // Navigate back out until you find the data folder
+        dataDirectory.pop(); // Remove the executable name
+        dataDirectory.pop(); // Remove release dir
+        dataDirectory.pop(); // Remove target dir
 
-        if dataDirectory.exists() && dataDirectory.is_dir() {
-            Ok(dataDirectory)
-        } else {
-            Err(dataDirectory)
-        }
+        // Append the relative path to the 'data' directory
+        dataDirectory.push("data");
 
+
+        if !dataDirectory.exists() || !dataDirectory.is_dir() {
+            panic!("Data directory does not exist or is not a directory");
+        } 
+
+        self.dataDirectory = dataDirectory;
     }
 
 
@@ -83,15 +74,7 @@ impl FileSystem {
         path.push("Worlds");
         if !path.exists() {
             // Create the directory if it does not exist
-            match create_dir_all(&path) {
-                Ok(_) => {
-                    println!("Created Worlds Directory");
-                }
-                Err(e) => {
-                    eprintln!("Failed to create World Directory at path: {:?}", path);
-                    panic!("Error: {}", e);
-                }
-            }
+            create_dir_all(&path).unwrap();
         }
 
         // now check if there is a folder for this game world
@@ -115,15 +98,7 @@ impl FileSystem {
         path.push("Chunks");
         if !path.exists() {
             // Create the directory if it does not exist
-            match create_dir_all(&path) {
-                Ok(_) => {
-                    println!("Created chunks directory for world: {:?}", worldName);
-                }
-                Err(e) => {
-                    eprintln!("Failed to create chunks directory at path: {:?}", path);
-                    panic!("Error: {}", e);
-                }
-            }
+            create_dir_all(&path).unwrap();
         }
 
         // chunks created file
@@ -134,17 +109,8 @@ impl FileSystem {
         let mut file: File;
 
         if !path.exists() {
-            file = match File::create(&path) {
-                Ok(file) => {
-                    println!("Created ChunksCreated.txt file for world: {:?}", worldName);
-                    file
-                }
-                Err(e) => {
-                    eprintln!("Failed to create ChunksCreated.txt at path: {:?}", path);
-                    panic!("Error: {}", e);
-                }
-            };
-
+            file = File::create(&path).unwrap();
+                
             // now write the headings to the file
             let mut data: String = String::new();
             data.push_str("Total Chunks Created : 0\n");
@@ -164,16 +130,7 @@ impl FileSystem {
 
         // if the file doesnt exist make it
         if !path.exists() {
-            file = match File::create(&path) {
-                Ok(file) => {
-                    println!("Created WorldInfo.txt file for world: {:?}", worldName);
-                    file
-                }
-                Err(e) => {
-                    eprintln!("Failed to create WorldInfo.txt at path: {:?}", path);
-                    panic!("Error: {}", e);
-                }
-            };
+            file = File::create(&path).unwrap();
 
             // now write the headings to the file
             let mut data: String = String::new();
@@ -188,16 +145,7 @@ impl FileSystem {
 
         // if the file doesnt exist make it
         if !path.exists() {
-            file = match File::create(&path) {
-                Ok(file) => {
-                    println!("Created Stats.txt file for world: {:?}", worldName);
-                    file
-                }
-                Err(e) => {
-                    eprintln!("Failed to create Stats.txt at path: {:?}", path);
-                    panic!("Error: {}", e);
-                }
-            };
+            file = File::create(&path).unwrap();
 
             // now write the headings to the file
             let mut data: String = String::new();
