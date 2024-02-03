@@ -25,3 +25,6 @@ Blender/
 
 # no image files like textures
 *.png
+
+# my compressed shipping versions
+shipping/

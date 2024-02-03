@@ -2,6 +2,11 @@
 
 // the name of the current world im loading
 pub const worldName: &str = "James's World";
+pub const worldSeed: u64 = 1;
+
+// if shipping is not enabled i go back 3 directories to get to the assets folder otherwise i go back 1 for shipping
+pub const exeDirectoryLevel: usize = if cfg!(feature = "shipping") { 1 } else { 3 };
+
 
 // Chunk Size
 pub const chunkSizeX: usize = 32; //32;
