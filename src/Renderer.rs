@@ -47,6 +47,7 @@ impl Renderer {
         )
             .expect("Failed to create GLFW window.");
         
+        window.set_pos(0, 30); // spawn the window on the top left of the screen so its out of the way (+y30 so i can see the top bar)
         window.set_char_polling(true);
         window.set_key_polling(true);
         window.set_mouse_button_polling(true);
