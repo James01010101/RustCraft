@@ -23,7 +23,7 @@ clean:
 	cargo clean
 
 
-worldclean:
+cleanworld:
 	rm -rf assets/data/Worlds/*
 
 
