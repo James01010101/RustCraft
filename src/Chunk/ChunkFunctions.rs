@@ -6,6 +6,7 @@ use gl::TEXTURE_COMPARE_FUNC;
 
 use crate::Block::*;
 use crate::Settings::*;
+use crate::FileSystem::*;
 
 
 
@@ -14,7 +15,7 @@ impl super::Chunk {
     
     
     // if this chunk has beenc created before then i create a Chunk obj, and fill it from wherever
-    pub fn LoadChunk(&mut self, createdChunks: &mut HashSet<(i32, i32)>) {
+    pub fn LoadChunk(&mut self, filesystem: &mut FileSystem, createdChunks: &mut HashSet<(i32, i32)>) {
 
         // TODO: #54 check that the chunk isnt loaded before creating another chunk of that id
         // create the temp chunk Vector, which creates all blocks
@@ -23,8 +24,11 @@ impl super::Chunk {
         // fill the temp vector with data
         // first check if the chunk has been created before if so load it
         if createdChunks.contains(&(self.chunkIDx, self.chunkIDz)) {
+
+            // now check if it is loaded, if it is then i can just ignore it, if it isnt loaded then i need to read it from a file
+            // it will already be loaded if i try to load a chunk already in the game
             // has been created before so load from file
-            self.ReadChunkFromFile(&mut tempChunkVec);
+            filesystem.ReadChunkFromFile(&mut tempChunkVec, self.chunkIDx, self.chunkIDz);
 
         } else {
             // else create a new one
@@ -42,12 +46,7 @@ impl super::Chunk {
 
     
 
-    // TODO: #62 Implement loading chunks from file
-    pub fn ReadChunkFromFile(&mut self, tempChunkVec: &mut Vec<Vec<Vec<Block>>>) {
-        // read the chunk from a file and fill the temp vector with the data
-        println!("Reading Chunk from File: ({}, {}) -> NOT IMPLEMENTED YET", self.chunkIDx, self.chunkIDz);
-
-    }
+    
 
 
     // convert the temp chunks vector into the hashmap
