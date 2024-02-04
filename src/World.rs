@@ -44,7 +44,7 @@ impl World {
 
     }
 
-    pub fn AddTestBlocks(&mut self) {
+    pub fn AddTestBlocks(&mut self) { 
 
         // Create some blocks to put into the testBlocks array
         self.testBlocks.push(Block::new(
@@ -79,15 +79,21 @@ impl World {
     }
 
 
-    pub fn AddTestChunks(&mut self) {
+    pub fn AddTestChunks(&mut self, filesystem: &mut FileSystem) {
         // create the new chunk
         
         for x in -3..=3 {
             for z in -3..=3 {
                 let k: (i32, i32) = (x, z);
                 let mut c: Chunk = Chunk::new(k.0, k.1, -1);
-                c.LoadChunk(&mut self.createdChunks);
-                self.chunks.insert(k, c);
+
+                // check the file doesnt exist already 
+                if !self.chunks.contains_key(&k) {
+                    c.LoadChunk(filesystem, &mut self.createdChunks);
+                    self.chunks.insert(k, c);
+                } else {
+                    println!("Chunk ({}, {}) already exists", k.0, k.1);
+                }
             }
         }
         
@@ -95,8 +101,12 @@ impl World {
         // add 0,0 again just to check for duplicated
         let k: (i32, i32) = (0, 0);
         let mut c: Chunk = Chunk::new(k.0, k.1, -1);
-        c.LoadChunk(&mut self.createdChunks);
-        self.chunks.insert(k, c);
+        if !self.chunks.contains_key(&k) {
+            c.LoadChunk(filesystem, &mut self.createdChunks);
+            self.chunks.insert(k, c);
+        } else {
+            println!("Chunk ({}, {}) already exists", k.0, k.1);
+        }
 
     }
 
