@@ -4,7 +4,7 @@ use std::env;
 
 use std::ffi::OsStr;
 use std::fs::{create_dir_all, File};
-use std::io::Write;
+use std::io::{self, Write, BufRead};
 
 use crate::Settings::*;
 use crate::Chunk::*;
@@ -41,10 +41,8 @@ impl FileSystem {
     pub fn CheckDataFolder(&mut self) {
 
         let mut path: PathBuf = env::current_exe().unwrap();
-        println!("Current exe path: {:?}", path);
         for _ in 0..exeDirectoryLevel {
             path.pop();
-            println!("Popping back a directory: {:?}", path);
         }
         path.push("assets");
 
@@ -53,7 +51,6 @@ impl FileSystem {
 
         // continue to check the data directory
         path.push("data");
-        println!("Data Directory: {:?}", path);
 
         if !path.exists() || !path.is_dir() {
             panic!("Data directory ({:?}) does not exist or is not a directory", path);
@@ -244,4 +241,64 @@ impl FileSystem {
         file.write_all(data.as_bytes()).unwrap();
     }
 
+
+    // TODO: #62 Implement loading chunks from file
+    pub fn ReadChunkFromFile(&mut self, tempChunkVec: &mut Vec<Vec<Vec<Block>>>, chunkIDx: i32, chunkIDz: i32) {
+        // read the chunk from a file and fill the temp vector with the data
+        println!("Reading Chunk from File: ({}, {})", chunkIDx, chunkIDz);
+
+        // get the file path
+        let mut filePath: PathBuf = self.myWorldDirectory.clone();
+        filePath.push("Chunks");
+        filePath.push(format!("{}_{}.txt", chunkIDx, chunkIDz));
+
+        //check that this file exists
+        if !filePath.exists() {
+            panic!("Trying to read chunk file that does not exist: {:?}", filePath);
+        }
+
+        // open the file
+        let file: File = File::open(filePath).unwrap();
+
+        // read the file line by line
+        let reader: io::BufReader<File> = io::BufReader::new(file);
+        let mut lines = reader.lines();
+
+        // iterate through the lines and fill the temp vector with the data
+        let mut x: usize = 0;
+        let mut y: usize = 0;
+        let mut z: usize = 0;
+        let mut newline: String;
+        let mut skipLine: bool = false;
+        for line in lines {
+            newline = line.unwrap();
+
+            // so i can skip empty lines
+            if skipLine {
+                skipLine = false;
+                continue;
+            }
+
+            x = 0;
+            for block in newline.split_whitespace() {
+                tempChunkVec[x][y][z].blockType = BlockType::FromInt(block.parse::<u16>().unwrap());
+                x += 1;
+            }
+            z += 1;
+
+            // if ive read the whole layer increase y
+            if z == chunkSizeZ {
+                z = 0;
+                y += 1;
+                
+                // i need to read in the next line here and discard it
+                skipLine = true;
+
+                // if im at the end then break
+                if y == chunkSizeY {
+                    break;
+                }
+            }
+        }
+    }
 }

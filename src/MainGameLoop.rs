@@ -50,7 +50,7 @@ pub fn RunMainGameLoop() {
     // temp, add some blocks for testing
     world.LoadCreatedChunksFile(&mut fileSystem);
     world.AddTestBlocks();
-    world.AddTestChunks();
+    world.AddTestChunks(&mut fileSystem);
     
 
 
