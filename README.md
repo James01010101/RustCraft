@@ -2,15 +2,8 @@
 Minecraft from scratch using Rust
 
 // with window stuff
-gl docs: https://docs.rs/gl/latest/gl/all.html
-
-glfw docs: https://docs.rs/glfw/latest/glfw/all.html
-
-gl Examples for using shaders:
-https://github.com/brendanzab/gl-rs/blob/master/gl/examples/triangle.rs
-
-
-
+testing shaders
+https://github.com/austinEng/webgpu-samples/blob/main/src/shaders/basic.vert.wgsl
 
 
 Important Notes
