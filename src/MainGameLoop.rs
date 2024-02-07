@@ -2,10 +2,12 @@
 use crate::FileSystem::FileSystem;
 use crate::Renderer::*;
 use crate::Settings::{maxBlocksRendered, screenFOV, screenHeight, screenWidth};
+use crate::WindowWrapper::WindowWrapper;
 use crate::World::*;
 use crate::GPUData::GPUData;
 use crate::Block::*;
 use crate::Chunk::*;
+use crate::WindowWrapper::*;
 
 
 extern crate gl;
@@ -26,6 +28,9 @@ pub fn RunMainGameLoop() {
 
     println!("Size of Block: {} bytes", mem::size_of::<Block>());
     println!("Size of Chunk: {} bytes\n", mem::size_of::<Chunk>());
+
+    // Create the window wrapper
+    let mut windowWrapper: WindowWrapper = WindowWrapper::new("RustCraft", screenWidth as u32, screenHeight as u32);
 
 
 

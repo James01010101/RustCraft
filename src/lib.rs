@@ -17,7 +17,6 @@
 pub mod MainGameLoop; // where i create the window and renderer and the main loop
 pub mod Renderer;
 pub mod Camera; // anything to do with camera
-pub mod GPUKernels; // where i write all gpu kernels
 pub mod Kernels;    // where i store the compiled kernels
 pub mod Block; // where i create my basic objects like spheres and squares
 pub mod World; // this is where all of the objects in the world are stored
@@ -25,3 +24,4 @@ pub mod Settings; // this is a const settings file for things like chunk size, r
 pub mod Chunk; // where the blocks and chunks are stored
 pub mod GPUData; // where the vbo vao ebo, and vertex and index buffers are as well as textures
 pub mod FileSystem; // where anything to read and write to the file system is stored
+pub mod WindowWrapper; // where i store the window and event loop
