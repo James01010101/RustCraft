@@ -3,7 +3,6 @@
 extern crate glfw;
 extern crate gl;
 
-use crate::GPUKernels::OpenGLShaders;
 use crate::Camera::Camera;
 
 use std::ffi::{CStr, CString};
