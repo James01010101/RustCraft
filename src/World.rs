@@ -82,8 +82,8 @@ impl World {
     pub fn AddTestChunks(&mut self, filesystem: &mut FileSystem) {
         // create the new chunk
         
-        for x in -3..=3 {
-            for z in -3..=3 {
+        for x in -1..=1 {
+            for z in -1..=1 {
                 let k: (i32, i32) = (x, z);
                 let mut c: Chunk = Chunk::new(k.0, k.1, -1);
 
