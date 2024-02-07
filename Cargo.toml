@@ -8,6 +8,6 @@ shipping = []
 
 
 [dependencies]
-gl = "0.14.0"
-glfw = "0.54.0"
 nalgebra = "0.32.3"
+wgpu = "0.19.1"
+winit = "0.29.10"
