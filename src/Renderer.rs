@@ -1,183 +1,273 @@
 // This file will be for all rendering to windows
 
-extern crate glfw;
-extern crate gl;
-
-use crate::Camera::Camera;
+use crate::Camera::*;
+use crate::WindowWrapper::*;
 
 use std::ffi::{CStr, CString};
 
-use glfw::{Context, GlfwReceiver, PWindow, WindowEvent};
-use glfw::ffi::glfwSwapInterval;
+use wgpu::{
+    Device,
+    Queue,
+    Adapter,
+    Instance,
+    Surface,
+    ShaderModule,
+    PipelineLayout,
+    RenderPipeline,
+    SurfaceConfiguration,
+    TextureFormat,
+    PresentMode,
+    Texture,
+    TextureView,
+    Buffer,
+    BindGroup,
+    BindGroupLayout,
+    BindGroupDescriptor,
+    BindGroupEntry,
 
-use gl::types::{GLchar, GLint};
+
+    util::{DeviceExt},
+
+};
+
+use bytemuck::{Pod, Zeroable};
 
 
 pub struct Renderer {
-
-    pub glfw: glfw::Glfw,
-    pub window: PWindow,
-    pub events: GlfwReceiver<(f64, WindowEvent)>,
-
-    pub totalPixels: u32,
-
-    pub openGLProgram: u32,
-
-    pub camera: Camera,
-
-    // gpu memory locations
-    pub viewMatrixLocation: i32,
-    pub projectionMatrixLocation: i32,
-
+    pub instance: Instance,
+    pub surface: Surface<'static>,
+    pub adapter: Adapter,
+    pub device: Device,
+    pub queue: Queue,
+    pub vertShaderCode: ShaderModule,
+    pub fragShaderCode: ShaderModule,
+    pub pipeline_layout: PipelineLayout,
+    pub render_pipeline: RenderPipeline,
+    pub surfaceConfig: SurfaceConfiguration,
+    pub bind_group: wgpu::BindGroup,
+    pub uniform_buffer: wgpu::Buffer,
+    pub depth_texture: wgpu::Texture,
 }
 
 // this is where i write the functions for the Renderer Struct
 impl Renderer { 
-    pub fn new(width: u32, height: u32, fieldOfView: f32) -> Renderer {
-
-        let mut glfw: glfw::Glfw = glfw::init(glfw::fail_on_errors).unwrap();
-
-        // create the window
-        let (mut window, events) = glfw.create_window(
-            width, 
-            height, 
-            "RustCraft", 
-            glfw::WindowMode::Windowed
-        )
-            .expect("Failed to create GLFW window.");
+    pub async fn new(windowWrapper: &WindowWrapper, camera: &Camera) -> Renderer {
         
-        window.set_pos(0, 30); // spawn the window on the top left of the screen so its out of the way (+y30 so i can see the top bar)
-        window.set_char_polling(true);
-        window.set_key_polling(true);
-        window.set_mouse_button_polling(true);
-        window.make_current();
+        // set the window height and width variables
+        let windowHeight = windowWrapper.window.inner_size().height;
+        let windowWidth = windowWrapper.window.inner_size().width;
+
+        // create instance and surface
+        let instance = wgpu::Instance::default();
+        let surface = instance.create_surface(windowWrapper.window.clone()).unwrap();
+
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::HighPerformance,
+                force_fallback_adapter: false,
+                compatible_surface: Some(&surface),
+            })
+            .await
+            .unwrap();
+
+            let (device, queue) = adapter
+            .request_device(
+                &wgpu::DeviceDescriptor {
+                    label: None,
+                    required_features: wgpu::Features::empty(),
+                    required_limits: wgpu::Limits::default(),
+                },
+                None,
+            )
+            .await
+            .unwrap();
+
+        // compile my shaders
+        let vertShaderCode = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Vertex Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("Shaders/myVert.wgsl").into()),
+        });
+
+        let fragShaderCode = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Fragment Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("Shaders/myFrag.wgsl").into()),
+        });
+
+        let mut surfaceConfig = surface.get_default_config(
+            &adapter, 
+            windowWidth, 
+            windowHeight)
+            .unwrap();
+        surface.configure(&device, &surfaceConfig);
+
+        let swapchain_capabilities = surface.get_capabilities(&adapter);
+        let swapchain_format = swapchain_capabilities.formats[0];
+
         
-
-        // load all gl functions
-        gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
-        
-        // other important gl functions
-        unsafe {
-            // uncap the frame rate (0: uncapped, otherwise fps is monitorRefresh / n)
-            // TODO: #36 timedelta so movement isnt relative to fps
-            glfwSwapInterval(0);
-            
-            gl::Enable(gl::DEPTH_TEST);
-            
-            // use blending to use alpha channel for colours
-            gl::Enable(gl::BLEND);
-            gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-
-        }
-
-
-        // get the open gl version
-        let glVersion = unsafe {
-            let data = CStr::from_ptr(gl::GetString(gl::VERSION) as *const i8);
-            data.to_string_lossy().into_owned()
+        // describe the layout of the vertex buffer in memory, 3 floats of pos. 3 floats of color
+        let vertex_buffer_layout = wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<[f32;3]>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &[
+                wgpu::VertexAttribute {
+                    offset: 0,
+                    shader_location: 0,
+                    format: wgpu::VertexFormat::Float32x3,
+                },
+            ],
         };
-        println!("OpenGL version: {}", glVersion);
-
-        // make the open gl graphics pipeline
-        let openGLProgram = CreateOpenGLProgram();
-
-        // calculate camera info
-        let camera: Camera = Camera::new(fieldOfView, width, height);
-
-        // shader variables locations
-        let mut viewLocation: i32 = 0;
-        let mut projectionLocation: i32 = 0;
-        unsafe {
-            viewLocation = gl::GetUniformLocation(openGLProgram, CString::new("view").unwrap().as_ptr());
-            projectionLocation = gl::GetUniformLocation(openGLProgram, CString::new("projection").unwrap().as_ptr());
-        }
-
-        // create pixel buffers (CPU)
-        let totalPixels: u32 = width * height;
 
 
-        Renderer {
-            glfw: glfw,
-            window: window,
-            events: events,
+        // describe the layout of the instance buffer in memory, 4x4 matrix which is actually 4x vec4
+        let instance_buffer_layout = wgpu::VertexBufferLayout {
+                array_stride: std::mem::size_of::<[[f32; 4]; 4]>() as wgpu::BufferAddress,
+                step_mode: wgpu::VertexStepMode::Instance,
+                attributes: &wgpu::vertex_attr_array![2 => Float32x4, 3 => Float32x4, 4 => Float32x4, 5 => Float32x4],
+            };
 
-            totalPixels: totalPixels,
+        let colour_buffer_layout = wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Instance,
+            attributes: &[
+                wgpu::VertexAttribute {
+                    offset: 0,
+                    shader_location: 6,
+                    format: wgpu::VertexFormat::Float32x4,
+                    },
+                ],
+            };
 
-            openGLProgram: openGLProgram,
-
-            camera: camera,
-
-            viewMatrixLocation: viewLocation,
-            projectionMatrixLocation: projectionLocation,
-        }
-
-    }
-}
-
-
-// creates and compiles the vertex and fragment shaders into a program
-fn CreateOpenGLProgram() -> u32 {
-    unsafe {
-        // Create Vertex Shader
-        let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
-        gl::ShaderSource(vertex_shader, 1, &CString::new(OpenGLShaders::vertex_shader_source).unwrap().as_ptr(), std::ptr::null());
-        gl::CompileShader(vertex_shader);
-
-        // Check for vertex shader compile errors
-        let mut success = gl::FALSE as GLint;
-        let mut info_log: Vec<u8> = Vec::with_capacity(512);
-        info_log.set_len(512 - 1); // Subtract 1 to skip the trailing null character
-
-        gl::GetShaderiv(vertex_shader, gl::COMPILE_STATUS, &mut success);
-
-        if success != gl::TRUE as GLint {
-            gl::GetShaderInfoLog(vertex_shader, 512, std::ptr::null_mut(), info_log.as_mut_ptr() as *mut GLchar);
-            println!("ERROR::SHADER::COMPILATION_FAILED\n{}", std::str::from_utf8(&info_log).unwrap());
-        }
-    
-        // Create Fragment Shader
-        let fragment_shader = gl::CreateShader(gl::FRAGMENT_SHADER);
-        gl::ShaderSource(fragment_shader, 1, &CString::new(OpenGLShaders::fragment_shader_source).unwrap().as_ptr(), std::ptr::null());
-        gl::CompileShader(fragment_shader);
-
-        // Check for fragment shader compile errors
-        success = gl::FALSE as GLint;
-        let mut info_log: Vec<u8> = Vec::with_capacity(512);
-        info_log.set_len(512 - 1); // Subtract 1 to skip the trailing null character
-
-        gl::GetShaderiv(fragment_shader, gl::COMPILE_STATUS, &mut success);
-
-        if success != gl::TRUE as GLint {
-            gl::GetShaderInfoLog(fragment_shader, 512, std::ptr::null_mut(), info_log.as_mut_ptr() as *mut GLchar);
-            println!("ERROR::SHADER::COMPILATION_FAILED\n{}", std::str::from_utf8(&info_log).unwrap());
-        }
-    
-        // Create Shader Program
-        let shader_program = gl::CreateProgram();
-        gl::AttachShader(shader_program, vertex_shader);
-        gl::AttachShader(shader_program, fragment_shader);
-        gl::LinkProgram(shader_program);
         
-        // Check for linking errors
-        success = gl::FALSE as GLint;
-        let mut info_log = Vec::with_capacity(512);
-        info_log.set_len(512 - 1); // Subtract 1 to skip the trailing null character
+        // TODO: #79 move this uniform buffer into the gpu data, also create a staging buffer for it like instances
+        // this holsd the uniform data for the vertex shader, the view and projection matrixies
+        let vertUniforms: VertexUniforms = VertexUniforms {
+            view: camera.calculate_view_matrix().into(),
+            projection: camera.calculate_projection_matrix().into(),
+        };
 
-        gl::GetProgramiv(shader_program, gl::LINK_STATUS, &mut success);
+        // Create a buffer on the GPU and copy your uniform data into it
+        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Uniform Buffer"),
+            contents: bytemuck::bytes_of(&vertUniforms),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
 
-        if success != gl::TRUE as GLint {
-            gl::GetProgramInfoLog(shader_program, 512, std::ptr::null_mut(), info_log.as_mut_ptr() as *mut GLchar);
-            println!("ERROR::SHADER::PROGRAM::LINKING_FAILED\n{}", std::str::from_utf8(&info_log).unwrap());
+        // Create a bind group layout
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
+            label: Some("uniform bind group layout"),
+        });
+
+        // Create a bind group that binds your uniform buffer to binding point 0
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: uniform_buffer.as_entire_binding(),
+                },
+            ],
+            label: Some("uniform bind group"),
+        });
+
+        // used for depth testing so objects in front are drawn over objects behind
+        let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Depth Texture"),
+            size: wgpu::Extent3d {
+                width: windowWidth,
+                height: windowHeight,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Depth32Float,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[wgpu::TextureFormat::Depth32Float],
+        });
+
+        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Pipeline Layout"),
+            bind_group_layouts: &[&bind_group_layout],
+            push_constant_ranges: &[],
+        });
+
+        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Render Pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &vertShaderCode,
+                entry_point: "main", // the entry point for the vertex shader
+                buffers: &[vertex_buffer_layout, instance_buffer_layout, colour_buffer_layout], // Add the vertex_buffer_layout here
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &fragShaderCode,
+                entry_point: "main", // the entry point for the fragment shader
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: surfaceConfig.format,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })], 
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Cw,
+                cull_mode: Some(wgpu::Face::Back),
+                polygon_mode: wgpu::PolygonMode::Fill,
+                conservative: false,
+                unclipped_depth: false,
+            },
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth32Float,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview: None,
+        });
+        
+
+        Self {       
+            instance,
+            surface,
+            adapter,
+            device,
+            queue,
+            vertShaderCode,
+            fragShaderCode,
+            pipeline_layout,
+            render_pipeline,
+            surfaceConfig,
+            bind_group,
+            uniform_buffer,
+            depth_texture,
         }
-    
-        // Delete shaders; no longer necessary after linking
-        gl::DeleteShader(vertex_shader);
-        gl::DeleteShader(fragment_shader);
-
-        shader_program
     }
-
-
 }
 
 
+// Define your uniform data to store the view and projection matrixies
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+pub struct VertexUniforms {
+    pub view: [[f32; 4]; 4],
+    pub projection: [[f32; 4]; 4],
+}
