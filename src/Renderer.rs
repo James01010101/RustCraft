@@ -3,8 +3,6 @@
 use crate::Camera::*;
 use crate::WindowWrapper::*;
 
-use std::ffi::{CStr, CString};
-
 use wgpu::{
     Device,
     Queue,
@@ -15,23 +13,12 @@ use wgpu::{
     PipelineLayout,
     RenderPipeline,
     SurfaceConfiguration,
-    TextureFormat,
-    PresentMode,
-    Texture,
-    TextureView,
-    Buffer,
-    BindGroup,
-    BindGroupLayout,
-    BindGroupDescriptor,
-    BindGroupEntry,
 
-
-    util::{DeviceExt},
+    util::DeviceExt,
 
 };
 
 use bytemuck::{Pod, Zeroable};
-
 
 pub struct Renderer {
     pub instance: Instance,
@@ -104,7 +91,7 @@ impl Renderer {
         let swapchain_format = swapchain_capabilities.formats[0];
 
         
-        // describe the layout of the vertex buffer in memory, 3 floats of pos. 3 floats of color
+        // describe the layout of the vertex buffer in memory, 3 floats of pos
         let vertex_buffer_layout = wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<[f32;3]>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
