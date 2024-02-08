@@ -20,6 +20,10 @@ pub struct Camera {
 
 impl Camera {
     pub fn new(fov: f32, screenWidth: u32, screenHeight: u32) -> Camera {
+
+        // fov is in degrees
+        let fov: f32 = fov.to_radians();
+
         let aspectRatio: f32 = screenWidth as f32 / screenHeight as f32;
         let nearPlane: f32 = 0.1;
         let farPlane: f32 = 100.0;
@@ -42,7 +46,7 @@ impl Camera {
         ).to_homogeneous();
 
         Camera {
-            fov: fov.to_radians(),
+            fov: fov,
             aspectRatio,
             nearPlane,
             farPlane,
