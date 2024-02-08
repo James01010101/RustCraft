@@ -11,8 +11,8 @@ use winit::{
 };
 // will hold the event loop and window
 pub struct WindowWrapper {
-    eventLoop: EventLoop<()>,
-    window: Arc<Window>,
+    pub eventLoop: EventLoop<()>,
+    pub window: Arc<Window>,
 }
 
 
