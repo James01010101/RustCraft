@@ -1,9 +1,6 @@
 use crate::Settings::*;
-use crate::Renderer::*;
 use crate::World::*;
 
-use nalgebra::{Point3, Vector3};
-use wgpu::core::device::queue;
 use wgpu::{
     Device,
     Queue,
@@ -24,13 +21,13 @@ pub struct GPUData {
     pub cubeInstanceModelMatricies: [[[f32; 4]; 4]; maxBlocksRendered],
     pub cubeColours: [[f32; 4]; maxBlocksRendered], // temporary for now until i use textures
 
-    pub vertex_buf: wgpu::Buffer,
-    pub index_buf: wgpu::Buffer,
-    pub instance_buf: wgpu::Buffer,
-    pub colour_buf: wgpu::Buffer,
+    pub vertex_buf: Buffer,
+    pub index_buf: Buffer,
+    pub instance_buf: Buffer,
+    pub colour_buf: Buffer,
 
-    pub instance_staging_buf: wgpu::Buffer,
-    pub colour_staging_buf: wgpu::Buffer,
+    pub instance_staging_buf: Buffer,
+    pub colour_staging_buf: Buffer,
 
     pub instances_modified: bool,
     
@@ -44,35 +41,29 @@ impl GPUData {
         let cubeVertices: Vec<i32> = vec![
             0, 0, 0, // Bottom Front Left
             1, 0, 0, // Bottom Front Right
-            1, 0, 1, // Bottom Back Right
-            0, 0, 1, // Bottom Back Left
+            0, 1, 0, // Bottom Back Right
+            1, 1, 0, // Bottom Back Left
 
-            0, 1, 0, // Top Front Left
-            1, 1, 0, // Top Front Right
-            1, 1, 1, // Top Back Right
-            0, 1, 1, // Top Back Left
+            0, 0, 1, // Top Front Left
+            1, 0, 1, // Top Front Right
+            0, 1, 1, // Top Back Right
+            1, 1, 1, // Top Back Left
         ];
 
         // this is the indexes into the cubeVertices array, so it knows what vertices to use for what triangles
         let cubeIndices: Vec<u16> = vec![
-            // Front face
-            0, 1, 5, 0, 5, 4,
-            // Back face
-            3, 2, 6, 3, 6, 7,
-            // Bottom face
-            0, 1, 2, 0, 2, 3,
-            // Top face
-            4, 5, 6, 4, 6, 7,
-            // Left face
-            0, 3, 7, 0, 7, 4,
-            // Right face
-            1, 2, 6, 1, 6, 5
+            0, 1, 2, 2, 1, 3, // Front face
+            4, 6, 5, 5, 6, 7, // Back face
+            0, 2, 4, 4, 2, 6, // Left face
+            1, 5, 3, 3, 5, 7, // Right face
+            2, 3, 6, 6, 3, 7, // Top face
+            0, 4, 1, 1, 4, 5, // Bottom face
         ];
 
         // instance array
-        let cubeInstanceModelMatricies: [[[f32; 4]; 4]; maxBlocksRendered] = [[[0.0; 4]; 4]; maxBlocksRendered];
+        let mut cubeInstanceModelMatricies: [[[f32; 4]; 4]; maxBlocksRendered] = [[[0.0; 4]; 4]; maxBlocksRendered];
 
-        let cubeColours: [[f32; 4]; maxBlocksRendered] = [[0.0; 4]; maxBlocksRendered];
+        let mut cubeColours: [[f32; 4]; maxBlocksRendered] = [[0.0; 4]; maxBlocksRendered];
         
 
         // create the buffers for this data
@@ -109,13 +100,13 @@ impl GPUData {
         let instance_staging_buf: wgpu::Buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Instance Staging Buffer"),
             contents: bytemuck::cast_slice(&cubeInstanceModelMatricies),
-            usage: BufferUsages::COPY_SRC | BufferUsages::COPY_DST,
+            usage: BufferUsages::VERTEX | BufferUsages::COPY_SRC | BufferUsages::COPY_DST,
         });
 
         let colour_staging_buf: wgpu::Buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Colour Staging Buffer"),
             contents: bytemuck::cast_slice(&cubeColours),
-            usage: BufferUsages::COPY_SRC | BufferUsages::COPY_DST,
+            usage: BufferUsages::VERTEX | BufferUsages::COPY_SRC | BufferUsages::COPY_DST,
         });
 
         Self {
@@ -135,8 +126,6 @@ impl GPUData {
             colour_staging_buf,
 
             instances_modified: false,
-
-            
         }
     }
 
@@ -154,8 +143,12 @@ impl GPUData {
         }
 
         // update the staging gpu buffers and set the flag that this data has changed
-        let updatedInstances = queue.write_buffer(&self.instance_staging_buf, 0, bytemuck::cast_slice(&self.cubeInstanceModelMatricies));
-        let updatedColours = queue.write_buffer(&self.colour_staging_buf, 0, bytemuck::cast_slice(&self.cubeColours));
+        queue.write_buffer(&self.instance_staging_buf, 0, bytemuck::cast_slice(&self.cubeInstanceModelMatricies));
+        queue.write_buffer(&self.colour_staging_buf, 0, bytemuck::cast_slice(&self.cubeColours));
         self.instances_modified = true;
+
+        // submit those write buffers so they are run
+        queue.submit(std::iter::empty());
+
     }
 }
