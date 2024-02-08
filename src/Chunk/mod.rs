@@ -1,12 +1,8 @@
 
 
-use std::mem;
-
 use std::collections::HashMap;
 
 use crate::Block::*;
-use crate::Settings::*;
-use crate::World::*;
 
 pub mod ChunkFunctions;
 pub mod CreateChunks;

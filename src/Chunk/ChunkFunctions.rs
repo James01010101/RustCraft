@@ -1,6 +1,5 @@
 
 use std::collections::HashSet;
-use std::fs::File;
 
 use crate::Block::*;
 use crate::Settings::*;
