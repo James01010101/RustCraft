@@ -1,41 +1,23 @@
 
 use crate::FileSystem::FileSystem;
 use crate::Renderer::*;
-use crate::Settings::{maxBlocksRendered, screenFOV, screenHeight, screenWidth};
-use crate::WindowWrapper::WindowWrapper;
+use crate::Settings::{screenFOV, screenHeight, screenWidth};
+use crate::WindowWrapper::*;
 use crate::World::*;
 use crate::GPUData::GPUData;
 use crate::Block::*;
 use crate::Chunk::*;
-use crate::WindowWrapper::*;
 use crate::Camera::*;
 
 use std::time::Instant;
 use std::mem;
 use async_std::task;
 
-use nalgebra::{Point3, Vector3};
+use wgpu::util::DeviceExt;
 
-use wgpu::{
-    Surface,
-    Instance,
-    Adapter,
-    Device,
-    Queue,
-    ShaderModule,
-    PipelineLayout,
-    RenderPipeline,
-    SurfaceConfiguration,
-    util::{DeviceExt, BufferInitDescriptor},
-    BufferUsages,
-};
+use winit::event::{Event, WindowEvent};
 
-use winit::{
-    event::{Event, WindowEvent},
-    event_loop::EventLoop,
-    window::{WindowBuilder, Window},
-    dpi::LogicalSize,
-};
+
 
 pub fn RunMainGameLoop() {
 
@@ -49,7 +31,7 @@ pub fn RunMainGameLoop() {
     let mut windowWrapper: WindowWrapper = WindowWrapper::new("RustCraft", screenWidth as u32, screenHeight as u32);
 
     let mut camera: Camera = Camera::new(
-        screenFOV as f32,
+        screenFOV,
         screenWidth as u32,
         screenHeight as u32
     );
@@ -169,6 +151,8 @@ pub fn RunMainGameLoop() {
                             encoder.copy_buffer_to_buffer(&gpuData.colour_staging_buf, 0, &gpuData.colour_buf, 0, gpuData.colour_staging_buf.size());
                             gpuData.instances_modified = false;
                         }
+
+
                         let depth_texture_view = &renderer.depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
                         // set all of the commands i will use in the render pass
@@ -207,7 +191,7 @@ pub fn RunMainGameLoop() {
                             rpass.set_vertex_buffer(2, gpuData.colour_buf.slice(..));
 
                             rpass.set_pipeline(&renderer.render_pipeline);
-                            rpass.draw_indexed(0..36, 0, 0..5);
+                            rpass.draw_indexed(0..36, 0, 0..6);
                         } // the render pass must go out of scope before submit and present are called
                         // it finalises the render pass when it goes out of scope so it can be submitted to the gpu
 
@@ -223,81 +207,6 @@ pub fn RunMainGameLoop() {
             }
         })
         .unwrap();
-
-    /* Old Event Loop 
-    while !renderer.window.should_close() {
-        frameNumber += 1; // keep increasing frame number
-
-        if dontStartScreen { break; }
-
-        // rotate the camera for testing
-        angle += rotation_speed;
-        renderer.camera.position.x = radius * angle.cos();
-        renderer.camera.position.z = radius * angle.sin();
-
-
-        
-        renderer.glfw.poll_events();
-        for (_, event) in glfw::flush_messages(&renderer.events) {
-            match event {
-
-                // any key event
-                glfw::WindowEvent::Key(key, scancode, action, modifiers) => {
-                    match (key, action) {
-                        (Key::Escape, Action::Press) => {
-                            renderer.window.set_should_close(true);
-                        },
-                        (Key::Space, Action::Press) => {
-                            println!("Space Pressed")
-                        },
-                        _ => {} // default
-                    }
-                },
-
-                // cursor moved
-                glfw::WindowEvent::CursorPos(newX, newY) => {
-                    println!("cursor moved to: {:?}", (newX, newY));
-                },
-
-                // mouse click
-                glfw::WindowEvent::MouseButton(button, action, modifiers) => {
-                    match (button, action) {
-                        (glfw::MouseButton::Button1, glfw::Action::Press) => {
-                            println!("Left Mouse Button Pressed");
-                        },
-                        (glfw::MouseButton::Button2, glfw::Action::Press) => {
-                            println!("Right Mouse Button Pressed");
-                        },
-                        _ => {} // default
-                    }
-                },
-
-                // deal with resize events here
-                glfw::WindowEvent::FramebufferSize(width, height) => {
-                    renderer.camera.aspectRatio = width as f32 / height as f32;
-                    unsafe { gl::Viewport(0, 0, width, height); }
-                },
-
-                // deal with user typing characters
-                glfw::WindowEvent::Char(character) => {
-                    println!("User Typed Character: {:?}", character);
-
-                    // TODO: #69 deal with user typing input
-                },
-
-                // default
-                _ => {}
-            }
-        }
-
-        // other calculations for this frame
-    
-
-        // Render the frame
-        gpuData.RenderFrame(&mut renderer);
-        
-    }
-    */
 
     CleanUp(&mut world, &mut fileSystem);
 
