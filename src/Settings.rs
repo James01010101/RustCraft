@@ -20,7 +20,7 @@ pub const renderDistance: usize = 5;
 
 // the size of the instance buffer to render all of the blocks, might be different for each type???
 // TODO: #40 make sure the active rendered cant go above this
-pub const maxBlocksRendered: usize = 6;
+pub const maxBlocksRendered: usize = 5;
 
 pub const screenWidth: usize = 1920;
 pub const screenHeight: usize = 1080;
