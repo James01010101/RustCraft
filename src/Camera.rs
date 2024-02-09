@@ -12,14 +12,15 @@ pub struct Camera {
     pub position: FPosition,
     pub target: FPosition,
 
-    pub viewMatrix: Matrix4<f32>,
-    pub projectionMatrix: Matrix4<f32>,
-
 }
 
 
 impl Camera {
     pub fn new(fov: f32, screenWidth: u32, screenHeight: u32) -> Camera {
+
+        // fov is in degrees
+        let fov: f32 = fov.to_radians();
+
         let aspectRatio: f32 = screenWidth as f32 / screenHeight as f32;
         let nearPlane: f32 = 0.1;
         let farPlane: f32 = 100.0;
@@ -28,30 +29,14 @@ impl Camera {
         let position: FPosition = FPosition::new(0.0, 2.0, -5.0);
         let target: FPosition = FPosition::new(0.0, 0.0, 0.0);
 
-        let viewMatrix: Matrix4<f32> = nalgebra::Isometry3::look_at_rh(
-            &Point3::new(position.x, position.y, position.z), 
-            &Point3::new(target.x, target.y, target.z), 
-            &Vector3::y()
-        ).to_homogeneous();
-
-        let projectionMatrix: Matrix4<f32> = nalgebra::Perspective3::new(
-            aspectRatio, 
-            fov, 
-            nearPlane, 
-            farPlane
-        ).to_homogeneous();
-
         Camera {
-            fov: fov.to_radians(),
+            fov,
             aspectRatio,
             nearPlane,
             farPlane,
 
             position,
             target,
-
-            viewMatrix,
-            projectionMatrix,
         }
     }
 

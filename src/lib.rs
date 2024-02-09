@@ -4,7 +4,7 @@
 #![allow(non_upper_case_globals)]
 
 // might use these later
-#![allow(unused_imports)]
+//#![allow(unused_imports)]
 
 #![allow(dead_code)]
 #![allow(unused_mut)]
@@ -17,7 +17,6 @@
 pub mod MainGameLoop; // where i create the window and renderer and the main loop
 pub mod Renderer;
 pub mod Camera; // anything to do with camera
-pub mod Kernels;    // where i store the compiled kernels
 pub mod Block; // where i create my basic objects like spheres and squares
 pub mod World; // this is where all of the objects in the world are stored
 pub mod Settings; // this is a const settings file for things like chunk size, ray bounces ect.\

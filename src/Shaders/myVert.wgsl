@@ -2,7 +2,7 @@
 
 struct VertexOutput {
     @builtin(position) pos: vec4<f32>,
-    @location(1) fragColor: vec3<f32>,
+    @location(1) fragColor: vec4<f32>,
 };
 
 struct VertexUniforms {
@@ -16,7 +16,6 @@ struct Instance {
     @location(3) model1: vec4<f32>,
     @location(4) model2: vec4<f32>,
     @location(5) model3: vec4<f32>,
-    @location(6) colour: vec3<f32>,
 };
 
 
@@ -24,7 +23,7 @@ struct Instance {
 @group(0) @binding(0) var<uniform> uniformBuffer: VertexUniforms;
 
 @vertex
-fn main(@location(0) position : vec3<f32>, instance: Instance) -> VertexOutput {
+fn main(@location(0) position: vec3<f32>, instance: Instance, @location(6) colour: vec4<f32>) -> VertexOutput {
     var output: VertexOutput;
 
     // Reconstruct the model matrix from the instance data
@@ -39,6 +38,6 @@ fn main(@location(0) position : vec3<f32>, instance: Instance) -> VertexOutput {
     output.pos = uniformBuffer.projection * uniformBuffer.view * model * vec4<f32>(position, 1.0);
 
 
-    output.fragColor = instance.colour;
+    output.fragColor = colour;
     return output;
 }

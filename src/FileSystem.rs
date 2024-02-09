@@ -1,8 +1,7 @@
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::env;
 
-use std::ffi::OsStr;
 use std::fs::{create_dir_all, File};
 use std::io::{self, Write, BufRead};
 

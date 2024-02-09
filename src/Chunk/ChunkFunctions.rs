@@ -1,8 +1,5 @@
 
 use std::collections::HashSet;
-use std::fs::File;
-
-use gl::TEXTURE_COMPARE_FUNC;
 
 use crate::Block::*;
 use crate::Settings::*;
