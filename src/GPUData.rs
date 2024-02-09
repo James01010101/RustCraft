@@ -1,9 +1,6 @@
 use crate::Settings::*;
-use crate::Renderer::*;
 use crate::World::*;
 
-use nalgebra::{Point3, Vector3};
-use wgpu::core::device::queue;
 use wgpu::{
     Device,
     Queue,
@@ -18,19 +15,19 @@ use bytemuck;
 pub struct GPUData {
     pub instancesUsed: u32, // how many of the instances am i actually using this frame
 
-    pub cubeVertices: Vec<i32>,
+    pub cubeVertices: Vec<f32>,
     pub cubeIndices: Vec<u16>, 
 
     pub cubeInstanceModelMatricies: [[[f32; 4]; 4]; maxBlocksRendered],
     pub cubeColours: [[f32; 4]; maxBlocksRendered], // temporary for now until i use textures
 
-    pub vertex_buf: wgpu::Buffer,
-    pub index_buf: wgpu::Buffer,
-    pub instance_buf: wgpu::Buffer,
-    pub colour_buf: wgpu::Buffer,
+    pub vertex_buf: Buffer,
+    pub index_buf: Buffer,
+    pub instance_buf: Buffer,
+    pub colour_buf: Buffer,
 
-    pub instance_staging_buf: wgpu::Buffer,
-    pub colour_staging_buf: wgpu::Buffer,
+    pub instance_staging_buf: Buffer,
+    pub colour_staging_buf: Buffer,
 
     pub instances_modified: bool,
     
@@ -41,16 +38,16 @@ pub struct GPUData {
 impl GPUData {
     pub fn new (device: &Device) -> GPUData {
         // cube vertices (assume starts at (0,0,0))
-        let cubeVertices: Vec<i32> = vec![
-            0, 0, 0, // Bottom Front Left
-            1, 0, 0, // Bottom Front Right
-            1, 0, 1, // Bottom Back Right
-            0, 0, 1, // Bottom Back Left
+        let cubeVertices: Vec<f32> = vec![
+            0.0, 0.0, 0.0, // Bottom Front Left
+            1.0, 0.0, 0.0, // Bottom Front Right
+            1.0, 0.0, 1.0, // Bottom Back Right
+            0.0, 0.0, 1.0, // Bottom Back Left
 
-            0, 1, 0, // Top Front Left
-            1, 1, 0, // Top Front Right
-            1, 1, 1, // Top Back Right
-            0, 1, 1, // Top Back Left
+            0.0, 1.0, 0.0, // Top Front Left
+            1.0, 1.0, 0.0, // Top Front Right
+            1.0, 1.0, 1.0, // Top Back Right
+            0.0, 1.0, 1.0, // Top Back Left
         ];
 
         // this is the indexes into the cubeVertices array, so it knows what vertices to use for what triangles
@@ -58,22 +55,23 @@ impl GPUData {
             // Front face
             0, 1, 5, 0, 5, 4,
             // Back face
-            3, 2, 6, 3, 6, 7,
+            2, 3, 7, 2, 7, 6,
             // Bottom face
-            0, 1, 2, 0, 2, 3,
+            0, 3, 2, 0, 2, 1,
             // Top face
             4, 5, 6, 4, 6, 7,
             // Left face
-            0, 3, 7, 0, 7, 4,
+            0, 4, 7, 0, 7, 3,
             // Right face
             1, 2, 6, 1, 6, 5
         ];
 
         // instance array
+        
         let mut cubeInstanceModelMatricies: [[[f32; 4]; 4]; maxBlocksRendered] = [[[0.0; 4]; 4]; maxBlocksRendered];
 
         let mut cubeColours: [[f32; 4]; maxBlocksRendered] = [[0.0; 4]; maxBlocksRendered];
-        
+           
 
         // create the buffers for this data
         // now create the vertex buffer for the gpu
@@ -160,6 +158,9 @@ impl GPUData {
 
         // submit those write buffers so they are run
         queue.submit(std::iter::empty());
+
+        println!("Updated the cube instances: {:?}", self.cubeInstanceModelMatricies);
+        println!("Updated the cube Colours: {:?}", self.cubeColours);
 
     }
 }

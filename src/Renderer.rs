@@ -57,7 +57,7 @@ impl Renderer {
             .await
             .unwrap();
 
-            let (device, queue) = adapter
+        let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
@@ -93,15 +93,9 @@ impl Renderer {
         
         // describe the layout of the vertex buffer in memory, 3 floats of pos
         let vertex_buffer_layout = wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<[f32;3]>() as wgpu::BufferAddress,
+            array_stride: 3 * std::mem::size_of::<f32>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &[
-                wgpu::VertexAttribute {
-                    offset: 0,
-                    shader_location: 0,
-                    format: wgpu::VertexFormat::Float32x3,
-                },
-            ],
+            attributes: &wgpu::vertex_attr_array![0 => Float32x3],
         };
 
 
