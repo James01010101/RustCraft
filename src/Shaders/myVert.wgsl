@@ -6,8 +6,7 @@ struct VertexOutput {
 };
 
 struct VertexUniforms {
-    view: mat4x4<f32>,
-    projection: mat4x4<f32>,
+    projection_view_matrix: mat4x4<f32>,
 };
 
 // Break down the model matrix into four vec4<f32> types
@@ -35,7 +34,7 @@ fn main(@location(0) position: vec3<f32>, instance: Instance, @location(6) colou
     );
 
     // Multiply the position by the model matrix from the instance data
-    output.pos = uniformBuffer.projection * uniformBuffer.view * model * vec4<f32>(position, 1.0);
+    output.pos = uniformBuffer.projection_view_matrix * model * vec4<f32>(position, 1.0);
 
 
     output.fragColor = colour;

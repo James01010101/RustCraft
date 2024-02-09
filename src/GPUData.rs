@@ -1,8 +1,8 @@
 use crate::Settings::*;
 use crate::World::*;
+use crate::Renderer::*;
 
 use wgpu::{
-    Device,
     Queue,
     BufferUsages,
     Buffer,
@@ -28,6 +28,7 @@ pub struct GPUData {
 
     pub instance_staging_buf: Buffer,
     pub colour_staging_buf: Buffer,
+    pub vertex_uniform_staging_buf: Buffer,
 
     pub instances_modified: bool,
     
@@ -36,7 +37,7 @@ pub struct GPUData {
 
 
 impl GPUData {
-    pub fn new (device: &Device) -> GPUData {
+    pub fn new (renderer: &Renderer) -> GPUData {
         // cube vertices (assume starts at (0,0,0))
         let cubeVertices: Vec<f32> = vec![
             0.0, 0.0, 0.0, // Bottom Front Left
@@ -75,27 +76,27 @@ impl GPUData {
 
         // create the buffers for this data
         // now create the vertex buffer for the gpu
-        let vertex_buf = device.create_buffer_init(&BufferInitDescriptor {
+        let vertex_buf = renderer.device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: bytemuck::cast_slice(&cubeVertices),
             usage: BufferUsages::VERTEX,
         });
 
         // now make the index buffer for the gpu
-        let index_buf = device.create_buffer_init(&BufferInitDescriptor {
+        let index_buf = renderer.device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Index Buffer"),
             contents: bytemuck::cast_slice(&cubeIndices),
             usage: BufferUsages::INDEX,
         });
 
 
-        let instance_buf: wgpu::Buffer = device.create_buffer_init(&BufferInitDescriptor {
+        let instance_buf: wgpu::Buffer = renderer.device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Instance Buffer"),
             contents: bytemuck::cast_slice(&cubeInstanceModelMatricies),
             usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
         });
 
-        let colour_buf: wgpu::Buffer = device.create_buffer_init(&BufferInitDescriptor {
+        let colour_buf: wgpu::Buffer = renderer.device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Colour Buffer"),
             contents: bytemuck::cast_slice(&cubeColours),
             usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
@@ -104,17 +105,25 @@ impl GPUData {
 
         // use these staging buffers so that i can copy them to the gpu from the cpu, which takes along time, async
         // then once the buffers are ready i copy them to the actual buffers on the gpu to be used
-        let instance_staging_buf: wgpu::Buffer = device.create_buffer_init(&BufferInitDescriptor {
+        let instance_staging_buf: wgpu::Buffer = renderer.device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Instance Staging Buffer"),
             contents: bytemuck::cast_slice(&cubeInstanceModelMatricies),
             usage: BufferUsages::COPY_SRC | BufferUsages::COPY_DST,
         });
 
-        let colour_staging_buf: wgpu::Buffer = device.create_buffer_init(&BufferInitDescriptor {
+        let colour_staging_buf: wgpu::Buffer = renderer.device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Colour Staging Buffer"),
             contents: bytemuck::cast_slice(&cubeColours),
             usage: BufferUsages::COPY_SRC | BufferUsages::COPY_DST,
         });
+
+        // vertex uniform staging buiffer
+        let vertex_uniform_staging_buf: wgpu::Buffer = renderer.device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("Vertex Uniform Staging Buffer"),
+            contents: bytemuck::bytes_of(&renderer.vertUniforms),
+            usage: BufferUsages::COPY_SRC | BufferUsages::COPY_DST,
+        });
+
 
         Self {
             instancesUsed: 0,
@@ -131,6 +140,7 @@ impl GPUData {
 
             instance_staging_buf,
             colour_staging_buf,
+            vertex_uniform_staging_buf,
 
             instances_modified: false,
 
@@ -158,9 +168,6 @@ impl GPUData {
 
         // submit those write buffers so they are run
         queue.submit(std::iter::empty());
-
-        println!("Updated the cube instances: {:?}", self.cubeInstanceModelMatricies);
-        println!("Updated the cube Colours: {:?}", self.cubeColours);
 
     }
 }

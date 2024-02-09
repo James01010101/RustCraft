@@ -13,8 +13,6 @@ use std::time::Instant;
 use std::mem;
 use async_std::task;
 
-use wgpu::util::DeviceExt;
-
 use winit::event::{Event, WindowEvent};
 
 
@@ -53,7 +51,7 @@ pub fn RunMainGameLoop() {
 
 
     // create the gpudata buffers
-    let mut gpuData: GPUData = GPUData::new(&renderer.device);
+    let mut gpuData: GPUData = GPUData::new(&renderer);
     gpuData.UpdateCubeInstances(&mut world, &renderer.queue);
     
 
@@ -88,8 +86,11 @@ pub fn RunMainGameLoop() {
 
                         println!("Surface resize {new_size:?}");
 
-                        renderer.surfaceConfig.width = new_size.width.max(1);
-                        renderer.surfaceConfig.height = new_size.height.max(1);
+                        let new_width = new_size.width.max(1);
+                        let new_height = new_size.height.max(1);
+
+                        renderer.surfaceConfig.width = new_width;
+                        renderer.surfaceConfig.height = new_height;
                         renderer.surface.configure(&renderer.device, &renderer.surfaceConfig);
                         
                         // updates the porjection matrix, this doesnt exist yet
@@ -102,34 +103,25 @@ pub fn RunMainGameLoop() {
                         // so it always generates a new frame
                         windowWrapper.window.request_redraw();
 
+                        // update the cameras width height and aspect ratio
+                        camera.aspectRatio = new_width as f32 / new_height as f32;
+                        camera.calculate_projection_matrix();
+
 
                     }
                     WindowEvent::RedrawRequested => {
 
-                        // move the camera
+                        // move the camera first so it can start copying
                         // rotate the camera for testing
                         angle += rotation_speed;
                         camera.position.x = radius * angle.cos();
                         camera.position.z = radius * angle.sin();
 
-                        // Calculate the new view and projection matrices
-                        let vertUniforms: VertexUniforms = VertexUniforms {
-                            view: camera.calculate_view_matrix().into(),
-                            projection: camera.calculate_projection_matrix().into(),
-                        };
+                        // Calculate the new view and combined matrices
+                        camera.update(&mut renderer, &gpuData);
 
 
-                        // Create a temporary buffer with the new data for the uniform buffer
-                        let staging_buffer = renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                            label: Some("Staging uniform Buffer"),
-                            contents: bytemuck::bytes_of(&vertUniforms),
-                            usage: wgpu::BufferUsages::COPY_SRC,
-                        });
-
-
-
-
-                        // calculate the frams
+                        // calculate the frame
                         let frame = renderer.surface
                             .get_current_texture()
                             .expect("Failed to acquire next swap chain texture");
@@ -141,8 +133,11 @@ pub fn RunMainGameLoop() {
                                 label: None,
                             });
                         
+
+
+                        // Update buffers
                         // update the uniform buffer with the new camera position matricies
-                        encoder.copy_buffer_to_buffer(&staging_buffer, 0, &renderer.uniform_buffer, 0, staging_buffer.size());
+                        encoder.copy_buffer_to_buffer(&gpuData.vertex_uniform_staging_buf, 0, &renderer.uniform_buffer, 0, gpuData.vertex_uniform_staging_buf.size());
                         
 
                         // if my instances have changed then i update the instance buffer with its staging buffer

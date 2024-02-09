@@ -32,6 +32,7 @@ pub struct Renderer {
     pub render_pipeline: RenderPipeline,
     pub surfaceConfig: SurfaceConfiguration,
     pub bind_group: wgpu::BindGroup,
+    pub vertUniforms: VertexUniforms, 
     pub uniform_buffer: wgpu::Buffer,
     pub depth_texture: wgpu::Texture,
 }
@@ -120,10 +121,9 @@ impl Renderer {
 
         
         // TODO: #79 move this uniform buffer into the gpu data, also create a staging buffer for it like instances
-        // this holsd the uniform data for the vertex shader, the view and projection matrixies
+        // this holsd the uniform data for the vertex shader, the view and projection matrixies combined
         let vertUniforms: VertexUniforms = VertexUniforms {
-            view: camera.calculate_view_matrix().into(),
-            projection: camera.calculate_projection_matrix().into(),
+            projection_view_matrix: camera.projection_view_matrix,
         };
 
         // Create a buffer on the GPU and copy your uniform data into it
@@ -238,6 +238,7 @@ impl Renderer {
             render_pipeline,
             surfaceConfig,
             bind_group,
+            vertUniforms,
             uniform_buffer,
             depth_texture,
         }
@@ -249,6 +250,5 @@ impl Renderer {
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct VertexUniforms {
-    pub view: [[f32; 4]; 4],
-    pub projection: [[f32; 4]; 4],
+    pub projection_view_matrix: [[f32; 4]; 4],
 }
