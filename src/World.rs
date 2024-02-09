@@ -49,33 +49,35 @@ impl World {
         // Create some blocks to put into the testBlocks array
         self.testBlocks.push(Block::new(
             BlockType::Air, 
-            1, 0, 0)
-        );
-
-        self.testBlocks.push(Block::new(
-            BlockType::Dirt, 
             0, 0, 0)
         );
 
         self.testBlocks.push(Block::new(
+            BlockType::Dirt, 
+            1, 0, 0)
+        );
+
+        self.testBlocks.push(Block::new(
             BlockType::Grass, 
-            -1, 0, 0)
+            2, 0, 0)
         );
 
         self.testBlocks.push(Block::new(
             BlockType::Sand, 
-            -2, 0, 0)
+            3, 0, 0)
         );
 
         self.testBlocks.push(Block::new(
             BlockType::Stone, 
-            -3, 0, 0)
+            4, 0, 0)
         );
 
+        /*
         self.testBlocks.push(Block::new(
             BlockType::Cobblestone, 
             -4, 0, 0)
         );
+        */
     }
 
 
