@@ -30,7 +30,7 @@ impl Camera {
         let target: FPosition = FPosition::new(0.0, 0.0, 0.0);
 
         Camera {
-            fov: fov,
+            fov,
             aspectRatio,
             nearPlane,
             farPlane,
