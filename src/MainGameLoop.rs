@@ -63,7 +63,7 @@ pub fn RunMainGameLoop() {
     
     
     let mut angle: f32 = 0.0; // Current angle of rotation
-    let rotation_speed: f32 = 0.0001; // Speed of rotation
+    let rotation_speed: f32 = 0.008; // Speed of rotation
     let radius: f32 = 3.0; // Distance from the center
 
 
@@ -191,7 +191,7 @@ pub fn RunMainGameLoop() {
                             rpass.set_vertex_buffer(2, gpuData.colour_buf.slice(..));
 
                             rpass.set_pipeline(&renderer.render_pipeline);
-                            rpass.draw_indexed(0..36, 0, 0..6);
+                            rpass.draw_indexed(0..36, 0, 0..5);
                         } // the render pass must go out of scope before submit and present are called
                         // it finalises the render pass when it goes out of scope so it can be submitted to the gpu
 
