@@ -23,7 +23,12 @@ pub fn RunMainGameLoop() {
 
 
     println!("Size of Block: {} bytes", mem::size_of::<Block>());
-    println!("Size of Chunk: {} bytes\n", mem::size_of::<Chunk>());
+    println!("Size of Chunk: {} bytes", mem::size_of::<Chunk>());
+    println!("Size of u16: {} bytes", mem::size_of::<u16>());
+    println!("Max value of u16: {}", std::u16::MAX);
+    println!("Size of bool: {} bytes", mem::size_of::<bool>());
+    println!(); // for spacing
+    
 
     // Create the window wrapper
     let mut windowWrapper: WindowWrapper = WindowWrapper::new("RustCraft", screenWidth as u32, screenHeight as u32);
@@ -47,7 +52,7 @@ pub fn RunMainGameLoop() {
     // temp, add some blocks for testing
     world.LoadCreatedChunksFile(&mut fileSystem);
     //world.AddTestBlocks();
-    world.AddTestChunks(&mut fileSystem);
+    world.AddTestChunks(&mut fileSystem, &renderer);
 
 
     // create the gpudata buffers

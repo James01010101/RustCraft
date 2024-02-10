@@ -2,11 +2,11 @@
 use crate::Chunk::*;
 use crate::FileSystem::FileSystem;
 use crate::Block::*;
+use crate::Renderer::*;
 
 use std::{collections::{HashMap, HashSet}, path::PathBuf};
 use std::io::{self, BufRead};
 use std::fs::File;
-
 
 
 // this struct will hold all of the Chunks as well as arrays of mobs
@@ -81,7 +81,7 @@ impl World {
     }
 
 
-    pub fn AddTestChunks(&mut self, filesystem: &mut FileSystem) {
+    pub fn AddTestChunks(&mut self, filesystem: &mut FileSystem, renderer: &Renderer) {
         // create the new chunk
         
         /*
@@ -102,13 +102,21 @@ impl World {
         */
         
 
-        // add 0,0 again just to check for duplicated
+        // create the chunks id key
         let k: (i32, i32) = (0, 0);
-        let mut c: Chunk = Chunk::new(k.0, k.1, -1);
+        
+        // if the loaded chunks doesnt contain this chunk ill load it
         if !self.chunks.contains_key(&k) {
-            c.LoadChunk(filesystem, &mut self.createdChunks);
+
+            let mut c: Chunk = Chunk::new(k.0, k.1, -1);
+            c.LoadChunk(filesystem, &mut self.createdChunks, &renderer);
+
             self.chunks.insert(k, c);
+
+            
+
         } else {
+            // keep this debug so i know how many times it trys to reinsert the same chunk
             println!("Chunk ({}, {}) already exists", k.0, k.1);
         }
 
