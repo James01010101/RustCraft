@@ -18,8 +18,6 @@ impl super::Chunk {
     */
     pub fn CreateTempChunkVector(&mut self) -> Vec<Vec<Vec<Block>>> {
         // initial xz values are defined by the chunks id, 
-        let mut defaultBlock: Block = Block::new(BlockType::Air, 0, 0, 0);
-
         let mut tempChunkVec: Vec<Vec<Vec<Block>>> = Vec::with_capacity(chunkSizeX);
 
         let mut xPos: i32 = 0;
