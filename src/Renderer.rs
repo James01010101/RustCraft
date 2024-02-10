@@ -120,7 +120,6 @@ impl Renderer {
             };
 
         
-        // TODO: #79 move this uniform buffer into the gpu data, also create a staging buffer for it like instances
         // this holsd the uniform data for the vertex shader, the view and projection matrixies combined
         let vertUniforms: VertexUniforms = VertexUniforms {
             projection_view_matrix: camera.projection_view_matrix,

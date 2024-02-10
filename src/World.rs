@@ -84,6 +84,7 @@ impl World {
     pub fn AddTestChunks(&mut self, filesystem: &mut FileSystem) {
         // create the new chunk
         
+        /*
         for x in -1..=1 {
             for z in -1..=1 {
                 let k: (i32, i32) = (x, z);
@@ -98,6 +99,7 @@ impl World {
                 }
             }
         }
+        */
         
 
         // add 0,0 again just to check for duplicated

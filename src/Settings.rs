@@ -16,11 +16,11 @@ pub const chunkSizeZ: usize = 32; //32;
 pub const halfChunkY: usize = chunkSizeY / 2; // this is what ill take away when indexing so that z=0 is water and under is negative
 
 // Render Distance is the radius of the circle
-pub const renderDistance: usize = 5;
+pub const renderDistance: usize = 1;
 
 // the size of the instance buffer to render all of the blocks, might be different for each type???
 // TODO: #40 make sure the active rendered cant go above this
-pub const maxBlocksRendered: usize = 5;
+pub const maxBlocksRendered: usize = 1000;
 
 pub const screenWidth: usize = 1920;
 pub const screenHeight: usize = 1080;

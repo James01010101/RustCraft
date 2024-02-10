@@ -46,7 +46,7 @@ pub fn RunMainGameLoop() {
     let mut world: World = World::new();
     // temp, add some blocks for testing
     world.LoadCreatedChunksFile(&mut fileSystem);
-    world.AddTestBlocks();
+    //world.AddTestBlocks();
     world.AddTestChunks(&mut fileSystem);
 
 
