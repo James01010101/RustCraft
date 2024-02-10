@@ -97,8 +97,7 @@ impl Camera {
             self.farPlane
         ).to_homogeneous().into();
 
-        // update the proj view matrix
-        self.projection_view_matrix = (self.projection_matrix * self.view_matrix).into();
+        // dont need to update the proj view matrix, since it will be updated on the next view update
     }
 
 
