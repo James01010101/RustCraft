@@ -26,8 +26,13 @@ pub struct Renderer {
     pub adapter: Adapter,
     pub device: Device,
     pub queue: Queue,
+
+    // shaders
     pub vertShaderCode: ShaderModule,
     pub fragShaderCode: ShaderModule,
+    pub check_air_compute_Shader_code: ShaderModule,
+
+    // pipeline
     pub pipeline_layout: PipelineLayout,
     pub render_pipeline: RenderPipeline,
     pub surfaceConfig: SurfaceConfiguration,
@@ -70,15 +75,21 @@ impl Renderer {
             .await
             .unwrap();
 
+
         // compile my shaders
         let vertShaderCode = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Vertex Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("Shaders/myVert.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(include_str!("Shaders/vertex.wgsl").into()),
         });
 
         let fragShaderCode = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Fragment Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("Shaders/myFrag.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(include_str!("Shaders/fragment.wgsl").into()),
+        });
+
+        let check_air_compute_Shader_code = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("check air compute shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("Shaders/check_air_compute.wgsl").into()),
         });
 
         let mut surfaceConfig = surface.get_default_config(
@@ -231,8 +242,13 @@ impl Renderer {
             adapter,
             device,
             queue,
+
+            // shaders
             vertShaderCode,
             fragShaderCode,
+            check_air_compute_Shader_code,
+
+            // pipeline
             pipeline_layout,
             render_pipeline,
             surfaceConfig,
