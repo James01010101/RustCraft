@@ -75,6 +75,7 @@ impl super::Chunk {
     // iterate through the whole vector and update all blocks that are touching air using a compute shader
     pub async fn check_for_touching_air(&mut self, tempChunkVec: &mut Vec<Vec<Vec<Block>>>, renderer: &Renderer) {
 
+        println!("Running check for touching air function");
         /*
         create 2 buffers
         buffer 1: hold all block types (as u16)
@@ -92,24 +93,27 @@ impl super::Chunk {
 
         the gpus output buffer is a boolean buffer of true if touching air and false otherwise
 
+        all buffers need to be of type u32. booleans dont work between rust and gpu
+        and wgsl only supports these types: f32, i32, u32, bool
+
         */
 
         // create the block types array
-        let mut chunk_block_types: Vec<u16> = Vec::with_capacity(chunkSizeX * chunkSizeY * chunkSizeZ);
+        let mut chunk_block_types: Vec<u32> = Vec::with_capacity(chunkSizeX * chunkSizeY * chunkSizeZ);
         for z in 0..chunkSizeX as i32 {
             for y in 0..chunkSizeY as i16 {
                 for x in 0..chunkSizeZ as i32 {
-                    chunk_block_types.push(tempChunkVec[x as usize][y as usize][z as usize].blockType.ToInt());
+                    chunk_block_types.push(tempChunkVec[x as usize][y as usize][z as usize].blockType.ToInt() as u32);
                 }
             }
         }
 
         // create the block transparancy array
-        let mut chunk_block_transparency: Vec<bool> = Vec::with_capacity(chunkSizeX * chunkSizeY * chunkSizeZ);
+        let mut chunk_block_transparency: Vec<u32> = Vec::with_capacity(chunkSizeX * chunkSizeY * chunkSizeZ);
         for z in 0..chunkSizeX as i32 {
             for y in 0..chunkSizeY as i16 {
                 for x in 0..chunkSizeZ as i32 {
-                    chunk_block_transparency.push(tempChunkVec[x as usize][y as usize][z as usize].blockType.is_transparent());
+                    chunk_block_transparency.push(tempChunkVec[x as usize][y as usize][z as usize].blockType.is_transparent() as u32);
                 }
             }
         }
@@ -119,7 +123,7 @@ impl super::Chunk {
 
         // now the resulting buffer (cant use bool with the gpu, since rust bools arnt guarenteed to be 1 byte)
         // so instead ill use u8 for all calculations on the gpu and then just convert it to a bool on the cpu once i recieve the results
-        let mut result: Vec<u8> = vec!(0; chunkSizeX * chunkSizeY * chunkSizeZ);
+        let mut result: Vec<u32> = vec!(0; chunkSizeX * chunkSizeY * chunkSizeZ);
 
 
         // now create the gpu buffers for both of these
@@ -142,7 +146,7 @@ impl super::Chunk {
             });
 
         
-        let result_buffer_size: u64 = ((chunkSizeX * chunkSizeY * chunkSizeZ) * mem::size_of::<u8>()) as u64;
+        let result_buffer_size: wgpu::BufferAddress = ((chunkSizeX * chunkSizeY * chunkSizeZ) * mem::size_of::<u32>()) as wgpu::BufferAddress;
         let result_buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Result compute buffer"),
             size: result_buffer_size,
@@ -150,10 +154,117 @@ impl super::Chunk {
             mapped_at_creation: false,
         });
 
-        // create the bind group
+
+        // load the shader
+
+        // create the bind group and pipeline
+        // Instantiates the bind group, once again specifying the binding of buffers.
+
+        let bind_group_layout = renderer.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Bind Group Layout"),
+            entries: &[
+                // Specify your bindings here
+                // block_type_buffer
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer { 
+                        ty: wgpu::BufferBindingType::Storage { read_only: true }, 
+                        has_dynamic_offset: false, 
+                        min_binding_size: None, 
+                    },
+                    count: None,
+                },
+
+                // block_transparency_buffer
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer { 
+                        ty: wgpu::BufferBindingType::Storage { read_only: true }, 
+                        has_dynamic_offset: false, 
+                        min_binding_size: None, 
+                    },
+                    count: None,
+                },
+
+                // dimentions_buffer
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer { 
+                        ty: wgpu::BufferBindingType::Storage { read_only: true }, 
+                        has_dynamic_offset: false, 
+                        min_binding_size: None, 
+                    },
+                    count: None,
+                },
+
+                // result_buffer
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer { 
+                        ty: wgpu::BufferBindingType::Storage { read_only: false }, 
+                        has_dynamic_offset: false, 
+                        min_binding_size: None, 
+                    },
+                    count: None,
+                },
+            ],
+        });
+
+        let bind_group = renderer.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: block_type_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: block_transparency_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: dimentions_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: result_buffer.as_entire_binding(),
+                },
+            ],
+        });
+
+        let pipeline_layout = renderer.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Pipeline Layout"),
+            bind_group_layouts: &[&bind_group_layout],
+            push_constant_ranges: &[],
+        });
+
+        let compute_pipeline = renderer.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: Some("check for air Compute Pipeline"),
+            layout: Some(&pipeline_layout),
+            module: &renderer.check_air_compute_Shader_code,
+            entry_point: "main",
+        });
 
 
+        println!("Running check for air compute shader");
         // run the shader
+        let mut encoder = renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+             label: None 
+            });
+        {
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("check air compute pass"),
+                timestamp_writes: None,
+            });
+            compute_pass.set_pipeline(&compute_pipeline);
+            compute_pass.set_bind_group(0, &bind_group, &[]);
+            compute_pass.dispatch_workgroups((chunkSizeX * chunkSizeY * chunkSizeZ) as u32, 1, 1); // Number of cells to run, the (x,y,z) size of item being processed
+        }
 
 
         // get the results from the shader
@@ -185,11 +296,17 @@ impl super::Chunk {
         // Poll the device in a blocking manner so that our future resolves.
         // In an actual application, `device.poll(...)` should
         // be called in an event loop or on another thread.
-        renderer.device.poll(wgpu::Maintain::wait()).panic_on_timeout();
+        let mut total_polls = 0;
+        while !renderer.device.poll(wgpu::Maintain::Poll).is_queue_empty() {
+            println!("Queue not empty polling again {:?}", total_polls);
+            total_polls += 1;
+        }
 
-
+        println!("Waiting for compute shader to finish");
         // Awaits until `buffer_future` can be read from once the callback is run
         let result = if let Ok(Ok(())) = receiver.recv_async().await {
+
+            println!("Compute shader finished");
             // Gets contents of buffer
             let data = buffer_slice.get_mapped_range();
 
@@ -217,6 +334,7 @@ impl super::Chunk {
         // update the blocks with the results
 
 
+        println!("Finished running check for touching air function");
     }
 }
 
