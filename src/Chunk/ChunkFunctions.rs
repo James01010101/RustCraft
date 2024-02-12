@@ -1,6 +1,7 @@
 
 use std::collections::HashSet;
 use std::mem;
+use std::sync::{Arc, Mutex};
 
 use crate::Block::*;
 use crate::Settings::*;
@@ -11,6 +12,7 @@ use wgpu::util::DeviceExt;
 
 use flume;
 use async_std::task;
+
 
 
 
@@ -75,7 +77,6 @@ impl super::Chunk {
     // iterate through the whole vector and update all blocks that are touching air using a compute shader
     pub async fn check_for_touching_air(&mut self, tempChunkVec: &mut Vec<Vec<Vec<Block>>>, renderer: &Renderer) {
 
-        println!("Running check for touching air function");
         /*
         create 2 buffers
         buffer 1: hold all block types (as u16)
@@ -123,8 +124,6 @@ impl super::Chunk {
 
         // now the resulting buffer (cant use bool with the gpu, since rust bools arnt guarenteed to be 1 byte)
         // so instead ill use u8 for all calculations on the gpu and then just convert it to a bool on the cpu once i recieve the results
-        let mut result: Vec<u32> = vec!(0; chunkSizeX * chunkSizeY * chunkSizeZ);
-
 
         // now create the gpu buffers for both of these
         let block_type_buffer = renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -251,10 +250,9 @@ impl super::Chunk {
         });
 
 
-        println!("Running check for air compute shader");
         // run the shader
         let mut encoder = renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-             label: None 
+             label: Some("check air compute encoder") 
             });
         {
             let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
@@ -265,6 +263,9 @@ impl super::Chunk {
             compute_pass.set_bind_group(0, &bind_group, &[]);
             compute_pass.dispatch_workgroups((chunkSizeX * chunkSizeY * chunkSizeZ) as u32, 1, 1); // Number of cells to run, the (x,y,z) size of item being processed
         }
+
+        // submit the compute shader render pass command
+        renderer.queue.submit(Some(encoder.finish()));
 
 
         // get the results from the shader
@@ -283,8 +284,38 @@ impl super::Chunk {
         // copy the data from the gpu data to my reading buffer
         encoder.copy_buffer_to_buffer(&result_buffer, 0, &read_result_buffer, 0, result_buffer_size);
         
-        // submit the command
+        // make a fence so i know once the copy buffer function has finished
+        // Create a shared variable
+        let fence = Arc::new(Mutex::new(0));
+
+        // Create a clone of the Arc for the callback
+        let fence_clone = Arc::clone(&fence);
+
+        // Set up a callback to run when the submitted work is done
+        renderer.queue.on_submitted_work_done( move || {
+            // This code will run when all work submitted to the queue up to this point has completed
+            let mut fence_guard = fence_clone.lock().unwrap();
+            *fence_guard = 1;
+        });
+
+        // submit the copy buffer command and the fence submitted work done command
         renderer.queue.submit(Some(encoder.finish()));
+
+        // loop until the fence is 1 meaning the copy buffer is done
+        // normally i would have this checked once per frame not in a busy waiting loop
+        loop {
+            // Poll the device to process outstanding work
+            renderer.device.poll(wgpu::Maintain::Poll);
+
+            // Check if the fence has been set to 1
+            let mut fence_guard = fence.lock().unwrap();
+            if *fence_guard == 1 {
+                break;
+            }
+        }
+        
+
+        // now the result buffer will have finished being copied over
 
 
         let buffer_slice = read_result_buffer.slice(..);
@@ -293,22 +324,18 @@ impl super::Chunk {
         let (sender, receiver) = flume::bounded(1);
         buffer_slice.map_async(wgpu::MapMode::Read, move |v| sender.send(v).unwrap());
 
-        // Poll the device in a blocking manner so that our future resolves.
-        // In an actual application, `device.poll(...)` should
-        // be called in an event loop or on another thread.
-        renderer.device.poll(wgpu::Maintain::Wait);
+        // poll the device waiting for the may async to finish since it is the only command in the queue
+        renderer.device.poll(wgpu::Maintain::Wait).panic_on_timeout();
 
 
-        println!("Waiting for compute shader to finish");
         // Awaits until `buffer_future` can be read from once the callback is run
         let result = if let Ok(Ok(())) = receiver.recv_async().await {
 
-            println!("Compute shader finished");
             // Gets contents of buffer
             let data = buffer_slice.get_mapped_range();
 
             // Since contents are got in bytes, this converts these bytes back to u32
-            let result: Vec<u8> = bytemuck::cast_slice(&data).to_vec();
+            let result: Vec<u32> = bytemuck::cast_slice(&data).to_vec();
 
             // With the current interface, we have to make sure all mapped views are
             // dropped before we unmap the buffer.
@@ -326,12 +353,45 @@ impl super::Chunk {
         };
 
         // print the results to check that they are right
+        /*
+        println!("testing results");
+
+        println!("length of results: {}", result.len());
+        println!("length of temp: {}", chunkSizeX * chunkSizeY * chunkSizeZ);
+        // print the blocks and then next to it the touching air result
+        for y in 0..chunkSizeY {
+            for z in 0..chunkSizeZ {
+                for x in 0..chunkSizeX {
+                    print!("{} ", tempChunkVec[x][y][z].blockType.ToInt());
+                }
+
+                // for spacing
+                print!("   ");
+
+                for x in 0..chunkSizeX {
+                    let index: usize = x + (y * chunkSizeX) + (z * chunkSizeX * chunkSizeY);
+                    print!("{} ", result[index]);
+                }
+
+                println!();
+            }
+            println!();
+        }
+        */
 
 
         // update the blocks with the results
+        let mut index: usize;
+        for y in 0..chunkSizeY {
+            for z in 0..chunkSizeZ {
+                for x in 0..chunkSizeX {
+                    index = x + (y * chunkSizeX) + (z * chunkSizeX * chunkSizeY);
+                    tempChunkVec[x][y][z].touchingAir = result[index] != 0;
+                }
+            }
+        }
 
 
-        println!("Finished running check for touching air function");
     }
 }
 

@@ -25,8 +25,10 @@ fn get_index(x: u32, y: u32, z: u32) -> u32 {
 @workgroup_size(1) // each workgroup sent from the gpu is one thread, so each thread is a different index
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
+
     let id: u32 = global_id.x;
     var newid: u32 = 0;
+
 
     // get its xyz coords from its id
     let z: u32 = id / (dimentions_buffer[0] * dimentions_buffer[1]);
@@ -53,16 +55,17 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
             touching_air = touching_air + 1;
         }
     }
-
+    
     // bottom
-    if y - 1 >= 0 { // check bounds
+    if y != 0 { // check bounds (since u32 0-1 goes to max so i make sure y isnt 0 , not y-1 >= 0, because this will overflow)
         newid = get_index(x, y-1, z);
         if block_transparency_buffer[newid] > 0 { // true (so it is transparent)
             touching_air = touching_air + 1;
         }
     }
+    
 
-
+    
     // right
     if x + 1 < dimentions_buffer[0] { // check bounds
         newid = get_index(x+1, y, z);
@@ -70,16 +73,17 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
             touching_air = touching_air + 1;
         }
     }
-
+    
     // left
-    if x - 1 >= 0 { // check bounds
+    if x != 0 { // check bounds
         newid = get_index(x-1, y, z);
         if block_transparency_buffer[newid] > 0 { // true (so it is transparent)
             touching_air = touching_air + 1;
         }
     }
+    
 
-
+    
     // back
     if z + 1 < dimentions_buffer[2] { // check bounds
         newid = get_index(x, y, z+1);
@@ -87,14 +91,15 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
             touching_air = touching_air + 1;
         }
     }
-
+    
     // front
-    if z - 1 >= 0 { // check bounds
+    if z != 0 { // check bounds
         newid = get_index(x, y, z-1);
         if block_transparency_buffer[newid] > 0 { // true (so it is transparent)
             touching_air = touching_air + 1;
         }
     }
+    
 
 
     // finally save the variable to the results buffer
