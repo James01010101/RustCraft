@@ -77,7 +77,7 @@ impl BlockType {
             BlockType::Grass => false,
             BlockType::Dirt => false,
 
-            BlockType::Sand => true,
+            BlockType::Sand => false,
 
             BlockType::Stone => false,
             BlockType::Cobblestone => false,
