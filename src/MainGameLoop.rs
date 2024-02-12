@@ -96,12 +96,6 @@ pub fn RunMainGameLoop() {
                         renderer.surfaceConfig.height = new_height;
                         renderer.surface.configure(&renderer.device, &renderer.surfaceConfig);
                         
-                        // updates the porjection matrix, this doesnt exist yet
-                        /*
-                        let mx_total = renderer.generate_matrix(renderer.surfaceConfig.width as f32 / renderer.surfaceConfig.height as f32);
-                        let mx_ref: &[f32; 16] = mx_total.as_ref();
-                        renderer.queue.write_buffer(&renderer.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
-                        */
 
                         // so it always generates a new frame
                         windowWrapper.window.request_redraw();
@@ -125,77 +119,8 @@ pub fn RunMainGameLoop() {
 
 
                         // calculate the frame
-                        let frame = renderer.surface
-                            .get_current_texture()
-                            .expect("Failed to acquire next swap chain texture");
-                        let view = frame
-                            .texture
-                            .create_view(&wgpu::TextureViewDescriptor::default());
-                        let mut encoder =
-                            renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                                label: None,
-                            });
+                        renderer.render_frame(&gpuData);
                         
-
-
-                        // Update buffers
-                        // update the uniform buffer with the new camera position matricies
-                        encoder.copy_buffer_to_buffer(&gpuData.vertex_uniform_staging_buf, 0, &renderer.uniform_buffer, 0, gpuData.vertex_uniform_staging_buf.size());
-                        
-
-                        // if my instances have changed then i update the instance buffer with its staging buffer
-                        if gpuData.instances_modified {
-                            encoder.copy_buffer_to_buffer(&gpuData.instance_staging_buf, 0, &gpuData.instance_buf, 0, gpuData.instance_staging_buf.size());
-                            encoder.copy_buffer_to_buffer(&gpuData.colour_staging_buf, 0, &gpuData.colour_buf, 0, gpuData.colour_staging_buf.size());
-                            gpuData.instances_modified = false;
-                        }
-
-
-                        let depth_texture_view = &renderer.depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-                        // set all of the commands i will use in the render pass
-                        {
-                            let mut rpass =
-                                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                                    label: None,
-                                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                                        view: &view,
-                                        resolve_target: None,
-                                        ops: wgpu::Operations {
-                                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                                            store: wgpu::StoreOp::Store,
-                                        },
-                                    })],
-
-
-                                    depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                                        view: depth_texture_view,
-                                        depth_ops: Some(wgpu::Operations {
-                                            load: wgpu::LoadOp::Clear(1.0),
-                                            store: wgpu::StoreOp::Store,
-                                        }),
-                                        stencil_ops: None,
-                                    }),
-
-                                    timestamp_writes: None,
-                                    occlusion_query_set: None,
-                                });
-
-                            // Set the vertex and index buffers here
-                            rpass.set_vertex_buffer(0, gpuData.vertex_buf.slice(..));
-                            rpass.set_index_buffer(gpuData.index_buf.slice(..), wgpu::IndexFormat::Uint16);
-                            rpass.set_bind_group(0, &renderer.bind_group, &[]);
-                            rpass.set_vertex_buffer(1, gpuData.instance_buf.slice(..));
-                            rpass.set_vertex_buffer(2, gpuData.colour_buf.slice(..));
-
-                            rpass.set_pipeline(&renderer.render_pipeline);
-                            rpass.draw_indexed(0..36, 0, 0..5);
-                        } // the render pass must go out of scope before submit and present are called
-                        // it finalises the render pass when it goes out of scope so it can be submitted to the gpu
-
-                        renderer.queue.submit(Some(encoder.finish()));
-                        frame.present();
-
                         // so it always generates a new frame
                         windowWrapper.window.request_redraw();
                     }
@@ -215,7 +140,6 @@ pub fn RunMainGameLoop() {
     println!("Total Frames Rendered: {}", frameNumber);
     println!("Average Frame Rate: {}", AvgFPS);
 }
-
 
 
 // this will clean up all data before the program ends
