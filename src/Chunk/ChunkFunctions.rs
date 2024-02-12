@@ -296,11 +296,8 @@ impl super::Chunk {
         // Poll the device in a blocking manner so that our future resolves.
         // In an actual application, `device.poll(...)` should
         // be called in an event loop or on another thread.
-        let mut total_polls = 0;
-        while !renderer.device.poll(wgpu::Maintain::Poll).is_queue_empty() {
-            println!("Queue not empty polling again {:?}", total_polls);
-            total_polls += 1;
-        }
+        renderer.device.poll(wgpu::Maintain::Wait);
+
 
         println!("Waiting for compute shader to finish");
         // Awaits until `buffer_future` can be read from once the callback is run
