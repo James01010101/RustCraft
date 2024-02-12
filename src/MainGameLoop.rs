@@ -89,8 +89,6 @@ pub fn RunMainGameLoop() {
                 match event {
                     WindowEvent::Resized(new_size) => {
 
-                        println!("Surface resize {new_size:?}");
-
                         let new_width = new_size.width.max(1);
                         let new_height = new_size.height.max(1);
 
