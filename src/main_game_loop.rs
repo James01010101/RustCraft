@@ -1,13 +1,13 @@
 
-use crate::FileSystem::FileSystem;
-use crate::Renderer::*;
-use crate::Settings::{screenFOV, screenHeight, screenWidth};
-use crate::WindowWrapper::*;
-use crate::World::*;
-use crate::GPUData::GPUData;
-use crate::Block::*;
-use crate::Chunk::*;
-use crate::Camera::*;
+use crate::file_system::FileSystem;
+use crate::renderer::*;
+use crate::settings::*;
+use crate::window_wrapper::*;
+use crate::world::*;
+use crate::gpu_data::GPUData;
+use crate::block::*;
+use crate::chunk::*;
+use crate::camera::*;
 
 use std::time::Instant;
 use std::mem;
@@ -16,10 +16,9 @@ use async_std::task;
 use winit::event::{Event, WindowEvent};
 
 
+pub fn run_main_game_loop() {
 
-pub fn RunMainGameLoop() {
-
-    let dontStartScreen: bool = false;
+    //let dontStartScreen: bool = false;
 
 
     println!("Size of Block: {} bytes", mem::size_of::<Block>());
@@ -31,50 +30,45 @@ pub fn RunMainGameLoop() {
     
 
     // Create the window wrapper
-    let mut windowWrapper: WindowWrapper = WindowWrapper::new("RustCraft", screenWidth as u32, screenHeight as u32);
+    let window_wrapper: WindowWrapper = WindowWrapper::new("RustCraft", SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32);
 
     let mut camera: Camera = Camera::new(
-        screenFOV,
-        screenWidth as u32,
-        screenHeight as u32
+        SCREEN_FOV,
+        SCREEN_WIDTH as u32,
+        SCREEN_HEIGHT as u32
     );
 
     // create Renderer and window
-    let mut renderer: Renderer = task::block_on(Renderer::new(&windowWrapper, &camera));
+    let mut renderer: Renderer = task::block_on(Renderer::new(&window_wrapper, &camera));
 
 
     // create MY file system struct
-    let mut fileSystem: FileSystem = FileSystem::new();
-    fileSystem.CheckFileSystem();
+    let mut file_system: FileSystem = FileSystem::new();
+    file_system.check_file_system();
 
     // create my world
     let mut world: World = World::new();
     // temp, add some blocks for testing
-    world.LoadCreatedChunksFile(&mut fileSystem);
+    world.load_created_chunks_file(&mut file_system);
     //world.AddTestBlocks();
-    world.AddTestChunks(&mut fileSystem, &renderer);
-
+    world.add_test_chunks(&mut file_system, &renderer);
 
     // create the gpudata buffers
-    let mut gpuData: GPUData = GPUData::new(&renderer);
+    let gpu_data: GPUData = GPUData::new(&renderer);
     
-
-   
-    
+    // camera stuff for testing
     let mut angle: f32 = 0.0; // Current angle of rotation
     let rotation_speed: f32 = 0.008; // Speed of rotation
     let radius: f32 = 3.0; // Distance from the center
 
-
  
     // stats before starting
-    let mut frameNumber: u64 = 0;
-    let windowStartTime: Instant = Instant::now();
+    let mut frame_number: u64 = 0;
+    let window_start_time: Instant = Instant::now();
 
     // event loop
-    windowWrapper.eventLoop
+    window_wrapper.event_loop
         .run(move |event, target| {
-
 
             // check if the event is a window event, if it use get the event from inside the window event
             if let Event::WindowEvent {
@@ -88,20 +82,18 @@ pub fn RunMainGameLoop() {
                         let new_width = new_size.width.max(1);
                         let new_height = new_size.height.max(1);
 
-                        renderer.surfaceConfig.width = new_width;
-                        renderer.surfaceConfig.height = new_height;
-                        renderer.surface.configure(&renderer.device, &renderer.surfaceConfig);
+                        renderer.surface_config.width = new_width;
+                        renderer.surface_config.height = new_height;
+                        renderer.surface.configure(&renderer.device, &renderer.surface_config);
                         
-
                         // so it always generates a new frame
-                        windowWrapper.window.request_redraw();
+                        window_wrapper.window.request_redraw();
 
                         // update the cameras width height and aspect ratio
-                        camera.aspectRatio = new_width as f32 / new_height as f32;
+                        camera.aspect_ratio = new_width as f32 / new_height as f32;
                         camera.calculate_projection_matrix();
-
-
                     }
+
                     WindowEvent::RedrawRequested => {
 
                         // do any game logic each frame
@@ -112,56 +104,64 @@ pub fn RunMainGameLoop() {
                         camera.position.z = radius * angle.sin();
 
                         // Calculate the new view and combined matrices
-                        camera.update(&mut renderer, &gpuData);
+                        camera.update(&mut renderer, &gpu_data);
 
                         // update all chunks instances if needed
-                        for chunk in world.chunks.values() {
+                        for chunk in world.chunks.values_mut() {
                             chunk.update_instance_buffer(&renderer);
                         }
 
-
                         // calculate the frame
-                        renderer.render_frame(&gpuData);
+                        renderer.render_frame(&gpu_data, &world);
                         
                         // so it always generates a new frame
-                        windowWrapper.window.request_redraw();
+                        window_wrapper.window.request_redraw();
+
+                        // TODO: #103 fix frame number counting
+                        frame_number += 1;
                     }
-                    WindowEvent::CloseRequested => target.exit(),
+
+
+                    // if i close the window
+                    WindowEvent::CloseRequested => {
+
+                        // cleanup which saves all chunks to files
+                        clean_up(&mut world, &mut file_system);
+
+                        // finally exit the program
+                        target.exit();
+                    }
                     _ => {}
                 };
             }
         })
         .unwrap();
 
-    CleanUp(&mut world, &mut fileSystem);
-
-
-    let totalWindowDuration_ms = windowStartTime.elapsed().as_millis();
-    let AvgFPS: f32 = frameNumber as f32 / (totalWindowDuration_ms as f32 / 1000.0);
-    println!("\nTotal Window Time (ms): {:?}", totalWindowDuration_ms);
-    println!("Total Frames Rendered: {}", frameNumber);
-    println!("Average Frame Rate: {}", AvgFPS);
+    let total_window_duration_ms = window_start_time.elapsed().as_millis();
+    let avg_fps: f32 = frame_number as f32 / (total_window_duration_ms as f32 / 1000.0);
+    println!("\nTotal Window Time (ms): {:?}", total_window_duration_ms);
+    println!("Total Frames Rendered: {}", frame_number);
+    println!("Average Frame Rate: {}", avg_fps);
 }
 
 
 // this will clean up all data before the program ends
-pub fn CleanUp(world: &mut World, fileSystem: &mut FileSystem) {
+pub fn clean_up(world: &mut World, file_system: &mut FileSystem) {
 
-    let hashmapChunkKeys: Vec<(i32, i32)> = world.chunks.keys().cloned().collect();
+    let hashmap_chunk_keys: Vec<(i32, i32)> = world.chunks.keys().cloned().collect();
 
     // go through each chunk and call unload on it
     //let mut chunk: &Chunk;
 
-    for key in  hashmapChunkKeys {
+    for key in  hashmap_chunk_keys {
         // remove the chunk from the hashmap and return it
-        if let Some(mut chunk) = world.chunks.remove(&key) {
-            fileSystem.SaveChunkToFile(chunk);
+        if let Some(chunk) = world.chunks.remove(&key) {
+            file_system.save_chunk_to_file(chunk);
         } else {
             // if the key doesnt match a value ill print this but not panic so i can save the rest
             eprintln!("Failed CleanUp: cannot to find value with key {:?}", key);
         }
     }
 
-    fileSystem.SaveCreatedChunksFile(world);
-
+    file_system.save_created_chunks_file(world);
 }

@@ -1,22 +1,17 @@
-use crate::Settings::*;
-use crate::World::*;
-use crate::Renderer::*;
+
+use crate::renderer::*;
 
 use wgpu::{
-    Queue,
     BufferUsages,
     Buffer,
     util::{BufferInitDescriptor, DeviceExt},
-    
 };
 
 use bytemuck;
 
 pub struct GPUData {
-    pub instancesUsed: u32, // how many of the instances am i actually using this frame
-
-    pub cubeVertices: Vec<f32>,
-    pub cubeIndices: Vec<u16>, 
+    pub cube_vertices: Vec<f32>,
+    pub cube_indices: Vec<u16>, 
 
     pub vertex_buf: Buffer,
     pub index_buf: Buffer,
@@ -24,15 +19,13 @@ pub struct GPUData {
     pub vertex_uniform_staging_buf: Buffer,
 
     pub instances_modified: bool,
-    
-
 }
 
 
 impl GPUData {
     pub fn new (renderer: &Renderer) -> GPUData {
         // cube vertices (assume starts at (0,0,0))
-        let cubeVertices: Vec<f32> = vec![
+        let cube_vertices: Vec<f32> = vec![
             0.0, 0.0, 0.0, // Bottom Front Left
             1.0, 0.0, 0.0, // Bottom Front Right
             1.0, 0.0, 1.0, // Bottom Back Right
@@ -45,7 +38,7 @@ impl GPUData {
         ];
 
         // this is the indexes into the cubeVertices array, so it knows what vertices to use for what triangles
-        let cubeIndices: Vec<u16> = vec![
+        let cube_indices: Vec<u16> = vec![
             // Front face
             0, 1, 5, 0, 5, 4,
             // Back face
@@ -60,45 +53,32 @@ impl GPUData {
             1, 2, 6, 1, 6, 5
         ];
 
-        // instance array
-        
-        let mut cubeInstanceModelMatricies: [[[f32; 4]; 4]; maxBlocksRendered] = [[[0.0; 4]; 4]; maxBlocksRendered];
-
-        let mut cubeColours: [[f32; 4]; maxBlocksRendered] = [[0.0; 4]; maxBlocksRendered];
-           
-
         // create the buffers for this data
         // now create the vertex buffer for the gpu
         let vertex_buf = renderer.device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Vertex Buffer"),
-            contents: bytemuck::cast_slice(&cubeVertices),
+            contents: bytemuck::cast_slice(&cube_vertices),
             usage: BufferUsages::VERTEX,
         });
 
         // now make the index buffer for the gpu
         let index_buf = renderer.device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Index Buffer"),
-            contents: bytemuck::cast_slice(&cubeIndices),
+            contents: bytemuck::cast_slice(&cube_indices),
             usage: BufferUsages::INDEX,
         });
-
-
-        // use these staging buffers so that i can copy them to the gpu from the cpu, which takes along time, async
-        // then once the buffers are ready i copy them to the actual buffers on the gpu to be used
-        
 
         // vertex uniform staging buiffer
         let vertex_uniform_staging_buf: wgpu::Buffer = renderer.device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Vertex Uniform Staging Buffer"),
-            contents: bytemuck::bytes_of(&renderer.vertUniforms),
+            contents: bytemuck::bytes_of(&renderer.vertex_uniforms),
             usage: BufferUsages::COPY_SRC | BufferUsages::COPY_DST,
         });
 
 
         Self {
-            instancesUsed: 0,
-            cubeVertices,
-            cubeIndices,
+            cube_vertices,
+            cube_indices,
 
             vertex_buf,
             index_buf,
@@ -106,12 +86,6 @@ impl GPUData {
             vertex_uniform_staging_buf,
 
             instances_modified: false,
-
-            
         }
-    }
-
-    
-    // TODO: #57 correctly load the chunks of blocks onto the gpu
-    
+    }    
 }
