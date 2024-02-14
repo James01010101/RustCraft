@@ -57,13 +57,9 @@ pub fn RunMainGameLoop() {
 
     // create the gpudata buffers
     let mut gpuData: GPUData = GPUData::new(&renderer);
-    gpuData.UpdateCubeInstances(&mut world, &renderer.queue);
     
 
-
-
-    
-    
+   
     
     let mut angle: f32 = 0.0; // Current angle of rotation
     let rotation_speed: f32 = 0.008; // Speed of rotation
@@ -108,6 +104,7 @@ pub fn RunMainGameLoop() {
                     }
                     WindowEvent::RedrawRequested => {
 
+                        // do any game logic each frame
                         // move the camera first so it can start copying
                         // rotate the camera for testing
                         angle += rotation_speed;
@@ -116,6 +113,11 @@ pub fn RunMainGameLoop() {
 
                         // Calculate the new view and combined matrices
                         camera.update(&mut renderer, &gpuData);
+
+                        // update all chunks instances if needed
+                        for chunk in world.chunks.values() {
+                            chunk.update_instance_buffer(&renderer);
+                        }
 
 
                         // calculate the frame
