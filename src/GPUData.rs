@@ -18,9 +18,6 @@ pub struct GPUData {
     pub cubeVertices: Vec<f32>,
     pub cubeIndices: Vec<u16>, 
 
-    pub cubeInstanceModelMatricies: [[[f32; 4]; 4]; maxBlocksRendered],
-    pub cubeColours: [[f32; 4]; maxBlocksRendered], // temporary for now until i use textures
-
     pub vertex_buf: Buffer,
     pub index_buf: Buffer,
 
@@ -86,9 +83,6 @@ impl GPUData {
         });
 
 
-        
-
-
         // use these staging buffers so that i can copy them to the gpu from the cpu, which takes along time, async
         // then once the buffers are ready i copy them to the actual buffers on the gpu to be used
         
@@ -119,25 +113,5 @@ impl GPUData {
 
     
     // TODO: #57 correctly load the chunks of blocks onto the gpu
-    pub fn UpdateCubeInstances(&mut self, world: &mut World, queue: &Queue) {
-
-        self.instancesUsed = world.testBlocks.len() as u32;
-
-        // Instance model matricies, each element is a model matrix of a block
-        for i in 0..self.instancesUsed {
-            let i: usize = i as usize;
-
-            self.cubeInstanceModelMatricies[i] = world.testBlocks[i].modelMatrix;
-            self.cubeColours[i] = world.testBlocks[i].blockType.BlockColour();
-        }
-
-        // update the staging gpu buffers and set the flag that this data has changed
-        queue.write_buffer(&self.instance_staging_buf, 0, bytemuck::cast_slice(&self.cubeInstanceModelMatricies));
-        queue.write_buffer(&self.colour_staging_buf, 0, bytemuck::cast_slice(&self.cubeColours));
-        self.instances_modified = true;
-
-        // submit those write buffers so they are run
-        queue.submit(std::iter::empty());
-
-    }
+    
 }
