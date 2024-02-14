@@ -67,7 +67,7 @@ impl World {
         // if the loaded chunks doesnt contain this chunk ill load it
         if !self.chunks.contains_key(&k) {
 
-            let mut c: Chunk = Chunk::new(k.0, k.1, -1);
+            let mut c: Chunk = Chunk::new(k.0, k.1, -1, &renderer);
             c.LoadChunk(filesystem, &mut self.createdChunks, &renderer);
 
             self.chunks.insert(k, c);
