@@ -2,11 +2,11 @@
 use crate::Chunk::*;
 use crate::FileSystem::FileSystem;
 use crate::Block::*;
+use crate::Renderer::*;
 
 use std::{collections::{HashMap, HashSet}, path::PathBuf};
 use std::io::{self, BufRead};
 use std::fs::File;
-
 
 
 // this struct will hold all of the Chunks as well as arrays of mobs
@@ -17,8 +17,6 @@ pub struct World {
 
     // stores all of the chunks that have been created before
     pub createdChunks: HashSet<(i32, i32)>,
-
-    pub testBlocks: Vec<Block>,
 }
 
 
@@ -32,56 +30,17 @@ impl World {
         // the order the hashset is printed changes every run
         let mut createdChunks: HashSet<(i32, i32)> = HashSet::new();
 
-        // a temp vec of blocks to put into the world without world gen
-        let mut testBlocks: Vec<Block> = Vec::new();
 
         // create and return the world
         World { 
             chunks, 
             createdChunks,
-            testBlocks, 
         }
 
     }
 
-    pub fn AddTestBlocks(&mut self) { 
-
-        // Create some blocks to put into the testBlocks array
-        self.testBlocks.push(Block::new(
-            BlockType::Air, 
-            0, 0, 0)
-        );
-
-        self.testBlocks.push(Block::new(
-            BlockType::Dirt, 
-            1, 0, 0)
-        );
-
-        self.testBlocks.push(Block::new(
-            BlockType::Grass, 
-            2, 0, 0)
-        );
-
-        self.testBlocks.push(Block::new(
-            BlockType::Sand, 
-            3, 0, 0)
-        );
-
-        self.testBlocks.push(Block::new(
-            BlockType::Stone, 
-            4, 0, 0)
-        );
-
-        /*
-        self.testBlocks.push(Block::new(
-            BlockType::Cobblestone, 
-            -4, 0, 0)
-        );
-        */
-    }
-
-
-    pub fn AddTestChunks(&mut self, filesystem: &mut FileSystem) {
+    
+    pub fn AddTestChunks(&mut self, filesystem: &mut FileSystem, renderer: &Renderer) {
         // create the new chunk
         
         /*
@@ -102,13 +61,21 @@ impl World {
         */
         
 
-        // add 0,0 again just to check for duplicated
+        // create the chunks id key
         let k: (i32, i32) = (0, 0);
-        let mut c: Chunk = Chunk::new(k.0, k.1, -1);
+        
+        // if the loaded chunks doesnt contain this chunk ill load it
         if !self.chunks.contains_key(&k) {
-            c.LoadChunk(filesystem, &mut self.createdChunks);
+
+            let mut c: Chunk = Chunk::new(k.0, k.1, -1, &renderer);
+            c.LoadChunk(filesystem, &mut self.createdChunks, &renderer);
+
             self.chunks.insert(k, c);
+
+            
+
         } else {
+            // keep this debug so i know how many times it trys to reinsert the same chunk
             println!("Chunk ({}, {}) already exists", k.0, k.1);
         }
 

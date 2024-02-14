@@ -6,6 +6,7 @@ pub enum BlockType {
     // special blocks
     Air, // no block
     Bedrock, // unbreakable block
+    Void, // no block (shouldnt really be used, but when doing calculations and checking boarders of chunks when they dont exists yet)
 
     // food
 
@@ -21,10 +22,6 @@ pub enum BlockType {
     Cobblestone,
 
 
-    
-
-    
-
 }
 
 
@@ -34,6 +31,7 @@ impl BlockType {
             // special blocks
             BlockType::Air => false,
             BlockType::Bedrock => false,
+            BlockType::Void => false,
 
             // enviroment
             BlockType::Grass => false,
@@ -51,6 +49,7 @@ impl BlockType {
         match self {
             BlockType::Air => [175.0, 250.0, 250.0, 50.0].map(|x: f32| x / 255.0),
             BlockType::Bedrock => [50.0, 50.0, 50.0, 255.0].map(|x: f32| x / 255.0),
+            BlockType::Void => [0.0, 0.0, 0.0, 0.0].map(|x: f32| x / 255.0),
 
             BlockType::Grass => [75.0, 150.0, 50.0, 255.0].map(|x: f32| x / 255.0),
             BlockType::Dirt => [75.0, 50.0, 0.0, 255.0].map(|x: f32| x / 255.0),
@@ -62,11 +61,32 @@ impl BlockType {
         }
     }
 
+    pub fn is_transparent(&self) -> bool {
+        // label which blocks are transparent or not (air, water, glass, etc.)
+        match self {
+            // special blocks
+            BlockType::Air => true,
+            BlockType::Bedrock => false,
+            BlockType::Void => false, // dont render a wall of a chunk touching void
+
+            // enviroment
+            BlockType::Grass => false,
+            BlockType::Dirt => false,
+
+            BlockType::Sand => false,
+
+            BlockType::Stone => false,
+            BlockType::Cobblestone => false,
+
+        }
+    }
+
     pub fn ToInt(&self) -> u16 {
         match self {
             // special blocks 0-20
             BlockType::Air => 0,
             BlockType::Bedrock => 1,
+            BlockType::Void => 2,
 
             // food 21-100
 
@@ -91,6 +111,7 @@ impl BlockType {
             // special blocks 0-20
             0 => BlockType::Air,
             1 => BlockType::Bedrock,
+            2 => BlockType::Void,
 
             // food 21-100
 
@@ -126,6 +147,9 @@ pub struct Block {
 
     // this stores the transform to the camera for this block from world space to camera
     pub modelMatrix: [[f32; 4]; 4],
+    
+    // so i know to send it to the gpu or not (later only send faces touching air)
+    pub touchingAir: bool,
 }
 
 
@@ -143,6 +167,7 @@ impl Block {
             blockType,
             position: Position { x: posX, y: posY, z: posZ },
             modelMatrix,
+            touchingAir: false,
         }
     }
 

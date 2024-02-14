@@ -9,9 +9,9 @@ pub const exeDirectoryLevel: usize = if cfg!(feature = "shipping") { 1 } else { 
 
 
 // Chunk Size
-pub const chunkSizeX: usize = 32; //32;
-pub const chunkSizeY: usize = 256; //256; // half under, half above, Y is up down
-pub const chunkSizeZ: usize = 32; //32; 
+pub const chunkSizeX: usize = 8; //32;
+pub const chunkSizeY: usize = 16; //256; // half under, half above, Y is up down
+pub const chunkSizeZ: usize = 8; //32; 
 
 pub const halfChunkY: usize = chunkSizeY / 2; // this is what ill take away when indexing so that z=0 is water and under is negative
 

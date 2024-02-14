@@ -18,8 +18,6 @@ impl super::Chunk {
     */
     pub fn CreateTempChunkVector(&mut self) -> Vec<Vec<Vec<Block>>> {
         // initial xz values are defined by the chunks id, 
-        let mut defaultBlock: Block = Block::new(BlockType::Air, 0, 0, 0);
-
         let mut tempChunkVec: Vec<Vec<Vec<Block>>> = Vec::with_capacity(chunkSizeX);
 
         let mut xPos: i32 = 0;
@@ -33,9 +31,9 @@ impl super::Chunk {
                 let mut temp1d: Vec<Block> = Vec::with_capacity(chunkSizeZ);
 
                 for z in 0..chunkSizeZ as i32 {
-                    xPos = (self.chunkIDx * chunkSizeX as i32) + x as i32;
+                    xPos = (self.chunk_id_x * chunkSizeX as i32) + x as i32;
                     yPos = y - halfChunkY as i16;
-                    zPos = (self.chunkIDz * chunkSizeZ as i32) + z as i32;
+                    zPos = (self.chunk_id_z * chunkSizeZ as i32) + z as i32;
 
                     temp1d.push(Block::new(
                         BlockType::Air, 
@@ -68,7 +66,7 @@ impl super::Chunk {
     */
     pub fn GenerateChunk(&mut self, tempChunkVec: &mut Vec<Vec<Vec<Block>>>) {
         
-        println!("Generating Chunk: ({}, {})", self.chunkIDx, self.chunkIDz);
+        println!("Generating Chunk: ({}, {})", self.chunk_id_x, self.chunk_id_z);
 
         // start with the bottom level being bedrock
         for x in 0..chunkSizeX {
