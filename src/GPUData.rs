@@ -23,11 +23,7 @@ pub struct GPUData {
 
     pub vertex_buf: Buffer,
     pub index_buf: Buffer,
-    pub instance_buf: Buffer,
-    pub colour_buf: Buffer,
 
-    pub instance_staging_buf: Buffer,
-    pub colour_staging_buf: Buffer,
     pub vertex_uniform_staging_buf: Buffer,
 
     pub instances_modified: bool,
@@ -90,32 +86,12 @@ impl GPUData {
         });
 
 
-        let instance_buf: wgpu::Buffer = renderer.device.create_buffer_init(&BufferInitDescriptor {
-            label: Some("Instance Buffer"),
-            contents: bytemuck::cast_slice(&cubeInstanceModelMatricies),
-            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
-        });
-
-        let colour_buf: wgpu::Buffer = renderer.device.create_buffer_init(&BufferInitDescriptor {
-            label: Some("Colour Buffer"),
-            contents: bytemuck::cast_slice(&cubeColours),
-            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
-        });
+        
 
 
         // use these staging buffers so that i can copy them to the gpu from the cpu, which takes along time, async
         // then once the buffers are ready i copy them to the actual buffers on the gpu to be used
-        let instance_staging_buf: wgpu::Buffer = renderer.device.create_buffer_init(&BufferInitDescriptor {
-            label: Some("Instance Staging Buffer"),
-            contents: bytemuck::cast_slice(&cubeInstanceModelMatricies),
-            usage: BufferUsages::COPY_SRC | BufferUsages::COPY_DST,
-        });
-
-        let colour_staging_buf: wgpu::Buffer = renderer.device.create_buffer_init(&BufferInitDescriptor {
-            label: Some("Colour Staging Buffer"),
-            contents: bytemuck::cast_slice(&cubeColours),
-            usage: BufferUsages::COPY_SRC | BufferUsages::COPY_DST,
-        });
+        
 
         // vertex uniform staging buiffer
         let vertex_uniform_staging_buf: wgpu::Buffer = renderer.device.create_buffer_init(&BufferInitDescriptor {
@@ -130,16 +106,9 @@ impl GPUData {
             cubeVertices,
             cubeIndices,
 
-            cubeInstanceModelMatricies,
-            cubeColours,
-
             vertex_buf,
             index_buf,
-            instance_buf,
-            colour_buf,
 
-            instance_staging_buf,
-            colour_staging_buf,
             vertex_uniform_staging_buf,
 
             instances_modified: false,
