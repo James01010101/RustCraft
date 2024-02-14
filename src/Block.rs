@@ -22,10 +22,6 @@ pub enum BlockType {
     Cobblestone,
 
 
-    
-
-    
-
 }
 
 

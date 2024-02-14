@@ -165,10 +165,10 @@ impl FileSystem {
     // the chunk is not borrowed here so after this call it goes out of scope and is dropped
     pub fn SaveChunkToFile(&mut self, chunk: Chunk) {
         // save the chunk to a file then free it
-        println!("Saving Chunk to File: ({}, {})", chunk.chunkIDx, chunk.chunkIDz);
+        println!("Saving Chunk to File: ({}, {})", chunk.chunk_id_x, chunk.chunk_id_z);
         let mut filePath: PathBuf = self.myWorldDirectory.clone();
         filePath.push("Chunks");
-        filePath.push(format!("{}_{}.txt", chunk.chunkIDx, chunk.chunkIDz));
+        filePath.push(format!("{}_{}.txt", chunk.chunk_id_x, chunk.chunk_id_z));
 
         // first create the file, and overwrite it if it already exists
         let mut file: File = File::create(filePath).unwrap();
@@ -186,7 +186,7 @@ impl FileSystem {
         let mut tempChunkVec: Vec<Vec<Vec<BlockType>>> = vec![vec![vec![BlockType::Air; chunkSizeZ as usize]; chunkSizeY as usize]; chunkSizeX as usize]; 
         
         // now go through the hashmap
-        for (key, block) in chunk.chunkBlocks.iter() {
+        for (key, block) in chunk.chunk_blocks.iter() {
             // get the position of the block relative to the chunk
             let chunkRelativeX: usize = key.0.rem_euclid(chunkSizeX as i32) as usize;
             let chunkRelativeY: usize = (key.1 + (chunkSizeY as i16 / 2)) as usize;
