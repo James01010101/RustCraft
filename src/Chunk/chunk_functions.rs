@@ -1,13 +1,14 @@
 
+use crate::block::*;
+use crate::settings::*;
+use crate::file_system::*;
+use crate::renderer::*;
+use crate::chunk::InstanceData;
+
+
 use std::collections::HashSet;
 use std::mem;
 use std::sync::{Arc, Mutex};
-
-use crate::Block::*;
-use crate::Settings::*;
-use crate::FileSystem::*;
-use crate::Renderer::*;
-use crate::Chunk::InstanceData;
 
 use wgpu::util::DeviceExt;
 
@@ -15,68 +16,65 @@ use flume;
 use async_std::task;
 
 
-
-
 impl super::Chunk {
     
     // if this chunk has beenc created before then i create a Chunk obj, and fill it from wherever
-    pub fn LoadChunk(&mut self, filesystem: &mut FileSystem, createdChunks: &mut HashSet<(i32, i32)>, renderer: &Renderer) {
+    pub fn load_chunk(&mut self, file_system: &mut FileSystem, created_chunks: &mut HashSet<(i32, i32)>, renderer: &Renderer) {
 
         // create the temp chunk Vector, which creates all blocks
-        let mut tempChunkVec: Vec<Vec<Vec<Block>>> = self.CreateTempChunkVector();
+        let mut temp_chunk_vec: Vec<Vec<Vec<Block>>> = self.create_temp_chunk_vector();
 
         // fill the temp vector with data
         // first check if the chunk has been created before if so load it
-        if createdChunks.contains(&(self.chunk_id_x, self.chunk_id_z)) {
+        if created_chunks.contains(&(self.chunk_id_x, self.chunk_id_z)) {
 
             // now check if it is loaded, if it is then i can just ignore it, if it isnt loaded then i need to read it from a file
             // it will already be loaded if i try to load a chunk already in the game
             // has been created before so load from file
-            filesystem.ReadChunkFromFile(&mut tempChunkVec, self.chunk_id_x, self.chunk_id_z);
+            file_system.read_chunks_from_file(&mut temp_chunk_vec, self.chunk_id_x, self.chunk_id_z);
 
         } else {
             // else create a new one
-            self.GenerateChunk(&mut tempChunkVec);
+            self.generate_chunk(&mut temp_chunk_vec);
 
             // add this chunk to created chunks
-            createdChunks.insert((self.chunk_id_x, self.chunk_id_z));
+            created_chunks.insert((self.chunk_id_x, self.chunk_id_z));
         }
 
         // check each block if it is touching air (async because reading from gpu is async)
-        task::block_on(self.check_for_touching_air(&mut tempChunkVec, &renderer));
-
+        task::block_on(self.check_for_touching_air(&mut temp_chunk_vec, &renderer));
 
         // fill the chunkBlocks hashmap from the temp vector
-        self.FillChunksHashMap(tempChunkVec);
+        self.fill_chunk_hashmap(temp_chunk_vec);
 
         // TODO: #99 upload the instance buffer to the gpu
-
+        self.update_instance_staging_buffer(renderer);
     }
 
 
     // convert the temp chunks vector into the hashmap
-    pub fn FillChunksHashMap(&mut self, tempChunkVec: Vec<Vec<Vec<Block>>>) {
+    pub fn fill_chunk_hashmap(&mut self, temp_chunk_vec: Vec<Vec<Vec<Block>>>) {
 
         // loop through the temp vector and fill the hashmap
-        for x in 0..chunkSizeX {
-            for y in 0..chunkSizeY {
-                for z in 0..chunkSizeZ {
+        for x in 0..CHUNK_SIZE_X {
+            for y in 0..CHUNK_SIZE_Y {
+                for z in 0..CHUNK_SIZE_Z {
                     // if the block is not air then add it to the hashmap
-                    if tempChunkVec[x][y][z].blockType != BlockType::Air {
+                    if temp_chunk_vec[x][y][z].block_type != BlockType::Air {
 
                         self.chunk_blocks.insert(
-                            (tempChunkVec[x][y][z].position.x, tempChunkVec[x][y][z].position.y, tempChunkVec[x][y][z].position.z), 
-                            tempChunkVec[x][y][z]
+                            (temp_chunk_vec[x][y][z].position.x, temp_chunk_vec[x][y][z].position.y, temp_chunk_vec[x][y][z].position.z), 
+                            temp_chunk_vec[x][y][z]
                         );
                         self.alive_blocks += 1;
 
                         // also if it is touching air then add it to the instances to render hashmap
-                        if tempChunkVec[x][y][z].touchingAir {
+                        if temp_chunk_vec[x][y][z].touching_air {
                             self.instances_to_render.insert(
-                                (tempChunkVec[x][y][z].position.x, tempChunkVec[x][y][z].position.y, tempChunkVec[x][y][z].position.z), 
+                                (temp_chunk_vec[x][y][z].position.x, temp_chunk_vec[x][y][z].position.y, temp_chunk_vec[x][y][z].position.z), 
                                 InstanceData { 
-                                    modelMatrix: tempChunkVec[x][y][z].modelMatrix.clone(),
-                                    colour: tempChunkVec[x][y][z].blockType.BlockColour(),
+                                    model_matrix: temp_chunk_vec[x][y][z].model_matrix.clone(),
+                                    colour: temp_chunk_vec[x][y][z].block_type.block_colour(),
                                 }
                             );
                         }
@@ -84,13 +82,15 @@ impl super::Chunk {
                 }
             }
         }
+
+        self.instance_size = self.instances_to_render.len() as u32;
     }
 
 
 
     // iterate through the whole vector and update all blocks that are touching air using a compute shader
     // this is run once on chunk creation
-    pub async fn check_for_touching_air(&mut self, tempChunkVec: &mut Vec<Vec<Vec<Block>>>, renderer: &Renderer) {
+    pub async fn check_for_touching_air(&mut self, temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>, renderer: &Renderer) {
 
         /*
         create 2 buffers
@@ -115,27 +115,27 @@ impl super::Chunk {
         */
 
         // create the block types array
-        let mut chunk_block_types: Vec<u32> = Vec::with_capacity(chunkSizeX * chunkSizeY * chunkSizeZ);
-        for z in 0..chunkSizeX as i32 {
-            for y in 0..chunkSizeY as i16 {
-                for x in 0..chunkSizeZ as i32 {
-                    chunk_block_types.push(tempChunkVec[x as usize][y as usize][z as usize].blockType.ToInt() as u32);
+        let mut chunk_block_types: Vec<u32> = Vec::with_capacity(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z);
+        for z in 0..CHUNK_SIZE_X as i32 {
+            for y in 0..CHUNK_SIZE_Y as i16 {
+                for x in 0..CHUNK_SIZE_Z as i32 {
+                    chunk_block_types.push(temp_chunk_vec[x as usize][y as usize][z as usize].block_type.to_int() as u32);
                 }
             }
         }
 
         // create the block transparancy array
-        let mut chunk_block_transparency: Vec<u32> = Vec::with_capacity(chunkSizeX * chunkSizeY * chunkSizeZ);
-        for z in 0..chunkSizeX as i32 {
-            for y in 0..chunkSizeY as i16 {
-                for x in 0..chunkSizeZ as i32 {
-                    chunk_block_transparency.push(tempChunkVec[x as usize][y as usize][z as usize].blockType.is_transparent() as u32);
+        let mut chunk_block_transparency: Vec<u32> = Vec::with_capacity(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z);
+        for z in 0..CHUNK_SIZE_X as i32 {
+            for y in 0..CHUNK_SIZE_Y as i16 {
+                for x in 0..CHUNK_SIZE_Z as i32 {
+                    chunk_block_transparency.push(temp_chunk_vec[x as usize][y as usize][z as usize].block_type.is_transparent() as u32);
                 }
             }
         }
 
         // create the dimentions buffer so the gpu knows the max of xyz
-        let dimentions: [u32; 3] = [chunkSizeX as u32, chunkSizeY as u32, chunkSizeZ as u32];
+        let dimentions: [u32; 3] = [CHUNK_SIZE_X as u32, CHUNK_SIZE_Y as u32, CHUNK_SIZE_Z as u32];
 
         // now the resulting buffer (cant use bool with the gpu, since rust bools arnt guarenteed to be 1 byte)
         // so instead ill use u8 for all calculations on the gpu and then just convert it to a bool on the cpu once i recieve the results
@@ -160,7 +160,7 @@ impl super::Chunk {
             });
 
         
-        let result_buffer_size: wgpu::BufferAddress = ((chunkSizeX * chunkSizeY * chunkSizeZ) * mem::size_of::<u32>()) as wgpu::BufferAddress;
+        let result_buffer_size: wgpu::BufferAddress = ((CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z) * mem::size_of::<u32>()) as wgpu::BufferAddress;
         let result_buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Result compute buffer"),
             size: result_buffer_size,
@@ -260,7 +260,7 @@ impl super::Chunk {
         let compute_pipeline = renderer.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
             label: Some("check for air Compute Pipeline"),
             layout: Some(&pipeline_layout),
-            module: &renderer.check_air_compute_Shader_code,
+            module: &renderer.check_air_compute_shader_code,
             entry_point: "main",
         });
 
@@ -276,7 +276,7 @@ impl super::Chunk {
             });
             compute_pass.set_pipeline(&compute_pipeline);
             compute_pass.set_bind_group(0, &bind_group, &[]);
-            compute_pass.dispatch_workgroups((chunkSizeX * chunkSizeY * chunkSizeZ) as u32, 1, 1); // Number of cells to run, the (x,y,z) size of item being processed
+            compute_pass.dispatch_workgroups((CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z) as u32, 1, 1); // Number of cells to run, the (x,y,z) size of item being processed
         }
 
         // submit the compute shader render pass command
@@ -323,7 +323,7 @@ impl super::Chunk {
             renderer.device.poll(wgpu::Maintain::Poll);
 
             // Check if the fence has been set to 1
-            let mut fence_guard = fence.lock().unwrap();
+            let fence_guard = fence.lock().unwrap();
             if *fence_guard == 1 {
                 break;
             }
@@ -331,7 +331,6 @@ impl super::Chunk {
         
 
         // now the result buffer will have finished being copied over
-
 
         let buffer_slice = read_result_buffer.slice(..);
 
@@ -397,41 +396,76 @@ impl super::Chunk {
 
         // update the blocks with the results
         let mut index: usize;
-        for y in 0..chunkSizeY {
-            for z in 0..chunkSizeZ {
-                for x in 0..chunkSizeX {
-                    index = x + (y * chunkSizeX) + (z * chunkSizeX * chunkSizeY);
-                    tempChunkVec[x][y][z].touchingAir = result[index] != 0;
+        for y in 0..CHUNK_SIZE_Y {
+            for z in 0..CHUNK_SIZE_Z {
+                for x in 0..CHUNK_SIZE_X {
+                    index = x + (y * CHUNK_SIZE_X) + (z * CHUNK_SIZE_X * CHUNK_SIZE_Y);
+                    temp_chunk_vec[x][y][z].touching_air = result[index] != 0;
                 }
             }
         }
 
     }
+
+
+
+    // update the instance buffer for the chunk with the instances
+    pub fn update_instance_staging_buffer(&mut self, renderer: &Renderer) {
+
+        // make the hashmap of instances into a sclice i can pass to a buffer
+        let instances_vector = self.instances_to_render.values().cloned().collect::<Vec<InstanceData>>();
+        let instances_slice = instances_vector.as_slice();
+
+        // update the staging gpu buffers and set the flag that this data has changed
+        renderer.queue.write_buffer(&self.instance_staging_buffer, 0, bytemuck::cast_slice(instances_slice));
+
+        self.instances_modified = true;
+
+        // submit those write buffers so they are run
+        renderer.queue.submit(std::iter::empty());
+    }
+
+
+    // each frame call this on each chunk. it will update the instance buffer if the instances have been modified
+    pub fn update_instance_buffer(&mut self, renderer: &Renderer) {
+        // if the instances have been modified then update the instance buffer
+        if self.instances_modified {
+            // copy the staging buffer to the instance buffer
+            let mut encoder = renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("instance buffer copy encoder"),
+            });
+            encoder.copy_buffer_to_buffer(&self.instance_staging_buffer, 0, &self.instance_buffer, 0, (self.instance_size as usize * mem::size_of::<InstanceData>()) as wgpu::BufferAddress);
+            renderer.queue.submit(Some(encoder.finish()));
+
+            // set the flag to false
+            self.instances_modified = false;
+        }
+    }
 }
 
 
 // takes the world position and gives you the chunk id of the chunk that position is in
-pub fn GetChunkId(posX: i32, posZ: i32) -> (i32, i32) {
+pub fn get_chunk_id(pos_x: i32, pos_z: i32) -> (i32, i32) {
 
-    let chunkX: i32 = posX / chunkSizeX as i32;
-    let chunkZ: i32 = posZ / chunkSizeZ as i32;
+    let chunk_x: i32 = pos_x / CHUNK_SIZE_X as i32;
+    let chunk_z: i32 = pos_z / CHUNK_SIZE_Z as i32;
 
-    return (chunkX, chunkZ);
+    return (chunk_x, chunk_z);
 }
 
 
 // given a chunk x and z id and a block position relative to the origin of the chunk return the world coordinate of the block
-pub fn GetWorldBlockPos(blockIDx: i32, blockIDz: i32, relBlockX: i32, relBlockY: i16, relBlockZ: i32) -> (i32, i16, i32) {
-    let worldX: i32 = (blockIDx * chunkSizeX as i32) + relBlockX;
-    let worldY: i16 = relBlockY;
-    let worldZ: i32 = (blockIDz * chunkSizeZ as i32) + relBlockZ;
+pub fn get_world_block_pos(block_id_x: i32, block_id_z: i32, relative_block_x: i32, relative_block_y: i16, relative_block_z: i32) -> (i32, i16, i32) {
+    let world_x: i32 = (block_id_x * CHUNK_SIZE_X as i32) + relative_block_x;
+    let world_y: i16 = relative_block_y;
+    let world_z: i32 = (block_id_z * CHUNK_SIZE_Z as i32) + relative_block_z;
 
-    return (worldX, worldY, worldZ);
+    return (world_x, world_y, world_z);
 }
 
 
 // go from blocks world position to chunk relative position
-pub fn GetRelativeBlockPos(worldX: i32, worldY: i16, worldZ: i32) -> (i32, i16, i32) {
+pub fn get_relative_block_pos(world_x: i32, world_y: i16, world_z: i32) -> (i32, i16, i32) {
 
     /* this does the same thing, as below, below is just obviously more efficient
     let mut chunkRelativeX: i32 = 0;
@@ -452,9 +486,9 @@ pub fn GetRelativeBlockPos(worldX: i32, worldY: i16, worldZ: i32) -> (i32, i16, 
     }
     */
     
-    let chunkRelativeX: i32 = worldX.rem_euclid(chunkSizeX as i32);
-    let chunkRelativeZ: i32 = worldZ.rem_euclid(chunkSizeZ as i32);
+    let chunk_relative_x: i32 = world_x.rem_euclid(CHUNK_SIZE_X as i32);
+    let chunk_relative_z: i32 = world_z.rem_euclid(CHUNK_SIZE_Z as i32);
 
 
-    return (chunkRelativeX, worldY, chunkRelativeZ);
+    return (chunk_relative_x, world_y, chunk_relative_z);
 }

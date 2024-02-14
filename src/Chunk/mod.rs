@@ -1,14 +1,14 @@
 
 
-pub mod ChunkFunctions;
-pub mod CreateChunks;
+pub mod chunk_functions;
+pub mod create_chunks;
 
+use crate::block::*;
+use crate::renderer::*;
 
 use std::collections::HashMap;
 use wgpu::{BufferUsages, BufferDescriptor};
-
-use crate::Block::*;
-use crate::Renderer::*;
+use bytemuck::{Pod, Zeroable};
 
 
 // This will store all of the blocks and objects within a chunk
@@ -37,8 +37,11 @@ pub struct Chunk {
     pub instance_size: u32,
 
     // instance buffer for the chunk
-    pub instance_buf: wgpu::Buffer,
-    pub instance_staging_buf: wgpu::Buffer,
+    pub instance_buffer: wgpu::Buffer,
+    pub instance_staging_buffer: wgpu::Buffer,
+
+    // if i update the staging buffer set this true so i know to copy it to the instance buffer
+    pub instances_modified: bool,
 }
 
 
@@ -47,7 +50,7 @@ impl Chunk {
 
         // if a numBlocks was passed in ill allocate the hashmap of that size
         let chunk_blocks: HashMap<(i32, i16, i32), Block>;
-        let instances_to_render: HashMap<(i32, i16, i32), InstanceData>;
+        let instances_to_render: HashMap<(i32, i16, i32), InstanceData> = HashMap::new();
         let alive_blocks: u32;
 
         if num_blocks != -1 {
@@ -72,7 +75,7 @@ impl Chunk {
         let instance_staging_buf: wgpu::Buffer = renderer.device.create_buffer(&BufferDescriptor {
             label: Some("Instance Staging Buffer"),
             size: (std::mem::size_of::<InstanceData>() * instance_capacity as usize) as wgpu::BufferAddress,
-            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
+            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST | BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
 
@@ -86,8 +89,10 @@ impl Chunk {
 
             instance_size: 0,
             instance_capacity,
-            instance_buf,
-            instance_staging_buf,
+            instance_buffer: instance_buf,
+            instance_staging_buffer: instance_staging_buf,
+
+            instances_modified: false,
         }
     }
 
@@ -102,12 +107,11 @@ impl Chunk {
 }
 
 
-
-
 // this will store all data related to a instance so i can move this into the buffer
 #[repr(C)]
-struct InstanceData {
-    pub modelMatrix: [[f32; 4]; 4],
+#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+pub struct InstanceData {
+    pub model_matrix: [[f32; 4]; 4],
     pub colour: [f32; 4],
 }
 

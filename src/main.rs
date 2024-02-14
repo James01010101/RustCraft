@@ -1,12 +1,12 @@
 
-#![allow(non_snake_case)]
+//#![allow(non_snake_case)]
 
-extern crate RustCraft;
+extern crate rust_craft;
 
-use RustCraft::MainGameLoop;
+use rust_craft::main_game_loop;
 
 fn main() {
 
-    MainGameLoop::RunMainGameLoop();
+    main_game_loop::run_main_game_loop();
 
 }

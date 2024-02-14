@@ -1,8 +1,8 @@
 
-use crate::Chunk::*;
-use crate::FileSystem::FileSystem;
-use crate::Block::*;
-use crate::Renderer::*;
+use crate::chunk::*;
+use crate::file_system::FileSystem;
+
+use crate::renderer::*;
 
 use std::{collections::{HashMap, HashSet}, path::PathBuf};
 use std::io::{self, BufRead};
@@ -16,7 +16,7 @@ pub struct World {
     pub chunks: HashMap<(i32, i32), Chunk>,
 
     // stores all of the chunks that have been created before
-    pub createdChunks: HashSet<(i32, i32)>,
+    pub created_chunks: HashSet<(i32, i32)>,
 }
 
 
@@ -24,23 +24,23 @@ impl World {
     pub fn new() -> World {
 
         // stores all alive chunks in this so they can be rendered and used
-        let mut chunks: HashMap<(i32, i32), Chunk> = HashMap::new();
+        let chunks: HashMap<(i32, i32), Chunk> = HashMap::new();
 
         // a table of all of the chunks that have been calculated before, Key: (chunkIDx, chunkIDy)
         // the order the hashset is printed changes every run
-        let mut createdChunks: HashSet<(i32, i32)> = HashSet::new();
+        let created_chunks: HashSet<(i32, i32)> = HashSet::new();
 
 
         // create and return the world
         World { 
             chunks, 
-            createdChunks,
+            created_chunks,
         }
 
     }
 
     
-    pub fn AddTestChunks(&mut self, filesystem: &mut FileSystem, renderer: &Renderer) {
+    pub fn add_test_chunks(&mut self, file_system: &mut FileSystem, renderer: &Renderer) {
         // create the new chunk
         
         /*
@@ -68,7 +68,7 @@ impl World {
         if !self.chunks.contains_key(&k) {
 
             let mut c: Chunk = Chunk::new(k.0, k.1, -1, &renderer);
-            c.LoadChunk(filesystem, &mut self.createdChunks, &renderer);
+            c.load_chunk(file_system, &mut self.created_chunks, &renderer);
 
             self.chunks.insert(k, c);
 
@@ -84,15 +84,15 @@ impl World {
 
 
     // takes in the filesystem, loads the file where all of the chunks that have been created live and writes them to the hashmap
-    pub fn LoadCreatedChunksFile(&mut self, myFileSystem: &mut FileSystem) {
+    pub fn load_created_chunks_file(&mut self, my_file_system: &mut FileSystem) {
 
         // get the path to the ChunksCreated.txt file
-        let mut chunksCreatedPath: PathBuf = myFileSystem.myWorldDirectory.clone();
-        chunksCreatedPath.push("ChunksCreated.txt");
+        let mut chunks_created_path: PathBuf = my_file_system.my_world_directory.clone();
+        chunks_created_path.push("ChunksCreated.txt");
 
-        let chunksCreatedFile: File = File::open(chunksCreatedPath).unwrap();
+        let chunks_created_file: File = File::open(chunks_created_path).unwrap();
 
-        let reader: io::BufReader<File> = io::BufReader::new(chunksCreatedFile);
+        let reader: io::BufReader<File> = io::BufReader::new(chunks_created_file);
 
         let mut lines = reader.lines();
 
@@ -102,7 +102,7 @@ impl World {
             .expect("Failed to get next line in ChunksCreated.txt, as it is at EOF")
             .unwrap();
 
-        let totalCreatedChunks: i32 = line1.split_whitespace()
+        let total_created_chunks: i32 = line1.split_whitespace()
             .last()
             .expect("Failed to get last element in split whitespace string (ChunksCreated.txt)")
             .parse::<i32>()
@@ -116,19 +116,19 @@ impl World {
         let mut line: String;
         let mut x: i32 = 0;
         let mut z: i32 = 0;
-        for i in 0..totalCreatedChunks {
+        for _ in 0..total_created_chunks {
             line = lines.next()
                 .expect("Failed to get next line in ChunksCreated.txt, as it is at EOF")
                 .unwrap();
 
-            let mut splitLine = line.split_whitespace();
-            x = splitLine.next()
+            let mut split_line = line.split_whitespace();
+            x = split_line.next()
             .expect("Failed to get next element of split whitespace line while reading ChunksCreated.txt")
             .parse::<i32>()
             .unwrap();
 
 
-            z = splitLine.next()
+            z = split_line.next()
             .expect("Failed to get next element of split whitespace line while reading ChunksCreated.txt")
             .parse::<i32>()
             .unwrap();
@@ -136,7 +136,7 @@ impl World {
 
 
             // insert these into the hashset and check if it is a dupe
-            if !self.createdChunks.insert((x, z)) {
+            if !self.created_chunks.insert((x, z)) {
                 // if insert returns false then it was already in the hashmap
                 eprintln!("Duplicate key found when reading chunk ids from ChunksCreated.txt: ({}, {})", x, z);
             }

@@ -1,18 +1,18 @@
 
+use crate::settings::*;
+use crate::chunk::*;
+use crate::block::*;
+use crate::world::*;
+
 use std::path::PathBuf;
 use std::env;
-
 use std::fs::{create_dir_all, File};
 use std::io::{self, Write, BufRead};
 
-use crate::Settings::*;
-use crate::Chunk::*;
-use crate::Block::*;
-use crate::World::*;
 
 pub struct FileSystem {
-    pub assetsDirectory: PathBuf, // the directory of the assets folder
-    pub myWorldDirectory: PathBuf, // the directory of blah/james's World/
+    pub assets_directory: PathBuf, // the directory of the assets folder
+    pub my_world_directory: PathBuf, // the directory of blah/james's World/
 
 }
 
@@ -20,33 +20,33 @@ pub struct FileSystem {
 impl FileSystem {
     pub fn new() -> FileSystem {
         FileSystem {
-            assetsDirectory: PathBuf::new(),
-            myWorldDirectory: PathBuf::new(),
+            assets_directory: PathBuf::new(),
+            my_world_directory: PathBuf::new(),
         }
     }
 
 
     // will check if the files have been created for this world and if not it will create them
-    pub fn CheckFileSystem(&mut self) {
+    pub fn check_file_system(&mut self) {
 
         // first check that the data folder exists
-        self.CheckDataFolder();
+        self.check_data_folder();
 
         // now check if this game world has a folder and files, if it doesnt ill make them
-        self.CheckGameFiles();
+        self.check_game_files();
     }
 
 
-    pub fn CheckDataFolder(&mut self) {
+    pub fn check_data_folder(&mut self) {
 
         let mut path: PathBuf = env::current_exe().unwrap();
-        for _ in 0..exeDirectoryLevel {
+        for _ in 0..EXE_DIRECTORY_LEVEL {
             path.pop();
         }
         path.push("assets");
 
         // save this as the assets directory
-        self.assetsDirectory = path.clone();
+        self.assets_directory = path.clone();
 
         // continue to check the data directory
         path.push("data");
@@ -57,10 +57,10 @@ impl FileSystem {
     }
 
 
-    pub fn CheckGameFiles(&mut self) {
+    pub fn check_game_files(&mut self) {
 
         // get to the data dir
-        let mut path: PathBuf = self.assetsDirectory.clone();
+        let mut path: PathBuf = self.assets_directory.clone();
         path.push("data");
 
         // check if the world folder exists
@@ -71,12 +71,12 @@ impl FileSystem {
         }
 
         // now check if there is a folder for this game world
-        path.push(worldName);
+        path.push(WORLD_NAME);
         if !path.exists() {
             // Create the directory if it does not exist
             match create_dir_all(&path) {
                 Ok(_) => {
-                    println!("Created new game world directory: {:?}", worldName);
+                    println!("Created new game world directory: {:?}", WORLD_NAME);
                 }
                 Err(e) => {
                     eprintln!("Failed to create new game world directory at path: {:?}", path);
@@ -85,7 +85,7 @@ impl FileSystem {
             }
         }
         
-        self.myWorldDirectory = path.clone();
+        self.my_world_directory = path.clone();
 
 
         path.push("Chunks");
@@ -107,7 +107,7 @@ impl FileSystem {
             // now write the headings to the file
             let mut data: String = String::new();
             data.push_str("Total Chunks Created : 0\n");
-            data.push_str(&format!("Chunk Sizes: ({}, {}, {})\n", chunkSizeX, chunkSizeY, chunkSizeZ));
+            data.push_str(&format!("Chunk Sizes: ({}, {}, {})\n", CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
             // any other data i might want to save can go here
             
             data.push_str(&format!("Created Chunks:\n",));
@@ -151,27 +151,23 @@ impl FileSystem {
             data.push_str("DamageDelt: 0\n");
             data.push_str("MobsKilled: 0\n");
 
-
             // Write data to the file
             file.write_all(data.as_bytes()).unwrap()
         }
-            
-
-
     }
 
 
     // Once a chunk has been loaded and is in play, and then goes out of range it is unloaded and saved back to a file
     // the chunk is not borrowed here so after this call it goes out of scope and is dropped
-    pub fn SaveChunkToFile(&mut self, chunk: Chunk) {
+    pub fn save_chunk_to_file(&mut self, chunk: Chunk) {
         // save the chunk to a file then free it
         println!("Saving Chunk to File: ({}, {})", chunk.chunk_id_x, chunk.chunk_id_z);
-        let mut filePath: PathBuf = self.myWorldDirectory.clone();
-        filePath.push("Chunks");
-        filePath.push(format!("{}_{}.txt", chunk.chunk_id_x, chunk.chunk_id_z));
+        let mut file_path: PathBuf = self.my_world_directory.clone();
+        file_path.push("Chunks");
+        file_path.push(format!("{}_{}.txt", chunk.chunk_id_x, chunk.chunk_id_z));
 
         // first create the file, and overwrite it if it already exists
-        let mut file: File = File::create(filePath).unwrap();
+        let mut file: File = File::create(file_path).unwrap();
 
         /* 
         now write the chunk data to the file
@@ -183,18 +179,17 @@ impl FileSystem {
         */
 
         // make the 3d vector
-        let mut tempChunkVec: Vec<Vec<Vec<BlockType>>> = vec![vec![vec![BlockType::Air; chunkSizeZ as usize]; chunkSizeY as usize]; chunkSizeX as usize]; 
+        let mut temp_chunk_vec: Vec<Vec<Vec<BlockType>>> = vec![vec![vec![BlockType::Air; CHUNK_SIZE_X as usize]; CHUNK_SIZE_Y as usize]; CHUNK_SIZE_Z as usize]; 
         
         // now go through the hashmap
         for (key, block) in chunk.chunk_blocks.iter() {
             // get the position of the block relative to the chunk
-            let chunkRelativeX: usize = key.0.rem_euclid(chunkSizeX as i32) as usize;
-            let chunkRelativeY: usize = (key.1 + (chunkSizeY as i16 / 2)) as usize;
-            let chunkRelativeZ: usize = key.2.rem_euclid(chunkSizeZ as i32) as usize;
+            let chunk_relative_x: usize = key.0.rem_euclid(CHUNK_SIZE_X as i32) as usize;
+            let chunk_relative_y: usize = (key.1 + (CHUNK_SIZE_Y as i16 / 2)) as usize;
+            let chunk_relative_z: usize = key.2.rem_euclid(CHUNK_SIZE_Z as i32) as usize;
 
-    
             // put this block into the temp vector, but just its block type
-            tempChunkVec[chunkRelativeX][chunkRelativeY][chunkRelativeZ] = block.blockType;
+            temp_chunk_vec[chunk_relative_x][chunk_relative_y][chunk_relative_z] = block.block_type;
         }
 
         /*
@@ -202,10 +197,10 @@ impl FileSystem {
         once x is max make a new line and increase z, once z is max make two new lines and increase y
         */
         let mut data: String = String::new();
-        for y in 0..chunkSizeY as usize {
-            for z in 0..chunkSizeZ as usize {
-                for x in 0..chunkSizeX as usize {
-                    data.push_str(&format!("{:?} ", tempChunkVec[x][y][z].ToInt()));
+        for y in 0..CHUNK_SIZE_Y as usize {
+            for z in 0..CHUNK_SIZE_Z as usize {
+                for x in 0..CHUNK_SIZE_X as usize {
+                    data.push_str(&format!("{:?} ", temp_chunk_vec[x][y][z].to_int()));
                 }
                 data.push_str("\n");
             }
@@ -220,19 +215,19 @@ impl FileSystem {
 
 
     // save the created chunks file
-    pub fn SaveCreatedChunksFile(&mut self, world: &mut World) {
+    pub fn save_created_chunks_file(&mut self, world: &mut World) {
         let mut data: String = String::new();
 
         // write the header lines
-        data.push_str(&format!("Total Chunks Created : {:?}\n", world.createdChunks.len()));
-        data.push_str(&format!("Chunk Sizes: ({}, {}, {})\n", chunkSizeX, chunkSizeY, chunkSizeZ));
+        data.push_str(&format!("Total Chunks Created : {:?}\n", world.created_chunks.len()));
+        data.push_str(&format!("Chunk Sizes: ({}, {}, {})\n", CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
         data.push_str("Created Chunks: \n");
-        for key in world.createdChunks.drain() {
+        for key in world.created_chunks.drain() {
             data.push_str(&format!("{} {}\n", key.0, key.1));
         }
 
         // open the file
-        let mut path: PathBuf = self.myWorldDirectory.clone();
+        let mut path: PathBuf = self.my_world_directory.clone();
         path.push("ChunksCreated.txt");
         let mut file: File = File::create(path).unwrap();
 
@@ -241,60 +236,59 @@ impl FileSystem {
     }
 
 
-    // TODO: #62 Implement loading chunks from file
-    pub fn ReadChunkFromFile(&mut self, tempChunkVec: &mut Vec<Vec<Vec<Block>>>, chunkIDx: i32, chunkIDz: i32) {
+    pub fn read_chunks_from_file(&mut self, temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>, chunk_id_x: i32, chunk_id_z: i32) {
         // read the chunk from a file and fill the temp vector with the data
-        println!("Reading Chunk from File: ({}, {})", chunkIDx, chunkIDz);
+        println!("Reading Chunk from File: ({}, {})", chunk_id_x, chunk_id_z);
 
         // get the file path
-        let mut filePath: PathBuf = self.myWorldDirectory.clone();
-        filePath.push("Chunks");
-        filePath.push(format!("{}_{}.txt", chunkIDx, chunkIDz));
+        let mut file_path: PathBuf = self.my_world_directory.clone();
+        file_path.push("Chunks");
+        file_path.push(format!("{}_{}.txt", chunk_id_x, chunk_id_z));
 
         //check that this file exists
-        if !filePath.exists() {
-            panic!("Trying to read chunk file that does not exist: {:?}", filePath);
+        if !file_path.exists() {
+            panic!("Trying to read chunk file that does not exist: {:?}", file_path);
         }
 
         // open the file
-        let file: File = File::open(filePath).unwrap();
+        let file: File = File::open(file_path).unwrap();
 
         // read the file line by line
         let reader: io::BufReader<File> = io::BufReader::new(file);
-        let mut lines = reader.lines();
+        let lines = reader.lines();
 
         // iterate through the lines and fill the temp vector with the data
-        let mut x: usize = 0;
+        let mut x: usize;
         let mut y: usize = 0;
         let mut z: usize = 0;
-        let mut newline: String;
-        let mut skipLine: bool = false;
+        let mut new_line: String;
+        let mut skip_line: bool = false;
         for line in lines {
-            newline = line.unwrap();
+            new_line = line.unwrap();
 
             // so i can skip empty lines
-            if skipLine {
-                skipLine = false;
+            if skip_line {
+                skip_line = false;
                 continue;
             }
 
             x = 0;
-            for block in newline.split_whitespace() {
-                tempChunkVec[x][y][z].blockType = BlockType::FromInt(block.parse::<u16>().unwrap());
+            for block in new_line.split_whitespace() {
+                temp_chunk_vec[x][y][z].block_type = BlockType::from_int(block.parse::<u16>().unwrap());
                 x += 1;
             }
             z += 1;
 
             // if ive read the whole layer increase y
-            if z == chunkSizeZ {
+            if z == CHUNK_SIZE_Z {
                 z = 0;
                 y += 1;
                 
                 // i need to read in the next line here and discard it
-                skipLine = true;
+                skip_line = true;
 
                 // if im at the end then break
-                if y == chunkSizeY {
+                if y == CHUNK_SIZE_Y {
                     break;
                 }
             }

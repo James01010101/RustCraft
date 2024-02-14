@@ -1,8 +1,10 @@
 // This file will be for all rendering to windows
 
-use crate::Camera::*;
-use crate::WindowWrapper::*;
-use crate::GPUData::*;
+use crate::camera::*;
+use crate::window_wrapper::*;
+use crate::gpu_data::*;
+use crate::chunk::InstanceData;
+use crate::world::*;
 
 use wgpu::{
     Device,
@@ -29,31 +31,31 @@ pub struct Renderer {
     pub queue: Queue,
 
     // shaders
-    pub vertShaderCode: ShaderModule,
-    pub fragShaderCode: ShaderModule,
-    pub check_air_compute_Shader_code: ShaderModule,
+    pub vertex_shader_code: ShaderModule,
+    pub fragment_shader_code: ShaderModule,
+    pub check_air_compute_shader_code: ShaderModule,
 
     // pipeline
     pub pipeline_layout: PipelineLayout,
     pub render_pipeline: RenderPipeline,
-    pub surfaceConfig: SurfaceConfiguration,
+    pub surface_config: SurfaceConfiguration,
     pub bind_group: wgpu::BindGroup,
-    pub vertUniforms: VertexUniforms, 
+    pub vertex_uniforms: VertexUniforms, 
     pub uniform_buffer: wgpu::Buffer,
     pub depth_texture: wgpu::Texture,
 }
 
 // this is where i write the functions for the Renderer Struct
 impl Renderer { 
-    pub async fn new(windowWrapper: &WindowWrapper, camera: &Camera) -> Renderer {
+    pub async fn new(window_wrapper: &WindowWrapper, camera: &Camera) -> Renderer {
         
         // set the window height and width variables
-        let windowHeight = windowWrapper.window.inner_size().height;
-        let windowWidth = windowWrapper.window.inner_size().width;
+        let window_height = window_wrapper.window.inner_size().height;
+        let window_width = window_wrapper.window.inner_size().width;
 
         // create instance and surface
         let instance = wgpu::Instance::default();
-        let surface = instance.create_surface(windowWrapper.window.clone()).unwrap();
+        let surface = instance.create_surface(window_wrapper.window.clone()).unwrap();
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -78,30 +80,30 @@ impl Renderer {
 
 
         // compile my shaders
-        let vertShaderCode = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        let vertex_shader_code = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Vertex Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("Shaders/vertex.wgsl").into()),
         });
 
-        let fragShaderCode = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        let fragment_shader_code = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Fragment Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("Shaders/fragment.wgsl").into()),
         });
 
-        let check_air_compute_Shader_code = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        let check_air_compute_shader_code = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("check air compute shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("Shaders/check_air_compute.wgsl").into()),
         });
 
-        let mut surfaceConfig = surface.get_default_config(
+        let surface_config = surface.get_default_config(
             &adapter, 
-            windowWidth, 
-            windowHeight)
+            window_width, 
+            window_height)
             .unwrap();
-        surface.configure(&device, &surfaceConfig);
+        surface.configure(&device, &surface_config);
 
-        let swapchain_capabilities = surface.get_capabilities(&adapter);
-        let swapchain_format = swapchain_capabilities.formats[0];
+        //let swapchain_capabilities = surface.get_capabilities(&adapter);
+        //let swapchain_format = swapchain_capabilities.formats[0];
 
         
         // describe the layout of the vertex buffer in memory, 3 floats of pos
@@ -114,33 +116,24 @@ impl Renderer {
 
         // describe the layout of the instance buffer in memory, 4x4 matrix which is actually 4x vec4
         let instance_buffer_layout = wgpu::VertexBufferLayout {
-                array_stride: std::mem::size_of::<[[f32; 4]; 4]>() as wgpu::BufferAddress,
-                step_mode: wgpu::VertexStepMode::Instance,
-                attributes: &wgpu::vertex_attr_array![2 => Float32x4, 3 => Float32x4, 4 => Float32x4, 5 => Float32x4],
-            };
-
-        let colour_buffer_layout = wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
+            array_stride: std::mem::size_of::<InstanceData>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Instance,
-            attributes: &[
-                wgpu::VertexAttribute {
-                    offset: 0,
-                    shader_location: 6,
-                    format: wgpu::VertexFormat::Float32x4,
-                    },
-                ],
-            };
+            attributes: &wgpu::vertex_attr_array![
+                2 => Float32x4, 3 => Float32x4, 4 => Float32x4, 5 => Float32x4, // matrix
+                6 => Float32x3, // color
+            ],
+        };
 
         
         // this holsd the uniform data for the vertex shader, the view and projection matrixies combined
-        let vertUniforms: VertexUniforms = VertexUniforms {
+        let vertex_uniforms: VertexUniforms = VertexUniforms {
             projection_view_matrix: camera.projection_view_matrix,
         };
 
         // Create a buffer on the GPU and copy your uniform data into it
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
-            contents: bytemuck::bytes_of(&vertUniforms),
+            contents: bytemuck::bytes_of(&vertex_uniforms),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -177,8 +170,8 @@ impl Renderer {
         let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Depth Texture"),
             size: wgpu::Extent3d {
-                width: windowWidth,
-                height: windowHeight,
+                width: window_width,
+                height: window_height,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
@@ -199,15 +192,15 @@ impl Renderer {
             label: Some("Render Pipeline"),
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
-                module: &vertShaderCode,
+                module: &vertex_shader_code,
                 entry_point: "main", // the entry point for the vertex shader
-                buffers: &[vertex_buffer_layout, instance_buffer_layout, colour_buffer_layout], // Add the vertex_buffer_layout here
+                buffers: &[vertex_buffer_layout, instance_buffer_layout], // Add the vertex_buffer_layout here
             },
             fragment: Some(wgpu::FragmentState {
-                module: &fragShaderCode,
+                module: &fragment_shader_code,
                 entry_point: "main", // the entry point for the fragment shader
                 targets: &[Some(wgpu::ColorTargetState {
-                    format: surfaceConfig.format,
+                    format: surface_config.format,
                     blend: Some(wgpu::BlendState::REPLACE),
                     write_mask: wgpu::ColorWrites::ALL,
                 })], 
@@ -245,23 +238,23 @@ impl Renderer {
             queue,
 
             // shaders
-            vertShaderCode,
-            fragShaderCode,
-            check_air_compute_Shader_code,
+            vertex_shader_code,
+            fragment_shader_code,
+            check_air_compute_shader_code,
 
             // pipeline
             pipeline_layout,
             render_pipeline,
-            surfaceConfig,
+            surface_config,
             bind_group,
-            vertUniforms,
+            vertex_uniforms,
             uniform_buffer,
             depth_texture,
         }
     }
 
 
-    pub fn render_frame(&self, gpuData: &GPUData) {
+    pub fn render_frame(&self, gpu_data: &GPUData, world: &World) {
 
         let frame = self.surface
             .get_current_texture()
@@ -279,16 +272,8 @@ impl Renderer {
         
         // Update buffers
         // update the uniform buffer with the new camera position matricies ( since it is a queue this must complete before rendering)
-        encoder.copy_buffer_to_buffer(&gpuData.vertex_uniform_staging_buf, 0, &self.uniform_buffer, 0, gpuData.vertex_uniform_staging_buf.size());
+        encoder.copy_buffer_to_buffer(&gpu_data.vertex_uniform_staging_buf, 0, &self.uniform_buffer, 0, gpu_data.vertex_uniform_staging_buf.size());
         
-    
-        // if my instances have changed then i update the instance buffer with its staging buffer
-        if gpuData.instances_modified {
-            encoder.copy_buffer_to_buffer(&gpuData.instance_staging_buf, 0, &gpuData.instance_buf, 0, gpuData.instance_staging_buf.size());
-            encoder.copy_buffer_to_buffer(&gpuData.colour_staging_buf, 0, &gpuData.colour_buf, 0, gpuData.colour_staging_buf.size());
-            gpuData.instances_modified = false;
-        }
-    
     
         let depth_texture_view = &self.depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
     
@@ -321,28 +306,33 @@ impl Renderer {
                 });
     
             // Set the vertex and index buffers here
-            rpass.set_vertex_buffer(0, gpuData.vertex_buf.slice(..));
-            rpass.set_index_buffer(gpuData.index_buf.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.set_vertex_buffer(0, gpu_data.vertex_buf.slice(..));
+            rpass.set_index_buffer(gpu_data.index_buf.slice(..), wgpu::IndexFormat::Uint16);
             rpass.set_bind_group(0, &self.bind_group, &[]);
-            rpass.set_vertex_buffer(1, gpuData.instance_buf.slice(..));
-            rpass.set_vertex_buffer(2, gpuData.colour_buf.slice(..));
     
             rpass.set_pipeline(&self.render_pipeline);
     
     
             // draw all full cubes (indicies 0.36 is all the indicies for a cube
             // then draw the number of instances specified
-            rpass.draw_indexed(0..36, 0, 0..gpuData.instancesUsed as u32);
+            //rpass.draw_indexed(0..36, 0, 0..gpuData.instancesUsed as u32);
+
+            // Iterate over each chunk
+            for chunk in world.chunks.values() {
+                // Set the instance buffer for this chunk
+                rpass.set_vertex_buffer(1, chunk.instance_buffer.slice(..));
+
+                // Draw the instances for this chunk
+                rpass.draw_indexed(0..36, 0, 0..chunk.instance_size);
+            }
+
+
         } // the render pass must go out of scope before submit and present are called
         // it finalises the render pass when it goes out of scope so it can be submitted to the gpu
     
         self.queue.submit(Some(encoder.finish()));
         frame.present();
-    
     }
-
-
-
 }
 
 
