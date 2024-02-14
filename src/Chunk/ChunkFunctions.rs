@@ -7,6 +7,7 @@ use crate::Block::*;
 use crate::Settings::*;
 use crate::FileSystem::*;
 use crate::Renderer::*;
+use crate::Chunk::InstanceData;
 
 use wgpu::util::DeviceExt;
 
@@ -26,19 +27,19 @@ impl super::Chunk {
 
         // fill the temp vector with data
         // first check if the chunk has been created before if so load it
-        if createdChunks.contains(&(self.chunkIDx, self.chunkIDz)) {
+        if createdChunks.contains(&(self.chunk_id_x, self.chunk_id_z)) {
 
             // now check if it is loaded, if it is then i can just ignore it, if it isnt loaded then i need to read it from a file
             // it will already be loaded if i try to load a chunk already in the game
             // has been created before so load from file
-            filesystem.ReadChunkFromFile(&mut tempChunkVec, self.chunkIDx, self.chunkIDz);
+            filesystem.ReadChunkFromFile(&mut tempChunkVec, self.chunk_id_x, self.chunk_id_z);
 
         } else {
             // else create a new one
             self.GenerateChunk(&mut tempChunkVec);
 
             // add this chunk to created chunks
-            createdChunks.insert((self.chunkIDx, self.chunkIDz));
+            createdChunks.insert((self.chunk_id_x, self.chunk_id_z));
         }
 
         // check each block if it is touching air (async because reading from gpu is async)
@@ -47,6 +48,8 @@ impl super::Chunk {
 
         // fill the chunkBlocks hashmap from the temp vector
         self.FillChunksHashMap(tempChunkVec);
+
+        // TODO: #99 upload the instance buffer to the gpu
 
     }
 
@@ -61,11 +64,22 @@ impl super::Chunk {
                     // if the block is not air then add it to the hashmap
                     if tempChunkVec[x][y][z].blockType != BlockType::Air {
 
-                        self.chunkBlocks.insert(
+                        self.chunk_blocks.insert(
                             (tempChunkVec[x][y][z].position.x, tempChunkVec[x][y][z].position.y, tempChunkVec[x][y][z].position.z), 
                             tempChunkVec[x][y][z]
                         );
-                        self.aliveBlocks += 1;
+                        self.alive_blocks += 1;
+
+                        // also if it is touching air then add it to the instances to render hashmap
+                        if tempChunkVec[x][y][z].touchingAir {
+                            self.instances_to_render.insert(
+                                (tempChunkVec[x][y][z].position.x, tempChunkVec[x][y][z].position.y, tempChunkVec[x][y][z].position.z), 
+                                InstanceData { 
+                                    modelMatrix: tempChunkVec[x][y][z].modelMatrix.clone(),
+                                    colour: tempChunkVec[x][y][z].blockType.BlockColour(),
+                                }
+                            );
+                        }
                     }
                 }
             }
@@ -75,6 +89,7 @@ impl super::Chunk {
 
 
     // iterate through the whole vector and update all blocks that are touching air using a compute shader
+    // this is run once on chunk creation
     pub async fn check_for_touching_air(&mut self, tempChunkVec: &mut Vec<Vec<Vec<Block>>>, renderer: &Renderer) {
 
         /*
@@ -390,7 +405,6 @@ impl super::Chunk {
                 }
             }
         }
-
 
     }
 }
