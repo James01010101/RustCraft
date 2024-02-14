@@ -9,6 +9,7 @@ use crate::FileSystem::*;
 use crate::Renderer::*;
 use crate::Chunk::InstanceData;
 
+use wgpu::core::device::queue;
 use wgpu::util::DeviceExt;
 
 use flume;
@@ -45,11 +46,11 @@ impl super::Chunk {
         // check each block if it is touching air (async because reading from gpu is async)
         task::block_on(self.check_for_touching_air(&mut tempChunkVec, &renderer));
 
-
         // fill the chunkBlocks hashmap from the temp vector
         self.FillChunksHashMap(tempChunkVec);
 
         // TODO: #99 upload the instance buffer to the gpu
+        self.update_instance_staging_buffer(renderer);
 
     }
 
@@ -406,6 +407,39 @@ impl super::Chunk {
             }
         }
 
+    }
+
+
+
+    // update the instance buffer for the chunk with the instances
+    pub fn update_instance_staging_buffer(&mut self, renderer: &Renderer) {
+
+        // make the hashmap of instances into a sclice i can pass to a buffer
+        let instances_slice: &[InstanceData] = self.instances_to_render.values().cloned().collect::<Vec<InstanceData>>().as_slice();
+
+        // update the staging gpu buffers and set the flag that this data has changed
+        renderer.queue.write_buffer(&self.instance_staging_buf, 0, bytemuck::cast_slice(instances_slice));
+        self.instances_modified = true;
+
+        // submit those write buffers so they are run
+        renderer.queue.submit(std::iter::empty());
+    }
+
+
+    // each frame call this on each chunk. it will update the instance buffer if the instances have been modified
+    pub fn update_instance_buffer(&mut self, renderer: &Renderer) {
+        // if the instances have been modified then update the instance buffer
+        if self.instances_modified {
+            // copy the staging buffer to the instance buffer
+            let mut encoder = renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("instance buffer copy encoder"),
+            });
+            encoder.copy_buffer_to_buffer(&self.instance_staging_buf, 0, &self.instance_buf, 0, (self.instances_to_render.len() * mem::size_of::<InstanceData>()) as wgpu::BufferAddress);
+            renderer.queue.submit(std::iter::once(encoder.finish()));
+
+            // set the flag to false
+            self.instances_modified = false;
+        }
     }
 }
 
