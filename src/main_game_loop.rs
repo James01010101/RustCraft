@@ -13,8 +13,10 @@ use std::time::Instant;
 use std::mem;
 use async_std::task;
 
-use winit::event::{Event, WindowEvent};
-
+use winit::{
+    event::{ElementState, Event, WindowEvent},
+    keyboard::{KeyCode, PhysicalKey},
+};
 
 pub fn run_main_game_loop() {
 
@@ -119,6 +121,49 @@ pub fn run_main_game_loop() {
 
                         // TODO: #103 fix frame number counting
                         frame_number += 1;
+                    }
+                    // take keyboard input for the esc key
+                    // ...
+
+                    WindowEvent::KeyboardInput { device_id: _, event, is_synthetic: _ } => {
+                        match event.physical_key {
+                            PhysicalKey::Code(KeyCode::Escape) => {
+                                
+                                println!("Escape key pressed");
+                                // request a close so the cleanup can happen
+                                // cleanup which saves all chunks to files
+                                clean_up(&mut world, &mut file_system);
+                                target.exit();
+                            }
+                            PhysicalKey::Code(KeyCode::KeyW) => {
+                                
+                                match event.state {
+                                    ElementState::Pressed => {
+                                        println!("W key pressed");
+                                    }
+                                    ElementState::Released => {
+                                        println!("W key released");
+                                    }
+                                };
+
+                            }
+                            PhysicalKey::Code(KeyCode::KeyA) => {
+                                println!("A key pressed");
+
+                            }
+                            PhysicalKey::Code(KeyCode::KeyS) => {
+                                println!("S key pressed");
+
+                            }
+                            PhysicalKey::Code(KeyCode::KeyD) => {
+                                println!("D key pressed");
+
+                            }
+                            _ => {} // default
+
+                            
+                        };
+                        
                     }
 
 
