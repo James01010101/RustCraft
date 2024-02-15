@@ -9,6 +9,7 @@ use crate::block::*;
 use crate::chunk::*;
 use crate::camera::*;
 
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use std::mem;
 use async_std::task;
@@ -65,7 +66,9 @@ pub fn run_main_game_loop() {
 
  
     // stats before starting
-    let mut frame_number: u64 = 0;
+    let frame_number_outside: Arc<Mutex<u64>> = Arc::new(Mutex::new(0));
+    let frame_number_inside: Arc<Mutex<u64>> = frame_number_outside.clone(); // use inside the run loop
+
     let window_start_time: Instant = Instant::now();
 
     // event loop
@@ -119,11 +122,9 @@ pub fn run_main_game_loop() {
                         // so it always generates a new frame
                         window_wrapper.window.request_redraw();
 
-                        // TODO: #103 fix frame number counting
-                        frame_number += 1;
+                        let mut frame_number = frame_number_inside.lock().unwrap();
+                        *frame_number += 1;
                     }
-                    // take keyboard input for the esc key
-                    // ...
 
                     WindowEvent::KeyboardInput { device_id: _, event, is_synthetic: _ } => {
                         match event.physical_key {
@@ -160,8 +161,6 @@ pub fn run_main_game_loop() {
 
                             }
                             _ => {} // default
-
-                            
                         };
                         
                     }
@@ -182,6 +181,7 @@ pub fn run_main_game_loop() {
         })
         .unwrap();
 
+    let frame_number = *frame_number_outside.lock().unwrap();
     let total_window_duration_ms = window_start_time.elapsed().as_millis();
     let avg_fps: f32 = frame_number as f32 / (total_window_duration_ms as f32 / 1000.0);
     println!("\nTotal Window Time (ms): {:?}", total_window_duration_ms);
