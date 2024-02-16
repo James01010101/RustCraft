@@ -1,5 +1,9 @@
 
-use crate::types::FPosition;
+use crate::{
+    types::FPosition,
+    settings::*,
+    camera::*,
+};
 
 pub struct Character {
 
@@ -15,6 +19,15 @@ impl Character {
             chunk_position: (0, 0),
         }
     }
+
+    pub fn update_chunk_position(&mut self) {
+        self.chunk_position = (self.position.x as i32 / CHUNK_SIZE_X as i32, self.position.z as i32 / CHUNK_SIZE_Z as i32);
+    }
+
+    pub fn get_current_chunk(&self) -> (i32, i32) {
+        self.chunk_position
+    }
+    
 
     //TODO: #110 save character position on cleanup and load it back in on load
 }
