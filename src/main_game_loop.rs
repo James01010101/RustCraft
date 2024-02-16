@@ -10,6 +10,7 @@ use crate::{
     chunk::*,
     camera::*,
     character::*,
+    my_keyboard::*,
 };
 
 use std::{
@@ -64,6 +65,9 @@ pub fn run_main_game_loop() {
 
     // create the gpudata buffers
     let gpu_data: GPUData = GPUData::new(&renderer);
+
+    // create keyboard
+    let mut keyboard: MyKeyboard = MyKeyboard::new();
 
 
     // load character
@@ -165,23 +169,52 @@ pub fn run_main_game_loop() {
                                 match event.state {
                                     ElementState::Pressed => {
                                         println!("W key pressed");
+                                        keyboard.pressed_w();
                                     }
                                     ElementState::Released => {
                                         println!("W key released");
+                                        keyboard.released_w();
                                     }
                                 };
 
                             }
                             PhysicalKey::Code(KeyCode::KeyA) => {
-                                println!("A key pressed");
+                                match event.state {
+                                    ElementState::Pressed => {
+                                        println!("A key pressed");
+                                        keyboard.pressed_a();
+                                    }
+                                    ElementState::Released => {
+                                        println!("A key released");
+                                        keyboard.released_a();
+                                    }
+                                };
 
                             }
                             PhysicalKey::Code(KeyCode::KeyS) => {
-                                println!("S key pressed");
+                                match event.state {
+                                    ElementState::Pressed => {
+                                        println!("S key pressed");
+                                        keyboard.pressed_s();
+                                    }
+                                    ElementState::Released => {
+                                        println!("S key released");
+                                        keyboard.released_s();
+                                    }
+                                };
 
                             }
                             PhysicalKey::Code(KeyCode::KeyD) => {
-                                println!("D key pressed");
+                                match event.state {
+                                    ElementState::Pressed => {
+                                        println!("D key pressed");
+                                        keyboard.pressed_d();
+                                    }
+                                    ElementState::Released => {
+                                        println!("D key released");
+                                        keyboard.released_d();
+                                    }
+                                };
 
                             }
                             _ => {} // default

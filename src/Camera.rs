@@ -1,6 +1,5 @@
 
 use crate::{
-    types::FPosition,
     renderer::*,
     gpu_data::*,
     character::*,
