@@ -2,7 +2,6 @@
 use crate::{
     types::FPosition,
     settings::*,
-    camera::*,
 };
 
 pub struct Character {
