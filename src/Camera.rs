@@ -1,9 +1,9 @@
 
-
 use crate::{
     types::FPosition,
     renderer::*,
     gpu_data::*,
+    character::*,
 };
 
 use nalgebra::{Vector3, Point3, Matrix4};
@@ -14,9 +14,6 @@ pub struct Camera {
     pub aspect_ratio: f32,
     pub near_plane: f32,
     pub far_plane: f32,
-
-    pub position: FPosition,
-    pub target: FPosition,
 
     pub projection_matrix: Matrix4<f32>,
     pub view_matrix: Matrix4<f32>,
@@ -32,14 +29,9 @@ impl Camera {
 
         // fov is in degrees
         let fov: f32 = fov.to_radians();
-
         let aspect_ratio: f32 = screen_width as f32 / screen_height as f32;
         let near_plane: f32 = 0.1;
         let far_plane: f32 = 100.0;
-
-        // initial position and target
-        let position: FPosition = FPosition::new(0.0, 2.0, -5.0);
-        let target: FPosition = FPosition::new(0.0, 0.0, 0.0);
 
         // calc these as matricies so they can be multiplied together
         let projection_matrix: Matrix4<f32> = nalgebra::Perspective3::new(
@@ -66,9 +58,6 @@ impl Camera {
             near_plane,
             far_plane,
 
-            position,
-            target,
-
             projection_matrix,
             view_matrix,
 
@@ -78,10 +67,10 @@ impl Camera {
 
     
     // Calculate the view matrix
-    pub fn calculate_view_matrix(&mut self) {
+    pub fn calculate_view_matrix(&mut self, character: &Character) {
         self.view_matrix = nalgebra::Isometry3::look_at_rh(
-            &Point3::new(self.position.x, self.position.y, self.position.z), 
-            &Point3::new(self.target.x, self.target.y, self.target.z), 
+            &Point3::new(character.position.x, character.position.y, character.position.z), 
+            &Point3::new(character.target.x, character.target.y, character.target.z), 
             &Vector3::y()
         ).to_homogeneous().into();
 
@@ -104,10 +93,10 @@ impl Camera {
 
 
     // this is called once per frame and will update the cameras projection and view matricies and send them to the staging buffer
-    pub fn update(&mut self, renderer: &mut Renderer, gpu_data: &GPUData) {
+    pub fn update(&mut self, renderer: &mut Renderer, gpu_data: &GPUData, character: &Character) {
 
         // update the view matrix and the combined
-        self.calculate_view_matrix();
+        self.calculate_view_matrix(&character);
 
         // update the uniform buffer with the new camera position matricies
         renderer.vertex_uniforms.projection_view_matrix = self.projection_view_matrix;
