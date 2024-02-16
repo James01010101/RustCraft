@@ -1,14 +1,15 @@
 
-
 pub mod chunk_functions;
 pub mod create_chunks;
 
-use crate::block::*;
-use crate::renderer::*;
+use crate::{
+    block::*,
+    renderer::*,
+    types::*,
+};
 
 use std::collections::HashMap;
 use wgpu::{BufferUsages, BufferDescriptor};
-use bytemuck::{Pod, Zeroable};
 
 
 // This will store all of the blocks and objects within a chunk
@@ -107,13 +108,7 @@ impl Chunk {
 }
 
 
-// this will store all data related to a instance so i can move this into the buffer
-#[repr(C)]
-#[derive(Copy, Clone, Debug, Pod, Zeroable)]
-pub struct InstanceData {
-    pub model_matrix: [[f32; 4]; 4],
-    pub colour: [f32; 4],
-}
+
 
 
 

@@ -1,9 +1,12 @@
 
-use crate::block::*;
-use crate::settings::*;
-use crate::file_system::*;
-use crate::renderer::*;
-use crate::chunk::InstanceData;
+use crate::{
+    block::*,
+    settings::*,
+    file_system::*,
+    renderer::*,
+    block_type::*,
+    types::*,
+};
 
 
 use std::collections::HashSet;

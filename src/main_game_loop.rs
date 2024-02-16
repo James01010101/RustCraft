@@ -1,17 +1,23 @@
 
-use crate::file_system::FileSystem;
-use crate::renderer::*;
-use crate::settings::*;
-use crate::window_wrapper::*;
-use crate::world::*;
-use crate::gpu_data::GPUData;
-use crate::block::*;
-use crate::chunk::*;
-use crate::camera::*;
+use crate::{
+    file_system::*,
+    renderer::*,
+    settings::*,
+    window_wrapper::*,
+    world::*,
+    gpu_data::*,
+    block::*,
+    chunk::*,
+    camera::*,
+    character::*,
+};
 
-use std::sync::{Arc, Mutex};
-use std::time::Instant;
-use std::mem;
+use std::{
+    sync::{Arc, Mutex},
+    time::Instant,
+    mem,
+};
+
 use async_std::task;
 
 use winit::{
@@ -58,6 +64,24 @@ pub fn run_main_game_loop() {
 
     // create the gpudata buffers
     let gpu_data: GPUData = GPUData::new(&renderer);
+
+
+    // load character
+    let mut character: Character = Character::new();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
     // camera stuff for testing
     let mut angle: f32 = 0.0; // Current angle of rotation
