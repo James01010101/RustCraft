@@ -29,3 +29,6 @@ pub mod chunk; // where the blocks and chunks are stored
 pub mod gpu_data; // where the vbo vao ebo, and vertex and index buffers are as well as textures
 pub mod file_system; // where anything to read and write to the file system is stored
 pub mod window_wrapper; // where i store the window and event loop
+pub mod character; // where i store everything to do with the character
+pub mod types; // where any small types live, like position, instances
+pub mod block_type; // seperating the block type from the block struct

@@ -1,10 +1,12 @@
 // This file will be for all rendering to windows
 
-use crate::camera::*;
-use crate::window_wrapper::*;
-use crate::gpu_data::*;
-use crate::chunk::InstanceData;
-use crate::world::*;
+use crate::{
+    camera::*,
+    window_wrapper::*,
+    gpu_data::*,
+    types::*,
+    world::*,
+};
 
 use wgpu::{
     Device,
@@ -16,12 +18,10 @@ use wgpu::{
     PipelineLayout,
     RenderPipeline,
     SurfaceConfiguration,
-
     util::DeviceExt,
 
 };
 
-use bytemuck::{Pod, Zeroable};
 
 pub struct Renderer {
     pub instance: Instance,
@@ -336,9 +336,3 @@ impl Renderer {
 }
 
 
-// Define your uniform data to store the view and projection matrixies
-#[repr(C)]
-#[derive(Copy, Clone, Debug, Pod, Zeroable)]
-pub struct VertexUniforms {
-    pub projection_view_matrix: [[f32; 4]; 4],
-}

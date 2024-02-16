@@ -1,8 +1,10 @@
 
 
-use crate::world::FPosition;
-use crate::renderer::*;
-use crate::gpu_data::*;
+use crate::{
+    types::FPosition,
+    renderer::*,
+    gpu_data::*,
+};
 
 use nalgebra::{Vector3, Point3, Matrix4};
 

@@ -1,13 +1,18 @@
 
-use crate::settings::*;
-use crate::chunk::*;
-use crate::block::*;
-use crate::world::*;
+use crate::{
+    settings::*,
+    chunk::*,
+    block::*,
+    block_type::*,
+    world::*,
+};
 
-use std::path::PathBuf;
-use std::env;
-use std::fs::{create_dir_all, File};
-use std::io::{self, Write, BufRead};
+use std::{
+    path::PathBuf,
+    env,
+    fs::{create_dir_all, File},
+    io::{self, Write, BufRead},
+};
 
 
 pub struct FileSystem {

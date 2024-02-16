@@ -1,12 +1,16 @@
 
-use crate::chunk::*;
-use crate::file_system::FileSystem;
+use crate::{
+    chunk::*,
+    file_system::*,
+};
 
 use crate::renderer::*;
 
-use std::{collections::{HashMap, HashSet}, path::PathBuf};
-use std::io::{self, BufRead};
-use std::fs::File;
+use std::{
+    {collections::{HashMap, HashSet}, path::PathBuf},
+    io::{self, BufRead},
+    fs::File,
+};
 
 
 // this struct will hold all of the Chunks as well as arrays of mobs
@@ -150,44 +154,4 @@ impl World {
     // TODO: #65 Place block function
 
     // TODO: #66 Break block function
-}
-
-
-// other important structs
-// a basic 3 int position position struct to store the xyz position of a block
-// its position is the bottom left front part of the square
-#[derive(Clone, Copy, Debug)]
-pub struct Position {
-    pub x: i32,
-    pub y: i16,
-    pub z: i32,
-}   
-
-impl Position {
-    pub fn new(x: i32, y: i16, z: i32) -> Position {
-        Position {
-            x,
-            y,
-            z,
-        }
-    }
-}
-
-
-// same but a float position
-#[derive(Clone, Copy, Debug)]
-pub struct FPosition {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-}   
-
-impl FPosition {
-    pub fn new(x: f32, y: f32, z: f32) -> FPosition {
-        FPosition {
-            x,
-            y,
-            z,
-        }
-    }
 }

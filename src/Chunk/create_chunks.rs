@@ -2,13 +2,13 @@
 /*
 This file will be all of the rules for creating chunks and all the blocks within them
  */
-
-use crate::settings::*;
-use super::Block;
-use super::BlockType;
+use crate::{
+    settings::*,
+    block_type::*,
+    block::*,
+};
 
 impl super::Chunk {
-
     /* 
     create a temporary 3d vector which will hold all of the blocks including air
     this will create all the blocks give them their position and will calculate their model matrix
