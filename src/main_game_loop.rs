@@ -129,11 +129,11 @@ pub fn run_main_game_loop() {
                         // move the camera first so it can start copying
                         // rotate the camera for testing
                         angle += rotation_speed;
-                        camera.position.x = radius * angle.cos();
-                        camera.position.z = radius * angle.sin();
+                        character.position.x = radius * angle.cos();
+                        character.position.z = radius * angle.sin();
 
                         // Calculate the new view and combined matrices
-                        camera.update(&mut renderer, &gpu_data);
+                        camera.update(&mut renderer, &gpu_data, &character);
 
                         // update all chunks instances if needed
                         for chunk in world.chunks.values_mut() {

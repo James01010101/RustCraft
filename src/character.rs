@@ -7,15 +7,22 @@ use crate::{
 
 pub struct Character {
 
-    position: FPosition,
-    chunk_position: (i32, i32),
+    // current position im standing at (where my head is)
+    pub position: FPosition,
+
+    // the position im looking at (for camera rendering stuff)
+    pub target: FPosition,
+
+    // chunk im standing in
+    pub chunk_position: (i32, i32),
 }
 
 
 impl Character {
     pub fn new() -> Character {
         Character {
-            position: FPosition { x: 0.0, y: 0.0, z: 0.0 },
+            position: FPosition { x: 0.0, y: 2.0, z: -5.0 },
+            target: FPosition { x: 0.0, y: 0.0, z: 0.0 },
             chunk_position: (0, 0),
         }
     }
