@@ -14,6 +14,11 @@ run: clear build
 	cargo run --release 
 # > testOutput.txt
 
+
+# cleans world before running
+cleanworldrun: cleanworld run
+
+
 # test crates
 test: clear
 	cargo test
