@@ -11,6 +11,7 @@ use crate::{
     camera::*,
     character::*,
     my_keyboard::*,
+    calculate_frame::*,
 };
 
 use std::{
@@ -64,7 +65,7 @@ pub fn run_main_game_loop() {
     world.add_test_chunks(&mut file_system, &renderer);
 
     // create the gpudata buffers
-    let gpu_data: GPUData = GPUData::new(&renderer);
+    let mut gpu_data: GPUData = GPUData::new(&renderer);
 
     // create keyboard
     let mut keyboard: MyKeyboard = MyKeyboard::new();
@@ -87,11 +88,6 @@ pub fn run_main_game_loop() {
 
 
     
-    // camera stuff for testing
-    let mut angle: f32 = 0.0; // Current angle of rotation
-    let rotation_speed: f32 = 0.008; // Speed of rotation
-    let radius: f32 = 3.0; // Distance from the center
-
  
     // stats before starting
     let frame_number_outside: Arc<Mutex<u64>> = Arc::new(Mutex::new(0));
@@ -129,20 +125,10 @@ pub fn run_main_game_loop() {
 
                     WindowEvent::RedrawRequested => {
 
-                        // do any game logic each frame
-                        // move the camera first so it can start copying
-                        // rotate the camera for testing
-                        angle += rotation_speed;
-                        character.position.x = radius * angle.cos();
-                        character.position.z = radius * angle.sin();
 
-                        // Calculate the new view and combined matrices
-                        camera.update(&mut renderer, &gpu_data, &character);
+                        calculate_frame(&mut renderer, &mut gpu_data, &mut world, &mut character, &mut keyboard, &mut camera);
 
-                        // update all chunks instances if needed
-                        for chunk in world.chunks.values_mut() {
-                            chunk.update_instance_buffer(&renderer);
-                        }
+                        
 
                         // calculate the frame
                         renderer.render_frame(&gpu_data, &world);

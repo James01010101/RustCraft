@@ -33,6 +33,16 @@ impl Character {
     pub fn get_current_chunk(&self) -> (i32, i32) {
         self.chunk_position
     }
+
+    pub fn move_forward(&mut self, amount: f32) {
+        self.position.z += amount;
+        self.target.z += amount;
+    }
+
+    pub fn move_sideways(&mut self, amount: f32) {
+        self.position.x += amount;
+        self.target.x += amount;
+    }
     
 
     //TODO: #110 save character position on cleanup and load it back in on load
