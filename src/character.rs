@@ -33,8 +33,13 @@ impl Character {
         }
     }
 
+    // calculate the chunk the player is in from its position
     pub fn update_chunk_position(&mut self) {
-        self.chunk_position = (self.position.x as i32 / CHUNK_SIZE_X as i32, self.position.z as i32 / CHUNK_SIZE_Z as i32);
+        // this does the divide thing but if negative works properly
+        self.chunk_position = (
+            self.position.x.div_euclid(CHUNK_SIZE_X as f32) as i32,
+            self.position.z.div_euclid(CHUNK_SIZE_Z as f32) as i32,
+        );
     }
 
     pub fn get_current_chunk(&self) -> (i32, i32) {
