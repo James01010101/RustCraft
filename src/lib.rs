@@ -33,3 +33,4 @@ pub mod character; // where i store everything to do with the character
 pub mod types; // where any small types live, like position, instances
 pub mod block_type; // seperating the block type from the block struct
 pub mod my_keyboard; // stores all key presses
+pub mod calculate_frame; // where i do all the calculations for the frame
