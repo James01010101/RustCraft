@@ -42,16 +42,15 @@ impl Character {
     }
 
     pub fn move_forward(&mut self, amount: f32) {
-        self.position.z += amount;
-
-        // the move target is right. so if i dont move the mouse itll keep where it was but move along with the position.
-        // so it wont lock onto a block as i move but will slide which is what i want
-        self.target.z += amount;
+        // move forward in the direction im facing
+        self.position.x += self.yaw.cos() * amount;
+        self.position.z += self.yaw.sin() * amount;
     }
 
     pub fn move_sideways(&mut self, amount: f32) {
-        self.position.x += amount;
-        self.target.x += amount;
+        // move sideways in the direction im facing (1.57 is roughly pi/2 or 90 degrees)
+        self.position.x += (self.yaw + 1.57).cos() * amount;
+        self.position.z += (self.yaw + 1.57).sin() * amount;
     }
 
 
@@ -72,10 +71,9 @@ impl Character {
             y_change = 0.0;
         }
 
-
         // Update yaw and pitch based on mouse movement
-        self.yaw += x_change * MOUSE_SENSITIVITY;
-        self.pitch -= y_change * MOUSE_SENSITIVITY;
+        self.yaw += x_change * MOUSE_SENSITIVITY_H;
+        self.pitch -= y_change * MOUSE_SENSITIVITY_V;
 
         // Clamp pitch to prevent looking too far up or down
         self.pitch = self.pitch.clamp(-1.57, 1.57);

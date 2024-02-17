@@ -75,7 +75,7 @@ pub fn run_main_game_loop() {
     // load character
     let mut character: Character = Character::new();
 
-
+ 
 
 
 
@@ -174,8 +174,10 @@ pub fn run_main_game_loop() {
 
                     WindowEvent::CursorMoved { device_id: _, position } => {
                         keyboard.update_mouse_position(position.x as f32, position.y as f32);
-                        println!("Mouse Position: ({}, {})", position.x, position.y);
+                        //println!("Mouse Position: ({}, {})", position.x, position.y);
+
                     }
+
 
                     // if i close the window
                     WindowEvent::CloseRequested => {

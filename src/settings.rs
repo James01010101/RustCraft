@@ -23,4 +23,7 @@ pub const SCREEN_HEIGHT: usize = 1080;
 pub const SCREEN_FOV: f32 = 90.0; // degrees, it will be converted to radians for actual calculations
 
 // mouse and keyboard settings
-pub const MOUSE_SENSITIVITY: f32 = 0.001;
+pub const MOUSE_SENSITIVITY_H: f32 = 0.002;
+pub const MOUSE_SENSITIVITY_V: f32 = 0.003;
+
+pub const MOVEMENT_SPEED: f32 = 0.1;
