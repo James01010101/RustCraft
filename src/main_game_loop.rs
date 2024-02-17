@@ -134,71 +134,38 @@ pub fn run_main_game_loop() {
                     WindowEvent::KeyboardInput { device_id: _, event, is_synthetic: _ } => {
                         match event.physical_key {
                             PhysicalKey::Code(KeyCode::Escape) => {
-                                
-                                println!("Escape key pressed");
                                 // request a close so the cleanup can happen
                                 // cleanup which saves all chunks to files
                                 clean_up(&mut world, &mut file_system);
                                 target.exit();
                             }
                             PhysicalKey::Code(KeyCode::KeyW) => {
-                                
                                 match event.state {
-                                    ElementState::Pressed => {
-                                        println!("W key pressed");
-                                        keyboard.pressed_w();
-                                    }
-                                    ElementState::Released => {
-                                        println!("W key released");
-                                        keyboard.released_w();
-                                    }
+                                    ElementState::Pressed => { keyboard.pressed_w(); }
+                                    ElementState::Released => { keyboard.released_w(); }
                                 };
-
                             }
                             PhysicalKey::Code(KeyCode::KeyA) => {
                                 match event.state {
-                                    ElementState::Pressed => {
-                                        println!("A key pressed");
-                                        keyboard.pressed_a();
-                                    }
-                                    ElementState::Released => {
-                                        println!("A key released");
-                                        keyboard.released_a();
-                                    }
+                                    ElementState::Pressed => { keyboard.pressed_a(); }
+                                    ElementState::Released => { keyboard.released_a(); }
                                 };
-
                             }
                             PhysicalKey::Code(KeyCode::KeyS) => {
                                 match event.state {
-                                    ElementState::Pressed => {
-                                        println!("S key pressed");
-                                        keyboard.pressed_s();
-                                    }
-                                    ElementState::Released => {
-                                        println!("S key released");
-                                        keyboard.released_s();
-                                    }
+                                    ElementState::Pressed => { keyboard.pressed_s(); }
+                                    ElementState::Released => { keyboard.released_s(); }
                                 };
-
                             }
                             PhysicalKey::Code(KeyCode::KeyD) => {
                                 match event.state {
-                                    ElementState::Pressed => {
-                                        println!("D key pressed");
-                                        keyboard.pressed_d();
-                                    }
-                                    ElementState::Released => {
-                                        println!("D key released");
-                                        keyboard.released_d();
-                                    }
+                                    ElementState::Pressed => { keyboard.pressed_d(); }
+                                    ElementState::Released => { keyboard.released_d(); }
                                 };
-
                             }
                             _ => {} // default
                         };
-                        
                     }
-
 
                     // if i close the window
                     WindowEvent::CloseRequested => {
