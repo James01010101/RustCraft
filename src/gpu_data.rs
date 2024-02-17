@@ -24,33 +24,34 @@ pub struct GPUData {
 
 impl GPUData {
     pub fn new (renderer: &Renderer) -> GPUData {
-        // cube vertices (assume starts at (0,0,0))
+        // cube vertices (assume starts at (0,0,0) which is not the bottom front right to align with the world coords)
         let cube_vertices: Vec<f32> = vec![
-            0.0, 0.0, 0.0, // Bottom Front Left
-            1.0, 0.0, 0.0, // Bottom Front Right
-            1.0, 0.0, 1.0, // Bottom Back Right
-            0.0, 0.0, 1.0, // Bottom Back Left
+            0.0, 0.0, 0.0, // 0 Bottom Front Right
+            1.0, 0.0, 0.0, // 1 Bottom Front Left
+            1.0, 0.0, 1.0, // 2 Bottom Back Left
+            0.0, 0.0, 1.0, // 3 Bottom Back Right
 
-            0.0, 1.0, 0.0, // Top Front Left
-            1.0, 1.0, 0.0, // Top Front Right
-            1.0, 1.0, 1.0, // Top Back Right
-            0.0, 1.0, 1.0, // Top Back Left
+            0.0, 1.0, 0.0, // 4 Top Front Right
+            1.0, 1.0, 0.0, // 5 Top Front Left
+            1.0, 1.0, 1.0, // 6 Top Back Left
+            0.0, 1.0, 1.0, // 7 Top Back Right
         ];
 
         // this is the indexes into the cubeVertices array, so it knows what vertices to use for what triangles
+        // they are clockwise so the triangles are facing the right way
         let cube_indices: Vec<u16> = vec![
             // Front face
-            0, 1, 5, 0, 5, 4,
+            0, 1, 4, 5, 4, 1,
             // Back face
-            2, 3, 7, 2, 7, 6,
+            3, 7, 2, 6, 2, 7,
             // Bottom face
-            0, 3, 2, 0, 2, 1,
+            3, 2, 0, 1, 0, 2,
             // Top face
-            4, 5, 6, 4, 6, 7,
+            4, 5, 7, 6, 7, 5,
             // Left face
-            0, 4, 7, 0, 7, 3,
+            1, 2, 5, 6, 5, 2,
             // Right face
-            1, 2, 6, 1, 6, 5
+            3, 0, 7, 4, 7, 0,
         ];
 
         // create the buffers for this data

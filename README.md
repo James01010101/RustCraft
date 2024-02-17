@@ -9,14 +9,13 @@ https://github.com/austinEng/webgpu-samples/blob/main/src/shaders/basic.vert.wgs
 Important Notes
 
 **Coordinate System** 
-X: left and right. Left is negative, going right is positive
+X: left and right. Left is positive, going right is negative (because this is how world space is)
 Y, up and down, up is positive, down is negative
 Z: forward and back, forward is positive, backwards is negative
 
 the point of a block is the front bottom left vertex
 same for the start of a chunk
 
-problem is that world space is left positive right negative
 
 **GL Functions** 
 BufferData copys the data to the gpu, it allocates a new array for the data and will automatically free the unused one
@@ -46,7 +45,7 @@ then once thats done ill leave a line gap and then increase y by 1 and keep goin
 
 
 
-Implement queuesnin some capacity this could help solve alot of problems
+Implement queues in some capacity this could help solve alot of problems
 i could use it to raycast to check which block i am looking at
 for instance add blocks from where the camera dirwctky is 
 away feom the camera up to say 10 blocks away

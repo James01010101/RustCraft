@@ -6,6 +6,7 @@ use crate::{
     settings::*,
     block_type::*,
     block::*,
+    chunk::chunk_functions::*,
 };
 
 impl super::Chunk {
@@ -20,10 +21,6 @@ impl super::Chunk {
         // initial xz values are defined by the chunks id, 
         let mut temp_chunk_vec: Vec<Vec<Vec<Block>>> = Vec::with_capacity(CHUNK_SIZE_X);
 
-        let mut pos_x: i32;
-        let mut pos_y: i16;
-        let mut pos_z: i32;
-
         for x in 0..CHUNK_SIZE_X as i32 {
             let mut temp2d: Vec<Vec<Block>> = Vec::with_capacity(CHUNK_SIZE_Y);
 
@@ -31,15 +28,13 @@ impl super::Chunk {
                 let mut temp1d: Vec<Block> = Vec::with_capacity(CHUNK_SIZE_Z);
 
                 for z in 0..CHUNK_SIZE_Z as i32 {
-                    pos_x = (self.chunk_id_x * CHUNK_SIZE_X as i32) + x as i32;
-                    pos_y = y - HALF_CHUNK_Y as i16;
-                    pos_z = (self.chunk_id_z * CHUNK_SIZE_Z as i32) + z as i32;
+                    let block_pos: (i32, i16, i32) = get_world_block_pos(self.chunk_id_x, self.chunk_id_z, x, y - HALF_CHUNK_Y as i16, z);
 
                     temp1d.push(Block::new(
                         BlockType::Air, 
-                        pos_x, 
-                        pos_y, 
-                        pos_z,
+                        block_pos.0, 
+                        block_pos.1, 
+                        block_pos.2,
                         
                     ));
                 }
@@ -61,6 +56,8 @@ impl super::Chunk {
 
     i can potentially create a 3d vector so initially write everything to so it is easier to see what has been made and where it is and also easier to edit it by moving things around
     then i can just write it to the hashmap at the end, skipping air
+
+    remember the origin of the chunk (index 000) is the front bottom right
     */
     pub fn generate_chunk(&mut self, temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>) {
         
@@ -102,7 +99,5 @@ impl super::Chunk {
             }
         }
 
-        temp_chunk_vec[0][HALF_CHUNK_Y - 1][0].block_type = BlockType::Air;
-        temp_chunk_vec[0][HALF_CHUNK_Y][0].block_type = BlockType::Stone;
     }
 }
