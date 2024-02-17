@@ -15,9 +15,10 @@ use crate::{
 };
 
 use std::{
-    sync::{Arc, Mutex},
+    borrow::BorrowMut,
+    mem, 
+    sync::{Arc, Mutex}, 
     time::Instant,
-    mem,
 };
 
 use async_std::task;
@@ -25,6 +26,7 @@ use async_std::task;
 use winit::{
     event::{ElementState, Event, WindowEvent},
     keyboard::{KeyCode, PhysicalKey},
+    window::Window,
 };
 
 pub fn run_main_game_loop() {
@@ -41,7 +43,7 @@ pub fn run_main_game_loop() {
     
 
     // Create the window wrapper
-    let window_wrapper: WindowWrapper = WindowWrapper::new("RustCraft", SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32);
+    let mut window_wrapper: WindowWrapper = WindowWrapper::new("RustCraft", SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32);
 
     let mut camera: Camera = Camera::new(
         SCREEN_FOV,
@@ -68,13 +70,12 @@ pub fn run_main_game_loop() {
     let mut gpu_data: GPUData = GPUData::new(&renderer);
 
     // create keyboard
-    let mut keyboard: MyKeyboard = MyKeyboard::new();
-
+    let mut keyboard: MyKeyboard = MyKeyboard::new((SCREEN_WIDTH as f32 / 2.0, SCREEN_HEIGHT as f32 / 2.0));
 
     // load character
     let mut character: Character = Character::new();
 
-
+ 
 
 
 
@@ -112,12 +113,16 @@ pub fn run_main_game_loop() {
                         // update the cameras width height and aspect ratio
                         camera.aspect_ratio = new_width as f32 / new_height as f32;
                         camera.calculate_projection_matrix();
+
+                        keyboard.update_screen_center(new_width as f32 / 2.0, new_height as f32 / 2.0);
+
+                        println!("Resized to: {} x {}", new_width, new_height);
                     }
 
                     WindowEvent::RedrawRequested => {
 
-
-                        calculate_frame(&mut renderer, &mut gpu_data, &mut world, &mut character, &mut keyboard, &mut camera);
+                        let window_locked: &Arc<Window> = window_wrapper.window.borrow_mut();
+                        calculate_frame(&mut renderer, &mut gpu_data, &mut world, &mut character, &mut keyboard, &mut camera, &window_locked);
 
                         
 
@@ -134,69 +139,43 @@ pub fn run_main_game_loop() {
                     WindowEvent::KeyboardInput { device_id: _, event, is_synthetic: _ } => {
                         match event.physical_key {
                             PhysicalKey::Code(KeyCode::Escape) => {
-                                
-                                println!("Escape key pressed");
                                 // request a close so the cleanup can happen
                                 // cleanup which saves all chunks to files
                                 clean_up(&mut world, &mut file_system);
                                 target.exit();
                             }
                             PhysicalKey::Code(KeyCode::KeyW) => {
-                                
                                 match event.state {
-                                    ElementState::Pressed => {
-                                        println!("W key pressed");
-                                        keyboard.pressed_w();
-                                    }
-                                    ElementState::Released => {
-                                        println!("W key released");
-                                        keyboard.released_w();
-                                    }
+                                    ElementState::Pressed => { keyboard.pressed_w(); }
+                                    ElementState::Released => { keyboard.released_w(); }
                                 };
-
                             }
                             PhysicalKey::Code(KeyCode::KeyA) => {
                                 match event.state {
-                                    ElementState::Pressed => {
-                                        println!("A key pressed");
-                                        keyboard.pressed_a();
-                                    }
-                                    ElementState::Released => {
-                                        println!("A key released");
-                                        keyboard.released_a();
-                                    }
+                                    ElementState::Pressed => { keyboard.pressed_a(); }
+                                    ElementState::Released => { keyboard.released_a(); }
                                 };
-
                             }
                             PhysicalKey::Code(KeyCode::KeyS) => {
                                 match event.state {
-                                    ElementState::Pressed => {
-                                        println!("S key pressed");
-                                        keyboard.pressed_s();
-                                    }
-                                    ElementState::Released => {
-                                        println!("S key released");
-                                        keyboard.released_s();
-                                    }
+                                    ElementState::Pressed => { keyboard.pressed_s(); }
+                                    ElementState::Released => { keyboard.released_s(); }
                                 };
-
                             }
                             PhysicalKey::Code(KeyCode::KeyD) => {
                                 match event.state {
-                                    ElementState::Pressed => {
-                                        println!("D key pressed");
-                                        keyboard.pressed_d();
-                                    }
-                                    ElementState::Released => {
-                                        println!("D key released");
-                                        keyboard.released_d();
-                                    }
+                                    ElementState::Pressed => { keyboard.pressed_d(); }
+                                    ElementState::Released => { keyboard.released_d(); }
                                 };
-
                             }
                             _ => {} // default
                         };
-                        
+                    }
+
+                    WindowEvent::CursorMoved { device_id: _, position } => {
+                        keyboard.update_mouse_position(position.x as f32, position.y as f32);
+                        //println!("Mouse Position: ({}, {})", position.x, position.y);
+
                     }
 
 

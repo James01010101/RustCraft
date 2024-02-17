@@ -27,6 +27,8 @@ impl WindowWrapper {
         
         let window: Arc<Window> = Arc::new(builder.build(&event_loop).unwrap());
 
+        window.set_cursor_visible(false);
+        
         Self { 
             event_loop, 
             window,
