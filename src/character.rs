@@ -36,6 +36,9 @@ impl Character {
 
     pub fn move_forward(&mut self, amount: f32) {
         self.position.z += amount;
+
+        // the move target is right. so if i dont move the mouse itll keep where it was but move along with the position.
+        // so it wont lock onto a block as i move but will slide which is what i want
         self.target.z += amount;
     }
 

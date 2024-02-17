@@ -458,10 +458,10 @@ pub fn get_chunk_id(pos_x: i32, pos_z: i32) -> (i32, i32) {
 
 
 // given a chunk x and z id and a block position relative to the origin of the chunk return the world coordinate of the block
-pub fn get_world_block_pos(block_id_x: i32, block_id_z: i32, relative_block_x: i32, relative_block_y: i16, relative_block_z: i32) -> (i32, i16, i32) {
-    let world_x: i32 = (block_id_x * CHUNK_SIZE_X as i32) + relative_block_x;
+pub fn get_world_block_pos(chunk_id_x: i32, chunk_id_z: i32, relative_block_x: i32, relative_block_y: i16, relative_block_z: i32) -> (i32, i16, i32) {
+    let world_x: i32 = (chunk_id_x * CHUNK_SIZE_X as i32) + relative_block_x;
     let world_y: i16 = relative_block_y;
-    let world_z: i32 = (block_id_z * CHUNK_SIZE_Z as i32) + relative_block_z;
+    let world_z: i32 = (chunk_id_z * CHUNK_SIZE_Z as i32) + relative_block_z;
 
     return (world_x, world_y, world_z);
 }

@@ -78,15 +78,6 @@ pub fn run_main_game_loop() {
 
 
 
-
-
-
-
-
-
-
-
-
     
  
     // stats before starting
