@@ -21,3 +21,6 @@ pub const RENDER_DISTANCE: usize = 1;
 pub const SCREEN_WIDTH: usize = 1920;
 pub const SCREEN_HEIGHT: usize = 1080;
 pub const SCREEN_FOV: f32 = 90.0; // degrees, it will be converted to radians for actual calculations
+
+// mouse and keyboard settings
+pub const MOUSE_SENSITIVITY: f32 = 0.001;

@@ -10,9 +10,14 @@ use crate::{
     camera::*,
 };
 
+use winit::{
+    dpi::LogicalPosition,
+    window::Window,
+};
+
 
     // do any game logic each frame
-pub fn calculate_frame(renderer: &mut Renderer, gpu_data: &mut GPUData, world: &mut World, character: &mut Character, keyboard: &mut MyKeyboard, camera: &mut Camera) {
+pub fn calculate_frame(renderer: &mut Renderer, gpu_data: &mut GPUData, world: &mut World, character: &mut Character, keyboard: &mut MyKeyboard, camera: &mut Camera, window: &Window) {
 
     // check the keyboard for any key presses
     if keyboard.w_held {
@@ -28,6 +33,13 @@ pub fn calculate_frame(renderer: &mut Renderer, gpu_data: &mut GPUData, world: &
     if keyboard.a_held {
         character.move_sideways(0.1);
     }
+
+    // mouse and camera movement
+    character.update_view(keyboard);
+
+    // set the cursors position back to 0,0 
+    window.set_cursor_position(LogicalPosition::new(keyboard.mouse_center_position.0, keyboard.mouse_center_position.1)).unwrap();
+    //window.set_cursor_position(LogicalPosition::new(700.0, 400.0)).unwrap();
 
     // update characters chunk position
     character.update_chunk_position();
