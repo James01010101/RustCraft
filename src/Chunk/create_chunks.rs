@@ -101,5 +101,8 @@ impl super::Chunk {
                 }
             }
         }
+
+        temp_chunk_vec[0][HALF_CHUNK_Y - 1][0].block_type = BlockType::Air;
+        temp_chunk_vec[0][HALF_CHUNK_Y][0].block_type = BlockType::Stone;
     }
 }
