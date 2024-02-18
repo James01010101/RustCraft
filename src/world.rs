@@ -1,15 +1,26 @@
 
 use crate::{
-    chunk::*,
-    file_system::*,
+    character::*, 
+    chunk::*, 
+    file_system::*, 
+    renderer::*, 
+    settings::*,
 };
 
-use crate::renderer::*;
 
 use std::{
-    {collections::{HashMap, HashSet}, path::PathBuf},
-    io::{self, BufRead},
-    fs::File,
+    collections::{
+        HashMap, 
+        HashSet
+    }, 
+
+    fs::File, 
+
+    io::{
+        self, BufRead
+    }, 
+
+    path::PathBuf
 };
 
 
@@ -43,46 +54,67 @@ impl World {
 
     }
 
-    
-    pub fn add_test_chunks(&mut self, file_system: &mut FileSystem, renderer: &Renderer) {
-        // create the new chunk
-        
-        /*
-        for x in -1..=1 {
-            for z in -1..=1 {
-                let k: (i32, i32) = (x, z);
-                let mut c: Chunk = Chunk::new(k.0, k.1, -1);
 
-                // check the file doesnt exist already 
-                if !self.chunks.contains_key(&k) {
-                    c.LoadChunk(filesystem, &mut self.createdChunks);
-                    self.chunks.insert(k, c);
-                } else {
-                    println!("Chunk ({}, {}) already exists", k.0, k.1);
-                }
+    // if the player has changed chunks this frame update the chunks around them
+    pub fn update_chunks_around_character(&mut self, character: &Character, renderer: &Renderer, file_system: &mut FileSystem) {
+        // these are the chunk that should be currently loaded
+        let mut chunks_to_load: Vec<(i32, i32)> = Vec::new();
+
+
+        // ill have a funciton which gets all chunks which should be loaded here
+        // start at my current position and go left and right render distance amount
+        // then go up once and go render distance -1 left and right continue until the top
+        let max_radius: i32 = RENDER_DISTANCE as i32;
+        let mut current_radius: i32 = max_radius;
+        let current_chunk_x = character.chunk_position.0;
+        let current_chunk_z = character.chunk_position.1;
+
+        for chunk_z_diff in 0..max_radius + 1 {
+
+            // go left and right all the way
+            for chunk_x in (current_chunk_x - current_radius)..(current_chunk_x + current_radius + 1) {
+                // z up
+                chunks_to_load.push((chunk_x, current_chunk_z + chunk_z_diff));
+
+                // z down
+                chunks_to_load.push((chunk_x, current_chunk_z - chunk_z_diff));
+            }
+
+            // now decrease current radius
+            current_radius -= 1;
+        }
+
+
+        // now go through the chunks loaded and match them to this array.
+        // if something is in the array but not the hashmap ill add it
+        // if something is in the hashmap but not the array ill remove it
+        // if something is in both ill do nothing
+        for i in 0..chunks_to_load.len() {
+            let x: i32 = chunks_to_load[i].0;
+            let z: i32 = chunks_to_load[i].1;
+
+            // if the loaded chunks doesnt contain this chunk ill load it
+            if !self.chunks.contains_key(&(x, z)) {
+
+                // load this chunk (i know for sure it isnt contained in the hashmap so i can just insert it)
+                let mut c: Chunk = Chunk::new(x, z, -1, renderer);
+                c.load_chunk(file_system, &mut self.created_chunks, renderer);
+                self.chunks.insert((x, z), c);
             }
         }
-        */
-        
 
-        // create the chunks id key
-        let k: (i32, i32) = (0, 0);
-        
-        // if the loaded chunks doesnt contain this chunk ill load it
-        if !self.chunks.contains_key(&k) {
-
-            let mut c: Chunk = Chunk::new(k.0, k.1, -1, &renderer);
-            c.load_chunk(file_system, &mut self.created_chunks, &renderer);
-
-            self.chunks.insert(k, c);
-
-            
-
-        } else {
-            // keep this debug so i know how many times it trys to reinsert the same chunk
-            println!("Chunk ({}, {}) already exists", k.0, k.1);
+        // now go through the chunks loaded and match them to this array.
+        // if something is in the array but not the hashmap ill add ià
+        // if something is in the hashmap but not the array ill remove it
+        // if something is in both ill do nothing
+        let chunk_keys: Vec<(i32, i32)> = self.chunks.keys().cloned().collect();
+        for (x, z) in chunk_keys {
+            // if the chunk is not in the chunks to load array then remove it
+            if !chunks_to_load.contains(&(x, z)) {
+                // remove this chunk and save it to a file
+                self.remove_chunk((x, z), file_system);                
+            }
         }
-
     }
 
 
@@ -154,4 +186,17 @@ impl World {
     // TODO: #65 Place block function
 
     // TODO: #66 Break block function
+
+
+    // universal remove chunk function so that i remove it correctly and save it to a file without needing to do this myself
+    pub fn remove_chunk(&mut self, chunk_id: (i32, i32), file_system: &mut FileSystem) {
+        // remove the chunk from the hashmap and return it
+        if let Some(chunk) = self.chunks.remove(&chunk_id) {
+            file_system.save_chunk_to_file(chunk);
+            println!("Removed Chunk ({}, {})", chunk_id.0, chunk_id.1);
+        } else {
+            // if the key doesnt match a value ill print this but not panic so i can save the rest
+            eprintln!("Failed to remove chunk with key {:?}", chunk_id);
+        }
+    }
 }

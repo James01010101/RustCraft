@@ -2,20 +2,23 @@
 
 // THis will be all the main code to do all calculations for the frame before it is rendered
 use crate::{
-    renderer::*,
-    gpu_data::*,
-    world::*,
-    character::*,
-    my_keyboard::*,
-    camera::*,
-    settings::*,
+    camera::*, 
+    character::*, 
+    file_system::*, 
+    gpu_data::*, 
+    my_keyboard::*, 
+    renderer::*, 
+    settings::*, 
+    world::*
 };
 
-use winit::{window::Window, dpi::PhysicalPosition};
+use winit::{window::Window, 
+    dpi::PhysicalPosition
+};
 
 
     // do any game logic each frame
-pub fn calculate_frame(renderer: &mut Renderer, gpu_data: &mut GPUData, world: &mut World, character: &mut Character, keyboard: &mut MyKeyboard, camera: &mut Camera, window: &Window) {
+pub fn calculate_frame(renderer: &mut Renderer, gpu_data: &mut GPUData, world: &mut World, character: &mut Character, keyboard: &mut MyKeyboard, camera: &mut Camera, window: &Window, file_system: &mut FileSystem) {
 
     // check the keyboard for any key presses
     // create a movement vector (to see what direction i need to move in)
@@ -56,6 +59,13 @@ pub fn calculate_frame(renderer: &mut Renderer, gpu_data: &mut GPUData, world: &
 
     // update characters chunk position
     character.update_chunk_position();
+
+    // update the chunks that are loaded in the world around the player only if the chunk position changed
+    if character.chunk_changed {
+        character.chunk_changed = false;
+        world.update_chunks_around_character(character, renderer, file_system);
+    }
+
 
 
 
