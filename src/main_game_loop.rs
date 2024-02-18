@@ -63,8 +63,6 @@ pub fn run_main_game_loop() {
     let mut world: World = World::new();
     // temp, add some blocks for testing
     world.load_created_chunks_file(&mut file_system);
-    //world.AddTestBlocks();
-    world.add_test_chunks(&mut file_system, &renderer);
 
     // create the gpudata buffers
     let mut gpu_data: GPUData = GPUData::new(&renderer);
@@ -122,7 +120,7 @@ pub fn run_main_game_loop() {
                     WindowEvent::RedrawRequested => {
 
                         let window_locked: &Arc<Window> = window_wrapper.window.borrow_mut();
-                        calculate_frame(&mut renderer, &mut gpu_data, &mut world, &mut character, &mut keyboard, &mut camera, &window_locked);
+                        calculate_frame(&mut renderer, &mut gpu_data, &mut world, &mut character, &mut keyboard, &mut camera, &window_locked, &mut file_system);
 
                         
 
@@ -213,12 +211,7 @@ pub fn clean_up(world: &mut World, file_system: &mut FileSystem) {
 
     for key in  hashmap_chunk_keys {
         // remove the chunk from the hashmap and return it
-        if let Some(chunk) = world.chunks.remove(&key) {
-            file_system.save_chunk_to_file(chunk);
-        } else {
-            // if the key doesnt match a value ill print this but not panic so i can save the rest
-            eprintln!("Failed CleanUp: cannot to find value with key {:?}", key);
-        }
+        world.remove_chunk(key, file_system);
     }
 
     file_system.save_created_chunks_file(world);
