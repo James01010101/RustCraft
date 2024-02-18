@@ -166,7 +166,7 @@ impl FileSystem {
     // the chunk is not borrowed here so after this call it goes out of scope and is dropped
     pub fn save_chunk_to_file(&mut self, chunk: Chunk) {
         // save the chunk to a file then free it
-        println!("Saving Chunk to File: ({}, {})", chunk.chunk_id_x, chunk.chunk_id_z);
+        //println!("Saving Chunk to File: ({}, {})", chunk.chunk_id_x, chunk.chunk_id_z);
         let mut file_path: PathBuf = self.my_world_directory.clone();
         file_path.push("Chunks");
         file_path.push(format!("{}_{}.txt", chunk.chunk_id_x, chunk.chunk_id_z));
