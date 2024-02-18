@@ -19,27 +19,39 @@ pub struct Character {
 
     // chunk im standing in
     pub chunk_position: (i32, i32),
+
+    // if i have changed the chunk im standing in (so i can load new chunks in and out)
+    pub chunk_changed: bool,
 }
 
 
 impl Character {
     pub fn new() -> Character {
         Character {
-            position: FPosition { x: 0.0, y: 2.0, z: -5.0 },
+            position: FPosition { x: 0.0, y: 2.0, z: 0.0 },
             target: FPosition { x: 0.0, y: 0.0, z: 0.0 },
             chunk_position: (0, 0),
             yaw: 0.0,
             pitch: 0.0,
+            chunk_changed: true, // init to true to it loads in the correct chunks
         }
     }
 
     // calculate the chunk the player is in from its position
     pub fn update_chunk_position(&mut self) {
         // this does the divide thing but if negative works properly
-        self.chunk_position = (
-            self.position.x.div_euclid(CHUNK_SIZE_X as f32) as i32,
-            self.position.z.div_euclid(CHUNK_SIZE_Z as f32) as i32,
-        );
+
+        let new_chunk_x: i32 = self.position.x.div_euclid(CHUNK_SIZE_X as f32) as i32;
+        let new_chunk_z: i32 = self.position.z.div_euclid(CHUNK_SIZE_Z as f32) as i32;
+
+        // check if these are not the same as last frame
+        if new_chunk_x != self.chunk_position.0 || new_chunk_z != self.chunk_position.1 {
+            self.chunk_position = (
+                new_chunk_x,
+                new_chunk_z,
+            );
+            self.chunk_changed = true;
+        }
     }
 
     pub fn get_current_chunk(&self) -> (i32, i32) {

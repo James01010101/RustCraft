@@ -28,3 +28,5 @@ Blender/
 
 # my compressed shipping versions
 shipping/
+
+*.DS_Store
