@@ -52,3 +52,10 @@ away feom the camera up to say 10 blocks away
 then i just check theough the blocks and check the first one i hit that is not air
 
 can also use queus for lighting 
+
+
+
+**GitHub** 
+Once a pull request has gone through to delete the branch locally
+git branch -d "branchname" // this will delete the local version of the branch (if it has been merged)
+git fetch --prune // this will delete the remote connection to this branch
