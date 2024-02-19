@@ -8,7 +8,6 @@ use crate::{
     gpu_data::*, 
     my_keyboard::*, 
     renderer::*, 
-    settings::*, 
     world::*
 };
 
@@ -46,8 +45,8 @@ pub fn calculate_frame(renderer: &mut Renderer, gpu_data: &mut GPUData, world: &
     }
 
     // Apply the movement
-    character.move_forward(movement_vector.0 * MOVEMENT_SPEED);
-    character.move_sideways(movement_vector.1 * MOVEMENT_SPEED);
+    character.move_forward(movement_vector.0 * character.movement_speed);
+    character.move_sideways(movement_vector.1 * character.movement_speed);
 
     // mouse and camera movement
     character.update_view(keyboard);
@@ -58,7 +57,7 @@ pub fn calculate_frame(renderer: &mut Renderer, gpu_data: &mut GPUData, world: &
 
 
     // update characters chunk position
-    character.update_chunk_position();
+    character.update_chunk_position(world);
 
     // update the chunks that are loaded in the world around the player only if the chunk position changed
     if character.chunk_changed {

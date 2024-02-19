@@ -3,10 +3,10 @@
 This file will be all of the rules for creating chunks and all the blocks within them
  */
 use crate::{
-    settings::*,
     block_type::*,
     block::*,
     chunk::chunk_functions::*,
+    world::*,
 };
 
 impl super::Chunk {
@@ -17,18 +17,18 @@ impl super::Chunk {
     im using this temp vector so i can easily change the values of the blocks and also change blocks from air to block and vice versa
     then later ill convert from the vec to a hashmap which will only store blocks that arnt air to save space.
     */
-    pub fn create_temp_chunk_vector(&mut self) -> Vec<Vec<Vec<Block>>> {
+    pub fn create_temp_chunk_vector(&mut self, world: &World) -> Vec<Vec<Vec<Block>>> {
         // initial xz values are defined by the chunks id, 
-        let mut temp_chunk_vec: Vec<Vec<Vec<Block>>> = Vec::with_capacity(CHUNK_SIZE_X);
+        let mut temp_chunk_vec: Vec<Vec<Vec<Block>>> = Vec::with_capacity(world.chunk_size_x);
 
-        for x in 0..CHUNK_SIZE_X as i32 {
-            let mut temp2d: Vec<Vec<Block>> = Vec::with_capacity(CHUNK_SIZE_Y);
+        for x in 0..world.chunk_size_x as i32 {
+            let mut temp2d: Vec<Vec<Block>> = Vec::with_capacity(world.chunk_size_y);
 
-            for y in 0..CHUNK_SIZE_Y as i16 {
-                let mut temp1d: Vec<Block> = Vec::with_capacity(CHUNK_SIZE_Z);
+            for y in 0..world.chunk_size_y as i16 {
+                let mut temp1d: Vec<Block> = Vec::with_capacity(world.chunk_size_z);
 
-                for z in 0..CHUNK_SIZE_Z as i32 {
-                    let block_pos: (i32, i16, i32) = get_world_block_pos(self.chunk_id_x, self.chunk_id_z, x, y - HALF_CHUNK_Y as i16, z);
+                for z in 0..world.chunk_size_z as i32 {
+                    let block_pos: (i32, i16, i32) = get_world_block_pos(self.chunk_id_x, self.chunk_id_z, x, y - world.half_chunk_y as i16, z, &world);
 
                     temp1d.push(Block::new(
                         BlockType::Air, 
@@ -59,31 +59,31 @@ impl super::Chunk {
 
     remember the origin of the chunk (index 000) is the front bottom right
     */
-    pub fn generate_chunk(&mut self, temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>) {
+    pub fn generate_chunk(&mut self, temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>, world: &World) {
         
         println!("Generating Chunk: ({}, {})", self.chunk_id_x, self.chunk_id_z);
 
         // start with the bottom level being bedrock
-        for x in 0..CHUNK_SIZE_X {
-            for z in 0..CHUNK_SIZE_Z {
+        for x in 0..world.chunk_size_x {
+            for z in 0..world.chunk_size_z {
                 temp_chunk_vec[x][0][z].block_type = BlockType::Bedrock;
             }
         }
 
 
         // stone up until the halfway point - 3
-        for x in 0..CHUNK_SIZE_X {
-            for y in 1..HALF_CHUNK_Y - 3 {
-                for z in 0..CHUNK_SIZE_Z {
+        for x in 0..world.chunk_size_x {
+            for y in 1..world.half_chunk_y - 3 {
+                for z in 0..world.chunk_size_z {
                     temp_chunk_vec[x][y][z].block_type = BlockType::Stone;
                 }
             }
         }
 
         // then 2 layers of dirt
-        for x in 0..CHUNK_SIZE_X {
-            for y in HALF_CHUNK_Y - 3..HALF_CHUNK_Y - 1 {
-                for z in 0..CHUNK_SIZE_Z {
+        for x in 0..world.chunk_size_x {
+            for y in world.half_chunk_y - 3..world.half_chunk_y - 1 {
+                for z in 0..world.chunk_size_z {
                     temp_chunk_vec[x][y][z].block_type = BlockType::Dirt;
                 }
             }
@@ -91,9 +91,9 @@ impl super::Chunk {
 
 
         // then one layer of grass
-        for x in 0..CHUNK_SIZE_X {
-            for y in HALF_CHUNK_Y - 1..HALF_CHUNK_Y {
-                for z in 0..CHUNK_SIZE_Z {
+        for x in 0..world.chunk_size_x {
+            for y in world.half_chunk_y - 1..world.half_chunk_y {
+                for z in 0..world.chunk_size_z {
                     temp_chunk_vec[x][y][z].block_type = BlockType::Grass;
                 }
             }

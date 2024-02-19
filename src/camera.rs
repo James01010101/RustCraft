@@ -14,6 +14,9 @@ pub struct Camera {
     pub near_plane: f32,
     pub far_plane: f32,
 
+    pub screen_width: u32,
+    pub screen_height: u32,
+
     pub projection_matrix: Matrix4<f32>,
     pub view_matrix: Matrix4<f32>,
 
@@ -56,6 +59,9 @@ impl Camera {
             aspect_ratio,
             near_plane,
             far_plane,
+
+            screen_width,
+            screen_height,
 
             projection_matrix,
             view_matrix,

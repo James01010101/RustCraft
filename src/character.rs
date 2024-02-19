@@ -1,8 +1,8 @@
 
 use crate::{
     types::*,
-    settings::*,
     my_keyboard::*,
+    world::*,
 };
 
 pub struct Character {
@@ -22,11 +22,15 @@ pub struct Character {
 
     // if i have changed the chunk im standing in (so i can load new chunks in and out)
     pub chunk_changed: bool,
+
+
+    // settings
+    pub movement_speed: f32,
 }
 
 
 impl Character {
-    pub fn new() -> Character {
+    pub fn new(movement_speed: f32) -> Character {
         Character {
             position: FPosition { x: 0.0, y: 2.0, z: 0.0 },
             target: FPosition { x: 0.0, y: 0.0, z: 0.0 },
@@ -34,15 +38,16 @@ impl Character {
             yaw: 0.0,
             pitch: 0.0,
             chunk_changed: true, // init to true to it loads in the correct chunks
+            movement_speed,
         }
     }
 
     // calculate the chunk the player is in from its position
-    pub fn update_chunk_position(&mut self) {
+    pub fn update_chunk_position(&mut self, world: &World) {
         // this does the divide thing but if negative works properly
 
-        let new_chunk_x: i32 = self.position.x.div_euclid(CHUNK_SIZE_X as f32) as i32;
-        let new_chunk_z: i32 = self.position.z.div_euclid(CHUNK_SIZE_Z as f32) as i32;
+        let new_chunk_x: i32 = self.position.x.div_euclid(world.chunk_size_x as f32) as i32;
+        let new_chunk_z: i32 = self.position.z.div_euclid(world.chunk_size_z as f32) as i32;
 
         // check if these are not the same as last frame
         if new_chunk_x != self.chunk_position.0 || new_chunk_z != self.chunk_position.1 {
@@ -89,8 +94,8 @@ impl Character {
         }
 
         // Update yaw and pitch based on mouse movement
-        self.yaw += x_change * MOUSE_SENSITIVITY_H;
-        self.pitch -= y_change * MOUSE_SENSITIVITY_V;
+        self.yaw += x_change * keyboard.mouse_sensitivity_h;
+        self.pitch -= y_change * keyboard.mouse_sensitivity_v;
 
         // Clamp pitch to prevent looking too far up or down
         self.pitch = self.pitch.clamp(-1.57, 1.57);

@@ -4,7 +4,6 @@ use crate::{
     chunk::*, 
     file_system::*, 
     renderer::*, 
-    settings::*,
 };
 
 
@@ -32,11 +31,22 @@ pub struct World {
 
     // stores all of the chunks that have been created before
     pub created_chunks: HashSet<(i32, i32)>,
+
+    // settings
+    pub world_name: String,
+    pub world_seed: u64,
+
+    pub render_distance: usize,
+
+    pub chunk_size_x: usize,
+    pub chunk_size_y: usize,
+    pub chunk_size_z: usize,
+    pub half_chunk_y: usize,
 }
 
 
 impl World {
-    pub fn new() -> World {
+    pub fn new(world_name: String, world_seed: u64, render_distance: usize, chunk_sizes: (usize, usize, usize)) -> World {
 
         // stores all alive chunks in this so they can be rendered and used
         let chunks: HashMap<(i32, i32), Chunk> = HashMap::new();
@@ -50,6 +60,15 @@ impl World {
         World { 
             chunks, 
             created_chunks,
+            world_name,
+            world_seed,
+
+            render_distance,
+
+            chunk_size_x: chunk_sizes.0,
+            chunk_size_y: chunk_sizes.1,
+            chunk_size_z: chunk_sizes.2,
+            half_chunk_y: chunk_sizes.1 / 2,
         }
 
     }
@@ -64,7 +83,7 @@ impl World {
         // ill have a funciton which gets all chunks which should be loaded here
         // start at my current position and go left and right render distance amount
         // then go up once and go render distance -1 left and right continue until the top
-        let max_radius: i32 = RENDER_DISTANCE as i32;
+        let max_radius: i32 = self.render_distance as i32;
         let mut current_radius: i32 = max_radius;
         let current_chunk_x = character.chunk_position.0;
         let current_chunk_z = character.chunk_position.1;
@@ -98,7 +117,7 @@ impl World {
 
                 // load this chunk (i know for sure it isnt contained in the hashmap so i can just insert it)
                 let mut c: Chunk = Chunk::new(x, z, -1, renderer);
-                c.load_chunk(file_system, &mut self.created_chunks, renderer);
+                c.load_chunk(file_system, self, renderer);
                 self.chunks.insert((x, z), c);
             }
         }
@@ -192,7 +211,7 @@ impl World {
     pub fn remove_chunk(&mut self, chunk_id: (i32, i32), file_system: &mut FileSystem) {
         // remove the chunk from the hashmap and return it
         if let Some(chunk) = self.chunks.remove(&chunk_id) {
-            file_system.save_chunk_to_file(chunk);
+            file_system.save_chunk_to_file(chunk, self);
             println!("Removed Chunk ({}, {})", chunk_id.0, chunk_id.1);
         } else {
             // if the key doesnt match a value ill print this but not panic so i can save the rest
