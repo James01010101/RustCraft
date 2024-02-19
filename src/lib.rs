@@ -24,7 +24,6 @@ pub mod renderer;
 pub mod camera; // anything to do with camera
 pub mod block; // where i create my basic objects like spheres and squares
 pub mod world; // this is where all of the objects in the world are stored
-pub mod settings; // this is a const settings file for things like chunk size, ray bounces ect.\
 pub mod chunk; // where the blocks and chunks are stored
 pub mod gpu_data; // where the vbo vao ebo, and vertex and index buffers are as well as textures
 pub mod file_system; // where anything to read and write to the file system is stored

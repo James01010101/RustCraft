@@ -2,7 +2,6 @@
 use crate::{
     file_system::*,
     renderer::*,
-    settings::*,
     window_wrapper::*,
     world::*,
     gpu_data::*,
@@ -42,14 +41,14 @@ pub fn run_main_game_loop() {
     println!(); // for spacing
     
 
-    // Create the window wrapper
-    let mut window_wrapper: WindowWrapper = WindowWrapper::new("RustCraft", SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32);
-
     let mut camera: Camera = Camera::new(
-        SCREEN_FOV,
-        SCREEN_WIDTH as u32,
-        SCREEN_HEIGHT as u32
+        90.0,
+        1920,
+        1080,
     );
+
+    // Create the window wrapper
+    let mut window_wrapper: WindowWrapper = WindowWrapper::new("RustCraft", camera.screen_width as u32, camera.screen_height as u32);
 
     // create Renderer and window
     let mut renderer: Renderer = task::block_on(Renderer::new(&window_wrapper, &camera));
@@ -57,21 +56,35 @@ pub fn run_main_game_loop() {
 
     // create MY file system struct
     let mut file_system: FileSystem = FileSystem::new();
-    file_system.check_file_system();
+    
 
     // create my world
-    let mut world: World = World::new();
-    // temp, add some blocks for testing
-    world.load_created_chunks_file(&mut file_system);
+    let mut world: World = World::new(
+        "James's World".to_string(),
+        1,
+        5,
+        (8, 16, 8),
+    );
 
     // create the gpudata buffers
     let mut gpu_data: GPUData = GPUData::new(&renderer);
 
     // create keyboard
-    let mut keyboard: MyKeyboard = MyKeyboard::new((SCREEN_WIDTH as f32 / 2.0, SCREEN_HEIGHT as f32 / 2.0));
+    let mut keyboard: MyKeyboard = MyKeyboard::new(
+        (camera.screen_width as f32 / 2.0, camera.screen_height as f32 / 2.0),
+        (0.002, 0.003),
+    );
 
     // load character
-    let mut character: Character = Character::new();
+    let mut character: Character = Character::new(0.1);
+
+
+
+    // validate the file system and add files and folders if needed
+    file_system.check_file_system(&world);
+
+    // temp, add some blocks for testing
+    world.load_created_chunks_file(&mut file_system);
 
  
 

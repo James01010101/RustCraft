@@ -2,12 +2,15 @@
 
 extern crate rust_craft;
 use rust_craft::chunk::chunk_functions::*;
+use rust_craft::world::World;
 
 
-
+// these all assume chunk sizes of (32 x 256 x 32)
 
 #[test]
 fn Test_GetChunkId() {
+    
+    let world: World = World::new("James's World".to_string(), 1, 5, (32, 256, 32));
 
     let posX: i32 = 0;
     let posY: i32 = 0;
@@ -15,7 +18,7 @@ fn Test_GetChunkId() {
     let correctChunkX: i32 = 0;
     let correctChunkY: i32 = 0;
 
-    let ids: (i32, i32) = get_chunk_id(posX, posY);
+    let ids: (i32, i32) = get_chunk_id(posX, posY, &world);
 
     assert_eq!(ids, (correctChunkX, correctChunkY), 
         "input Position ({}, {}) - Result Ids ({}, {}) - Expected ({}, {})", posX, posY, ids.0, ids.1, correctChunkX, correctChunkY);
@@ -24,13 +27,14 @@ fn Test_GetChunkId() {
 #[test]
 fn Test_GetChunkId_2() {
 
+    let world: World = World::new("James's World".to_string(), 1, 5, (32, 256, 32));
     let posX: i32 = 10;
     let posZ: i32 = 10;
 
     let correctChunkX: i32 = 0;
     let correctChunkZ: i32 = 0;
 
-    let ids: (i32, i32) = get_chunk_id(posX, posZ);
+    let ids: (i32, i32) = get_chunk_id(posX, posZ, &world);
 
     assert_eq!(ids, (correctChunkX, correctChunkZ), 
         "input Position ({}, {}) - Result Ids ({}, {}) - Expected ({}, {})", posX, posZ, ids.0, ids.1, correctChunkX, correctChunkZ);
@@ -39,13 +43,14 @@ fn Test_GetChunkId_2() {
 #[test]
 fn Test_GetChunkId_3() {
 
+    let world: World = World::new("James's World".to_string(), 1, 5, (32, 256, 32));
     let posX: i32 = -32;
     let posZ: i32 = 31;
 
     let correctChunkX: i32 = -1;
     let correctChunkZ: i32 = 0;
 
-    let ids: (i32, i32) = get_chunk_id(posX, posZ);
+    let ids: (i32, i32) = get_chunk_id(posX, posZ, &world);
 
     assert_eq!(ids, (correctChunkX, correctChunkZ), 
         "input Position ({}, {}) - Result Ids ({}, {}) - Expected ({}, {})", posX, posZ, ids.0, ids.1, correctChunkX, correctChunkZ);
@@ -55,13 +60,14 @@ fn Test_GetChunkId_3() {
 #[test]
 fn Test_GetChunkId_4() {
 
+    let world: World = World::new("James's World".to_string(), 1, 5, (32, 256, 32));
     let posX: i32 = -100;
     let posZ: i32 = 68;
 
     let correctChunkX: i32 = -3;
     let correctChunkZ: i32 = 2;
 
-    let ids: (i32, i32) = get_chunk_id(posX, posZ);
+    let ids: (i32, i32) = get_chunk_id(posX, posZ, &world);
 
     assert_eq!(ids, (correctChunkX, correctChunkZ), 
         "input Position ({}, {}) - Result Ids ({}, {}) - Expected ({}, {})", posX, posZ, ids.0, ids.1, correctChunkX, correctChunkZ);
@@ -72,6 +78,7 @@ fn Test_GetChunkId_4() {
 #[test]
 fn Test_GetWorldBlockPos_1() {
 
+    let world: World = World::new("James's World".to_string(), 1, 5, (32, 256, 32));
     let chunkX: i32 = 0;
     let chunkZ: i32 = 0;
 
@@ -81,7 +88,7 @@ fn Test_GetWorldBlockPos_1() {
 
     let answer: (i32, i16, i32) = (0, 0, 0);
 
-    let result: (i32, i16, i32) = get_world_block_pos(chunkX, chunkZ, relBlockX, relBlockY, relBlockZ);
+    let result: (i32, i16, i32) = get_world_block_pos(chunkX, chunkZ, relBlockX, relBlockY, relBlockZ, &world);
     
     assert_eq!(result, answer, "Expected ({:?}) - Got ({:?})", answer, result);
 }
@@ -89,6 +96,7 @@ fn Test_GetWorldBlockPos_1() {
 #[test]
 fn Test_GetWorldBlockPos_2() {
 
+    let world: World = World::new("James's World".to_string(), 1, 5, (32, 256, 32));
     let chunkX: i32 = 1;
     let chunkZ: i32 = 1;
 
@@ -98,7 +106,7 @@ fn Test_GetWorldBlockPos_2() {
 
     let answer: (i32, i16, i32) = (32, 0, 32);
 
-    let result: (i32, i16, i32) = get_world_block_pos(chunkX, chunkZ, relBlockX, relBlockY, relBlockZ);
+    let result: (i32, i16, i32) = get_world_block_pos(chunkX, chunkZ, relBlockX, relBlockY, relBlockZ, &world);
     
     assert_eq!(result, answer, "Expected ({:?}) - Got ({:?})", answer, result);
 }
@@ -106,6 +114,7 @@ fn Test_GetWorldBlockPos_2() {
 #[test]
 fn Test_GetWorldBlockPos_3() {
 
+    let world: World = World::new("James's World".to_string(), 1, 5, (32, 256, 32));
     let chunkX: i32 = -2;
     let chunkZ: i32 = 2;
 
@@ -115,7 +124,7 @@ fn Test_GetWorldBlockPos_3() {
 
     let answer: (i32, i16, i32) = (-59, 5, 69);
 
-    let result: (i32, i16, i32) = get_world_block_pos(chunkX, chunkZ, relBlockX, relBlockY, relBlockZ);
+    let result: (i32, i16, i32) = get_world_block_pos(chunkX, chunkZ, relBlockX, relBlockY, relBlockZ, &world);
     
     assert_eq!(result, answer, "Expected ({:?}) - Got ({:?})", answer, result);
 }
@@ -123,6 +132,7 @@ fn Test_GetWorldBlockPos_3() {
 #[test]
 fn Test_GetWorldBlockPos_4() {
 
+    let world: World = World::new("James's World".to_string(), 1, 5, (32, 256, 32));
     let chunkX: i32 = -2;
     let chunkZ: i32 = -1;
 
@@ -132,7 +142,7 @@ fn Test_GetWorldBlockPos_4() {
 
     let answer: (i32, i16, i32) = (-59, 7, -14);
 
-    let result: (i32, i16, i32) = get_world_block_pos(chunkX, chunkZ, relBlockX, relBlockY, relBlockZ);
+    let result: (i32, i16, i32) = get_world_block_pos(chunkX, chunkZ, relBlockX, relBlockY, relBlockZ, &world);
     
     assert_eq!(result, answer, "Expected ({:?}) - Got ({:?})", answer, result);
 }
@@ -141,13 +151,14 @@ fn Test_GetWorldBlockPos_4() {
 #[test]
 fn Test_GetChunkBlockPos_1() {
 
+    let world: World = World::new("James's World".to_string(), 1, 5, (32, 256, 32));
     let worldBlockX: i32 = 0;
     let worldBlockY: i16 = 0;
     let worldBlockZ: i32 = 0;
 
     let answer: (i32, i16, i32) = (0, 0, 0);
 
-    let result: (i32, i16, i32) = get_relative_block_pos(worldBlockX, worldBlockY, worldBlockZ);
+    let result: (i32, i16, i32) = get_relative_block_pos(worldBlockX, worldBlockY, worldBlockZ, &world);
     
     assert_eq!(result, answer, "Expected ({:?}) - Got ({:?})", answer, result);
 }
@@ -155,13 +166,15 @@ fn Test_GetChunkBlockPos_1() {
 
 #[test]
 fn Test_GetChunkBlockPos_2() {
+
+    let world: World = World::new("James's World".to_string(), 1, 5, (32, 256, 32));
     let worldBlockX: i32 = 5;
     let worldBlockY: i16 = 9;
     let worldBlockZ: i32 = 2;
 
     let answer: (i32, i16, i32) = (5, 9, 2);
 
-    let result: (i32, i16, i32) = get_relative_block_pos(worldBlockX, worldBlockY, worldBlockZ);
+    let result: (i32, i16, i32) = get_relative_block_pos(worldBlockX, worldBlockY, worldBlockZ, &world);
     
     assert_eq!(result, answer, "Expected ({:?}) - Got ({:?})", answer, result);
 }
@@ -169,13 +182,15 @@ fn Test_GetChunkBlockPos_2() {
 
 #[test]
 fn Test_GetChunkBlockPos_3() {
+
+    let world: World = World::new("James's World".to_string(), 1, 5, (32, 256, 32));
     let worldBlockX: i32 = 50;
     let worldBlockY: i16 = 50;
     let worldBlockZ: i32 = 50;
 
     let answer: (i32, i16, i32) = (18, 50, 18);
 
-    let result: (i32, i16, i32) = get_relative_block_pos(worldBlockX, worldBlockY, worldBlockZ);
+    let result: (i32, i16, i32) = get_relative_block_pos(worldBlockX, worldBlockY, worldBlockZ, &world);
     
     assert_eq!(result, answer, "Expected ({:?}) - Got ({:?})", answer, result);
 }
@@ -183,13 +198,15 @@ fn Test_GetChunkBlockPos_3() {
 
 #[test]
 fn Test_GetChunkBlockPos_4() {
+
+    let world: World = World::new("James's World".to_string(), 1, 5, (32, 256, 32));
     let worldBlockX: i32 = -40;
     let worldBlockY: i16 = 50;
     let worldBlockZ: i32 = 40;
 
     let answer: (i32, i16, i32) = (24, 50, 8);
 
-    let result: (i32, i16, i32) = get_relative_block_pos(worldBlockX, worldBlockY, worldBlockZ);
+    let result: (i32, i16, i32) = get_relative_block_pos(worldBlockX, worldBlockY, worldBlockZ, &world);
     
     assert_eq!(result, answer, "Expected ({:?}) - Got ({:?})", answer, result);
 }
@@ -197,26 +214,30 @@ fn Test_GetChunkBlockPos_4() {
 
 #[test]
 fn Test_GetChunkBlockPos_5() {
+
+    let world: World = World::new("James's World".to_string(), 1, 5, (32, 256, 32));
     let worldBlockX: i32 = -12;
     let worldBlockY: i16 = 50;
     let worldBlockZ: i32 = -65;
 
     let answer: (i32, i16, i32) = (20, 50, 31);
 
-    let result: (i32, i16, i32) = get_relative_block_pos(worldBlockX, worldBlockY, worldBlockZ);
+    let result: (i32, i16, i32) = get_relative_block_pos(worldBlockX, worldBlockY, worldBlockZ, &world);
     
     assert_eq!(result, answer, "Expected ({:?}) - Got ({:?})", answer, result);
 }
 
 #[test]
 fn Test_GetChunkBlockPos_6() {
+
+    let world: World = World::new("James's World".to_string(), 1, 5, (32, 256, 32));
     let worldBlockX: i32 = -32;
     let worldBlockY: i16 = 0;
     let worldBlockZ: i32 = -31;
 
     let answer: (i32, i16, i32) = (0, 0, 1);
 
-    let result: (i32, i16, i32) = get_relative_block_pos(worldBlockX, worldBlockY, worldBlockZ);
+    let result: (i32, i16, i32) = get_relative_block_pos(worldBlockX, worldBlockY, worldBlockZ, &world);
     
     assert_eq!(result, answer, "Expected ({:?}) - Got ({:?})", answer, result);
 }

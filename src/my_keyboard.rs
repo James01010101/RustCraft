@@ -18,11 +18,16 @@ pub struct MyKeyboard {
     pub a_held: bool,
     pub s_held: bool,
     pub d_held: bool,
+
+
+    // settings
+    pub mouse_sensitivity_h: f32,
+    pub mouse_sensitivity_v: f32,
 }
 
 
 impl MyKeyboard {
-    pub fn new(screen_center: (f32, f32)) -> MyKeyboard {
+    pub fn new(screen_center: (f32, f32), mouse_sensitivity: (f32, f32)) -> MyKeyboard {
         MyKeyboard {
             w_held: false,
             a_held: false,
@@ -31,6 +36,9 @@ impl MyKeyboard {
 
             mouse_position: (0.0, 0.0),
             mouse_center_position: screen_center,
+
+            mouse_sensitivity_h: mouse_sensitivity.0,
+            mouse_sensitivity_v: mouse_sensitivity.1,
         }
     }
 
