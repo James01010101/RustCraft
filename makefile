@@ -23,6 +23,10 @@ cleanworldrun: cleanworld run
 test: clear
 	cargo test
 
+# run my benchmarks, in nightly because bench cant be used in stable
+bench: clear
+	cargo +nightly bench
+
 #clean
 clean: 
 	cargo clean
