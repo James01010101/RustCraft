@@ -43,7 +43,11 @@ impl super::Chunk {
 
         // fill the chunkBlocks hashmap from the temp vector
         self.fill_chunk_hashmap(temp_chunk_vec, &world);
-        
+
+        if self.instance_size > self.instance_capacity {
+            self.update_instance_buffers_capacity(renderer);
+        }
+
         self.update_instance_staging_buffer(renderer);
     }
 
@@ -87,9 +91,31 @@ impl super::Chunk {
         self.instance_size = self.instances_to_render.len() as u32;
     }
 
-    // iterate through the whole vector and update all blocks that are touching air using a compute shader
-    // this is run once on chunk creation
-    
+    // this is called on each chunk per frame so i can do updates if needed
+    pub fn update(&mut self, renderer: &Renderer) {
+        // first check if there is a new instance buffer to be updated
+        if self.creating_new_instance_buffers {
+            // check if the new instance buffer is finished being written to
+            // this is needed because locking the mutex returns a immutable reference of self
+            // and is still alive when i want to pass a mutable reference to the overwrite function
+            // so i need to set it to another variable and drop the mutex before i can use self again
+            let temp_instance_writing_bool: bool;
+            {
+                let new_instance_buffers_writing =
+                    self.new_instance_buffers_writing.lock().unwrap();
+                temp_instance_writing_bool = *new_instance_buffers_writing;
+            }
+            if !temp_instance_writing_bool {
+                // its finished writing so i can overwrite the old one now
+                self.overwrite_old_instance_buffers();
+            }
+
+            // set creating new instance buffers to false
+        } else {
+            // if i am not currently creating new instance buffers
+            self.update_instance_buffer(renderer);
+        }
+    }
 }
 
 // takes the world position and gives you the chunk id of the chunk that position is in

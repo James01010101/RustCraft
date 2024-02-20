@@ -42,7 +42,91 @@ impl Chunk {
 
     // update the instance buffer for the chunk with the instances
     pub fn update_instance_staging_buffer(&mut self, renderer: &Renderer) {
-        // make the hashmap of instances into a sclice i can pass to a buffer
+        let new_instance_buffers_writing = self.new_instance_buffers_writing.lock().unwrap();
+
+        // only start staging buffer commands if no new instance buffers are being created and written to
+        if !*new_instance_buffers_writing {
+            // make the hashmap of instances into a sclice i can pass to a buffer
+            let instances_vector = self
+                .instances_to_render
+                .values()
+                .cloned()
+                .collect::<Vec<InstanceData>>();
+            let instances_slice = instances_vector.as_slice();
+
+            // update the staging gpu buffers and set the flag that this data has changed
+            renderer.queue.write_buffer(
+                &self.instance_staging_buffer,
+                0,
+                bytemuck::cast_slice(instances_slice),
+            );
+
+            // submit the write command
+            renderer.queue.submit(std::iter::empty());
+
+            self.instances_modified = true;
+
+            // get a copy of the staging_buffer_writing var so i can give it to the gpu callback
+            let staging_buffer_writing_clone = self.staging_buffer_writing.clone();
+
+            // lock the mutex so i can set it
+            let mut staging_buffer_writing = self.staging_buffer_writing.lock().unwrap();
+            *staging_buffer_writing = true;
+
+            // Set up a callback to run when the instance buffer copy is finished
+            renderer.queue.on_submitted_work_done(move || {
+                // set the staging buffer writing flag to false so i know its finished writing
+                let mut staging_buffer_writing_gpu = staging_buffer_writing_clone.lock().unwrap();
+                *staging_buffer_writing_gpu = false;
+            });
+            // dont need to submit the on submitted work done function
+        }
+    }
+
+    // increase instance buffers capasity
+    // this will be called when i try to add blocks to the instance buffer but its size exceeds its capasity
+    pub fn update_instance_buffers_capacity(&mut self, renderer: &Renderer) {
+        
+        self.creating_new_instance_buffers = true;
+
+        let mut capacity_increase_amount: u32 = 100;
+
+        // check that increasing by this much will be enough
+        let amount_needed: u32 = self.instance_size - self.instance_capacity;
+        while amount_needed > capacity_increase_amount {
+            // if 100 isnt enough then keep adding until it is over, not exact so there is still some room
+            capacity_increase_amount += 10;
+        }
+        
+        /*println!(
+            "Chunk: ({},{}) increasing instance buffer capacity from {} -> {}",
+            self.chunk_id_x,
+            self.chunk_id_z,
+            self.instance_capacity,
+            self.instance_capacity + capacity_increase_amount
+        );*/
+
+        // i need to reallocate the capacity of the instance buffers
+        self.new_instance_capacity = self.instance_capacity + capacity_increase_amount;
+
+        // dont overwrite the staging yet since it might have commands being done
+        self.new_instance_staging_buffer = renderer.device.create_buffer(&BufferDescriptor {
+            label: Some("Instance Staging Buffer"),
+            size: (std::mem::size_of::<InstanceData>() * self.new_instance_capacity as usize)
+                as wgpu::BufferAddress,
+            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        self.new_instance_buffer = renderer.device.create_buffer(&BufferDescriptor {
+            label: Some("Instance Buffer"),
+            size: (std::mem::size_of::<InstanceData>() * self.new_instance_capacity as usize)
+                as wgpu::BufferAddress,
+            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        // dont need to copy the buffer just copy the instance hashmap into the buffer and overwrite the old buffer so it is freed
         let instances_vector = self
             .instances_to_render
             .values()
@@ -50,63 +134,45 @@ impl Chunk {
             .collect::<Vec<InstanceData>>();
         let instances_slice = instances_vector.as_slice();
 
-        // update the staging gpu buffers and set the flag that this data has changed
+        // update the new actual gpu buffer and set the flag that this data has changed
         renderer.queue.write_buffer(
-            &self.instance_staging_buffer,
+            &self.new_instance_buffer,
             0,
             bytemuck::cast_slice(instances_slice),
         );
-
         // submit the write command
         renderer.queue.submit(std::iter::empty());
 
-        self.instances_modified = true;
+        // update the fence for the new buffers so i know not to update the old ones anymore
+        let new_instance_buffers_writing_clone = self.new_instance_buffers_writing.clone();
+        let mut new_instance_buffers_writing = self.new_instance_buffers_writing.lock().unwrap();
+        *new_instance_buffers_writing = true;
 
-        // get a copy of the staging_buffer_writing var so i can give it to the gpu callback
-        let staging_buffer_writing_clone = self.staging_buffer_writing.clone();
-
-        // lock the mutex so i can set it
-        let mut staging_buffer_writing = self.staging_buffer_writing.lock().unwrap();
-        *staging_buffer_writing = true;
-
-        // Set up a callback to run when the instance buffer copy is finished
         renderer.queue.on_submitted_work_done(move || {
             // set the staging buffer writing flag to false so i know its finished writing
-            let mut staging_buffer_writing_gpu = staging_buffer_writing_clone.lock().unwrap();
-            *staging_buffer_writing_gpu = false;
+            let mut new_instance_buffers_writing = new_instance_buffers_writing_clone.lock().unwrap();
+            *new_instance_buffers_writing = false;
         });
-        // dont need to submit the on submitted work done function
     }
 
-    // increase instance buffers capasity
-    // this will be called when i try to add blocks to the instance buffer but its size exceeds its capasity
-    pub fn update_instance_buffers_capacity(&mut self, renderer: &Renderer) {
-        let capacity_increase_amount: u32 = 100;
+    // once the new buffer has finished being written to with new data i can overwrite the old buffers
+    // since no more commands will be pushed to the old buffers since i started making these new ones all old buffer commands SHOULD be finished at this point
+    pub fn overwrite_old_instance_buffers(&mut self) {
+        // overwrite the old buffers with the new ones
+        self.instance_buffer.destroy();
 
-        // i need to reallocate the capacity of the instance buffers
-        self.instance_capacity = self.instance_capacity + capacity_increase_amount;
+        mem::swap(&mut self.instance_buffer, &mut self.new_instance_buffer);
+        mem::swap(&mut self.instance_staging_buffer, &mut self.new_instance_staging_buffer);
 
-        let new_instance_buffer: wgpu::Buffer = renderer.device.create_buffer(&BufferDescriptor {
-            label: Some("Instance Buffer"),
-            size: (std::mem::size_of::<InstanceData>() * self.instance_capacity as usize)
-                as wgpu::BufferAddress,
-            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
+        self.creating_new_instance_buffers = false;
 
-        let new_instance_staging_buffer: wgpu::Buffer =
-            renderer.device.create_buffer(&BufferDescriptor {
-                label: Some("Instance Staging Buffer"),
-                size: (std::mem::size_of::<InstanceData>() * self.instance_capacity as usize)
-                    as wgpu::BufferAddress,
-                usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
-                mapped_at_creation: false,
-            });
-
-        // dont need to copy the buffer just copy the instance hashmap into the buffer and overwrite the old buffer so it is freed
+        // update so that capacity always holds the exact size of the buffer, and is only updated to the new size once the new buffers are in place
+        self.instance_capacity = self.new_instance_capacity;
     }
 
     // compute shader to label which blocks are touching air
+    // iterate through the whole vector and update all blocks that are touching air using a compute shader
+    // this is run once on chunk creation
     pub async fn check_for_touching_air(
         &mut self,
         temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>,

@@ -1,11 +1,10 @@
 pub mod chunk_functions;
-pub mod create_chunks;
 pub mod chunk_gpu_function;
-
+pub mod create_chunks;
 
 use crate::{block::*, renderer::*, types::*};
-use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use wgpu::{BufferDescriptor, BufferUsages};
 
 // This will store all of the blocks and objects within a chunk
@@ -30,6 +29,9 @@ pub struct Chunk {
     // allocated capacsty of the instance buffer
     pub instance_capacity: u32,
 
+    // the size of the new buffers, so i can compare to the old size
+    pub new_instance_capacity: u32,
+
     // the actual size of the instance buffer being used, (size of hashmap once updated)
     pub instance_size: u32,
 
@@ -37,12 +39,22 @@ pub struct Chunk {
     pub instance_buffer: wgpu::Buffer,
     pub instance_staging_buffer: wgpu::Buffer,
 
+    pub new_instance_buffer: wgpu::Buffer,
+    pub new_instance_staging_buffer: wgpu::Buffer,
+
+
     // if i update the staging buffer set this true so i know to copy it to the instance buffer
     pub instances_modified: bool,
 
     // so i know if the staging buffer is currently being written to
     // i only update the actual buffer is staging buffer write is false and modified is true
     pub staging_buffer_writing: Arc<Mutex<bool>>,
+
+    // if i am making new buffers of a larger size i wont push anymore commands or changes to the old buffers
+    pub new_instance_buffers_writing: Arc<Mutex<bool>>,
+
+    // used on the cpu side to overwrite the old buffers once the new ones have been update with data
+    pub creating_new_instance_buffers: bool,
 }
 
 impl Chunk {
@@ -63,7 +75,7 @@ impl Chunk {
 
         // make the instance buffer for the chunk init it with size of 100
         let instance_capacity: u32 = 100;
-        let instance_buf: wgpu::Buffer = renderer.device.create_buffer(&BufferDescriptor {
+        let instance_buffer: wgpu::Buffer = renderer.device.create_buffer(&BufferDescriptor {
             label: Some("Instance Buffer"),
             size: (std::mem::size_of::<InstanceData>() * instance_capacity as usize)
                 as wgpu::BufferAddress,
@@ -71,13 +83,29 @@ impl Chunk {
             mapped_at_creation: false,
         });
 
-        let instance_staging_buf: wgpu::Buffer = renderer.device.create_buffer(&BufferDescriptor {
-            label: Some("Instance Staging Buffer"),
+        let instance_staging_buffer: wgpu::Buffer = renderer.device.create_buffer(&BufferDescriptor {
+                label: Some("Instance Staging Buffer"),
+                size: (std::mem::size_of::<InstanceData>() * instance_capacity as usize)
+                    as wgpu::BufferAddress,
+                usage: BufferUsages::VERTEX | BufferUsages::COPY_DST | BufferUsages::COPY_SRC,
+                mapped_at_creation: false,
+            });
+
+        let new_instance_buffer: wgpu::Buffer = renderer.device.create_buffer(&BufferDescriptor {
+            label: Some("Instance Buffer"),
             size: (std::mem::size_of::<InstanceData>() * instance_capacity as usize)
                 as wgpu::BufferAddress,
-            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST | BufferUsages::COPY_SRC,
+            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
+
+        let new_instance_staging_buffer: wgpu::Buffer = renderer.device.create_buffer(&BufferDescriptor {
+                label: Some("Instance Staging Buffer"),
+                size: (std::mem::size_of::<InstanceData>() * instance_capacity as usize)
+                    as wgpu::BufferAddress,
+                usage: BufferUsages::VERTEX | BufferUsages::COPY_DST | BufferUsages::COPY_SRC,
+                mapped_at_creation: false,
+            });
 
         Self {
             chunk_blocks,
@@ -89,11 +117,17 @@ impl Chunk {
 
             instance_size: 0,
             instance_capacity,
-            instance_buffer: instance_buf,
-            instance_staging_buffer: instance_staging_buf,
+            new_instance_capacity: instance_capacity,
+
+            instance_buffer,
+            instance_staging_buffer,
+            new_instance_buffer,
+            new_instance_staging_buffer,
 
             instances_modified: false,
             staging_buffer_writing: Arc::new(Mutex::new(false)),
+            new_instance_buffers_writing: Arc::new(Mutex::new(false)),
+            creating_new_instance_buffers: false,
         }
     }
 
