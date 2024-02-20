@@ -245,7 +245,7 @@ impl FileSystem {
         world: &World,
     ) {
         // read the chunk from a file and fill the temp vector with the data
-        println!("Reading Chunk from File: ({}, {})", chunk_id_x, chunk_id_z);
+        //println!("Reading Chunk from File: ({}, {})", chunk_id_x, chunk_id_z);
 
         // get the file path
         let mut file_path: PathBuf = self.my_world_directory.clone();

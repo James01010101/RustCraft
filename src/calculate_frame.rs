@@ -42,6 +42,7 @@ pub fn calculate_frame(
         movement_vector.1 /= length;
     }
 
+    // TODO: #129 move this code into characters own function. which checks for movement and then runs the move forward or sideways
     // Apply the movement
     character.move_forward(movement_vector.0 * character.movement_speed);
     character.move_sideways(movement_vector.1 * character.movement_speed);
@@ -64,6 +65,20 @@ pub fn calculate_frame(
     // update characters chunk position
     character.update_chunk_position(world);
 
+    // go through the pending chunks vec and any that are valid now are put into chunks
+    let mut i = 0;
+    while i < world.pending_chunks.len() {
+
+        // call update so it can finish off its copy when ready
+        world.pending_chunks[i].update(renderer);
+        if world.pending_chunks[i].instance_capacity > world.pending_chunks[i].instance_size {
+            let chunk = world.pending_chunks.remove(i);
+            world.chunks.insert((chunk.chunk_id_x, chunk.chunk_id_z), chunk);
+        } else {
+            i += 1;
+        }
+    }
+
     // update the chunks that are loaded in the world around the player only if the chunk position changed
     if character.chunk_changed {
         character.chunk_changed = false;
@@ -73,8 +88,11 @@ pub fn calculate_frame(
     // Calculate the new view and combined matrices
     camera.update(renderer, gpu_data, character);
 
+    // poll the gpu to finish and call any callbacks functions
+    renderer.device.poll(wgpu::Maintain::Poll);
+
     // update all chunks instances if needed
     for chunk in world.chunks.values_mut() {
-        chunk.update_instance_buffer(renderer);
+        chunk.update(renderer);
     }
 }

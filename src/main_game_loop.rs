@@ -1,11 +1,17 @@
 use crate::{
-    block::*, calculate_frame::*, camera::*, character::*, chunk::*, file_system::*, gpu_data::*,
-    my_keyboard::*, renderer::*, window_wrapper::*, world::*,
+    calculate_frame::*, 
+    camera::*, 
+    character::*,
+    file_system::*, 
+    gpu_data::*,
+    my_keyboard::*, 
+    renderer::*, 
+    window_wrapper::*, 
+    world::*,
 };
 
 use std::{
     borrow::BorrowMut,
-    mem,
     sync::{Arc, Mutex},
     time::Instant,
 };
@@ -19,14 +25,6 @@ use winit::{
 };
 
 pub fn run_main_game_loop() {
-    //let dontStartScreen: bool = false;
-
-    println!("Size of Block: {} bytes", mem::size_of::<Block>());
-    println!("Size of Chunk: {} bytes", mem::size_of::<Chunk>());
-    println!("Size of u16: {} bytes", mem::size_of::<u16>());
-    println!("Max value of u16: {}", std::u16::MAX);
-    println!("Size of bool: {} bytes", mem::size_of::<bool>());
-    println!(); // for spacing
 
     let mut camera: Camera = Camera::new(90.0, 1920, 1080);
 
@@ -104,7 +102,7 @@ pub fn run_main_game_loop() {
                         keyboard
                             .update_screen_center(new_width as f32 / 2.0, new_height as f32 / 2.0);
 
-                        println!("Resized to: {} x {}", new_width, new_height);
+                        println!("Resized screen to: {} x {}", new_width, new_height);
                     }
 
                     WindowEvent::RedrawRequested => {
