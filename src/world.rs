@@ -12,6 +12,15 @@ pub struct World {
     // Use a hashmap to store currently loaded chunks
     pub chunks: HashMap<(i32, i32), Chunk>,
 
+    /* 
+    once i create a chunk. it may not be vaid this frame. this can be if it create the instances buffer with less than the number of instance
+    in this case there is no valid instance buffer which has enough room to render all the instance, there would be a new buffer being created 
+    at this point and is in the middle of copying, but it isnt finished. so instead of having a check every single frame for every single buffer
+    to check if it is valid, ill add each new chunk here and the once a frame ill check if it is valid and if it is ill remove it from here and 
+    put it into chunks, so it can be rendered like normal
+    */
+    pub pending_chunks: Vec<Chunk>,
+
     // stores all of the chunks that have been created before
     pub created_chunks: HashSet<(i32, i32)>,
 
@@ -37,6 +46,8 @@ impl World {
         // stores all alive chunks in this so they can be rendered and used
         let chunks: HashMap<(i32, i32), Chunk> = HashMap::new();
 
+
+
         // a table of all of the chunks that have been calculated before, Key: (chunkIDx, chunkIDy)
         // the order the hashset is printed changes every run
         let created_chunks: HashSet<(i32, i32)> = HashSet::new();
@@ -44,6 +55,8 @@ impl World {
         // create and return the world
         World {
             chunks,
+            pending_chunks: Vec::new(),
+
             created_chunks,
             world_name,
             world_seed,
@@ -101,10 +114,24 @@ impl World {
 
             // if the loaded chunks doesnt contain this chunk ill load it
             if !self.chunks.contains_key(&(x, z)) {
-                // load this chunk (i know for sure it isnt contained in the hashmap so i can just insert it)
-                let mut c: Chunk = Chunk::new(x, z, -1, renderer);
-                c.load_chunk(file_system, self, renderer);
-                self.chunks.insert((x, z), c);
+
+                // also check that it isnt in the pending chunks
+                let mut is_in_pending: bool = false;
+                for chunk in self.pending_chunks.iter() {
+                    if chunk.chunk_id_x == x && chunk.chunk_id_z == z {
+                        is_in_pending = true;
+                        break;
+                    }
+                }  
+
+                if !is_in_pending {
+                    // load this chunk (i know for sure it isnt contained in the hashmap so i can just insert it)
+                    let mut c: Chunk = Chunk::new(x, z, -1, renderer);
+                    c.load_chunk(file_system, self, renderer);
+                    self.pending_chunks.push(c);
+                }
+
+
             }
         }
 
@@ -196,7 +223,7 @@ impl World {
         // remove the chunk from the hashmap and return it
         if let Some(chunk) = self.chunks.remove(&chunk_id) {
             file_system.save_chunk_to_file(chunk, self);
-            println!("Removed Chunk ({}, {})", chunk_id.0, chunk_id.1);
+            //println!("Removed Chunk ({}, {})", chunk_id.0, chunk_id.1);
         } else {
             // if the key doesnt match a value ill print this but not panic so i can save the rest
             eprintln!("Failed to remove chunk with key {:?}", chunk_id);
