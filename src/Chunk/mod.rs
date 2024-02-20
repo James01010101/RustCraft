@@ -1,8 +1,10 @@
 pub mod chunk_functions;
 pub mod create_chunks;
+pub mod chunk_gpu_function;
+
 
 use crate::{block::*, renderer::*, types::*};
-
+use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use wgpu::{BufferDescriptor, BufferUsages};
 
@@ -37,6 +39,10 @@ pub struct Chunk {
 
     // if i update the staging buffer set this true so i know to copy it to the instance buffer
     pub instances_modified: bool,
+
+    // so i know if the staging buffer is currently being written to
+    // i only update the actual buffer is staging buffer write is false and modified is true
+    pub staging_buffer_writing: Arc<Mutex<bool>>,
 }
 
 impl Chunk {
@@ -87,6 +93,7 @@ impl Chunk {
             instance_staging_buffer: instance_staging_buf,
 
             instances_modified: false,
+            staging_buffer_writing: Arc::new(Mutex::new(false)),
         }
     }
 

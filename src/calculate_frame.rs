@@ -42,6 +42,7 @@ pub fn calculate_frame(
         movement_vector.1 /= length;
     }
 
+    // TODO: #129 move this code into characters own function. which checks for movement and then runs the move forward or sideways
     // Apply the movement
     character.move_forward(movement_vector.0 * character.movement_speed);
     character.move_sideways(movement_vector.1 * character.movement_speed);
@@ -72,6 +73,9 @@ pub fn calculate_frame(
 
     // Calculate the new view and combined matrices
     camera.update(renderer, gpu_data, character);
+
+    // poll the gpu to finish and call any callbacks functions
+    renderer.device.poll(wgpu::Maintain::Poll);
 
     // update all chunks instances if needed
     for chunk in world.chunks.values_mut() {
