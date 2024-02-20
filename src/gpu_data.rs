@@ -15,8 +15,6 @@ pub struct GPUData {
     pub index_buf: Buffer,
 
     pub vertex_uniform_staging_buf: Buffer,
-
-    pub instances_modified: bool,
 }
 
 impl GPUData {
@@ -76,8 +74,6 @@ impl GPUData {
             index_buf,
 
             vertex_uniform_staging_buf,
-
-            instances_modified: false,
         }
     }
 }

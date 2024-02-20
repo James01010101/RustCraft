@@ -59,10 +59,10 @@ impl super::Chunk {
     remember the origin of the chunk (index 000) is the front bottom right
     */
     pub fn generate_chunk(&mut self, temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>, world: &World) {
-        println!(
+        /*println!(
             "Generating Chunk: ({}, {})",
             self.chunk_id_x, self.chunk_id_z
-        );
+        );*/
 
         // start with the bottom level being bedrock
         for x in 0..world.chunk_size_x {
