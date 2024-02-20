@@ -1,12 +1,6 @@
-
-use crate::{
-    types::*,
-    my_keyboard::*,
-    world::*,
-};
+use crate::{my_keyboard::*, types::*, world::*};
 
 pub struct Character {
-
     // current position im standing at (where my head is)
     pub position: FPosition,
 
@@ -14,7 +8,7 @@ pub struct Character {
     pub target: FPosition,
 
     // mouse movement
-    pub yaw: f32, // x axis
+    pub yaw: f32,   // x axis
     pub pitch: f32, // y axis
 
     // chunk im standing in
@@ -23,17 +17,23 @@ pub struct Character {
     // if i have changed the chunk im standing in (so i can load new chunks in and out)
     pub chunk_changed: bool,
 
-
     // settings
     pub movement_speed: f32,
 }
 
-
 impl Character {
     pub fn new(movement_speed: f32) -> Character {
         Character {
-            position: FPosition { x: 0.0, y: 2.0, z: 0.0 },
-            target: FPosition { x: 0.0, y: 0.0, z: 0.0 },
+            position: FPosition {
+                x: 0.0,
+                y: 2.0,
+                z: 0.0,
+            },
+            target: FPosition {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+            },
             chunk_position: (0, 0),
             yaw: 0.0,
             pitch: 0.0,
@@ -51,10 +51,7 @@ impl Character {
 
         // check if these are not the same as last frame
         if new_chunk_x != self.chunk_position.0 || new_chunk_z != self.chunk_position.1 {
-            self.chunk_position = (
-                new_chunk_x,
-                new_chunk_z,
-            );
+            self.chunk_position = (new_chunk_x, new_chunk_z);
             self.chunk_changed = true;
         }
     }
@@ -74,7 +71,6 @@ impl Character {
         self.position.x += (self.yaw + 1.57).cos() * amount;
         self.position.z += (self.yaw + 1.57).sin() * amount;
     }
-
 
     pub fn update_view(&mut self, keyboard: &mut MyKeyboard) {
         // the variables are differences from their positions last frame
@@ -104,9 +100,7 @@ impl Character {
         self.target.x = self.position.x + (self.yaw.cos() * self.pitch.cos());
         self.target.y = self.position.y + self.pitch.sin();
         self.target.z = self.position.z + (self.yaw.sin() * self.pitch.cos());
-        
     }
-    
 
     //TODO: #110 save character position on cleanup and load it back in on load
 }

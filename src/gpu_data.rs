@@ -1,17 +1,15 @@
-
 use crate::renderer::*;
 
 use wgpu::{
-    BufferUsages,
-    Buffer,
     util::{BufferInitDescriptor, DeviceExt},
+    Buffer, BufferUsages,
 };
 
 use bytemuck;
 
 pub struct GPUData {
     pub cube_vertices: Vec<f32>,
-    pub cube_indices: Vec<u16>, 
+    pub cube_indices: Vec<u16>,
 
     pub vertex_buf: Buffer,
     pub index_buf: Buffer,
@@ -21,16 +19,14 @@ pub struct GPUData {
     pub instances_modified: bool,
 }
 
-
 impl GPUData {
-    pub fn new (renderer: &Renderer) -> GPUData {
+    pub fn new(renderer: &Renderer) -> GPUData {
         // cube vertices (assume starts at (0,0,0) which is not the bottom front right to align with the world coords)
         let cube_vertices: Vec<f32> = vec![
             0.0, 0.0, 0.0, // 0 Bottom Front Right
             1.0, 0.0, 0.0, // 1 Bottom Front Left
             1.0, 0.0, 1.0, // 2 Bottom Back Left
             0.0, 0.0, 1.0, // 3 Bottom Back Right
-
             0.0, 1.0, 0.0, // 4 Top Front Right
             1.0, 1.0, 0.0, // 5 Top Front Left
             1.0, 1.0, 1.0, // 6 Top Back Left
@@ -41,16 +37,11 @@ impl GPUData {
         // they are clockwise so the triangles are facing the right way
         let cube_indices: Vec<u16> = vec![
             // Front face
-            0, 1, 4, 5, 4, 1,
-            // Back face
-            3, 7, 2, 6, 2, 7,
-            // Bottom face
-            3, 2, 0, 1, 0, 2,
-            // Top face
-            4, 5, 7, 6, 7, 5,
-            // Left face
-            1, 2, 5, 6, 5, 2,
-            // Right face
+            0, 1, 4, 5, 4, 1, // Back face
+            3, 7, 2, 6, 2, 7, // Bottom face
+            3, 2, 0, 1, 0, 2, // Top face
+            4, 5, 7, 6, 7, 5, // Left face
+            1, 2, 5, 6, 5, 2, // Right face
             3, 0, 7, 4, 7, 0,
         ];
 
@@ -70,12 +61,12 @@ impl GPUData {
         });
 
         // vertex uniform staging buiffer
-        let vertex_uniform_staging_buf: wgpu::Buffer = renderer.device.create_buffer_init(&BufferInitDescriptor {
-            label: Some("Vertex Uniform Staging Buffer"),
-            contents: bytemuck::bytes_of(&renderer.vertex_uniforms),
-            usage: BufferUsages::COPY_SRC | BufferUsages::COPY_DST,
-        });
-
+        let vertex_uniform_staging_buf: wgpu::Buffer =
+            renderer.device.create_buffer_init(&BufferInitDescriptor {
+                label: Some("Vertex Uniform Staging Buffer"),
+                contents: bytemuck::bytes_of(&renderer.vertex_uniforms),
+                usage: BufferUsages::COPY_SRC | BufferUsages::COPY_DST,
+            });
 
         Self {
             cube_vertices,
@@ -88,5 +79,5 @@ impl GPUData {
 
             instances_modified: false,
         }
-    }    
+    }
 }

@@ -1,16 +1,10 @@
-
 pub mod chunk_functions;
 pub mod create_chunks;
 
-use crate::{
-    block::*,
-    renderer::*,
-    types::*,
-};
+use crate::{block::*, renderer::*, types::*};
 
 use std::collections::HashMap;
-use wgpu::{BufferUsages, BufferDescriptor};
-
+use wgpu::{BufferDescriptor, BufferUsages};
 
 // This will store all of the blocks and objects within a chunk
 pub struct Chunk {
@@ -45,10 +39,8 @@ pub struct Chunk {
     pub instances_modified: bool,
 }
 
-
 impl Chunk {
     pub fn new(idx: i32, idz: i32, num_blocks: i32, renderer: &Renderer) -> Chunk {
-
         // if a numBlocks was passed in ill allocate the hashmap of that size
         let chunk_blocks: HashMap<(i32, i16, i32), Block>;
         let instances_to_render: HashMap<(i32, i16, i32), InstanceData> = HashMap::new();
@@ -57,25 +49,26 @@ impl Chunk {
         if num_blocks != -1 {
             chunk_blocks = HashMap::with_capacity(num_blocks as usize);
             alive_blocks = num_blocks as u32;
-
-        } else { // if the number of blocks needed is unknown ill just let it do its thing
+        } else {
+            // if the number of blocks needed is unknown ill just let it do its thing
             chunk_blocks = HashMap::new();
             alive_blocks = 0;
         }
-
 
         // make the instance buffer for the chunk init it with size of 100
         let instance_capacity: u32 = 100;
         let instance_buf: wgpu::Buffer = renderer.device.create_buffer(&BufferDescriptor {
             label: Some("Instance Buffer"),
-            size: (std::mem::size_of::<InstanceData>() * instance_capacity as usize) as wgpu::BufferAddress,
+            size: (std::mem::size_of::<InstanceData>() * instance_capacity as usize)
+                as wgpu::BufferAddress,
             usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
         let instance_staging_buf: wgpu::Buffer = renderer.device.create_buffer(&BufferDescriptor {
             label: Some("Instance Staging Buffer"),
-            size: (std::mem::size_of::<InstanceData>() * instance_capacity as usize) as wgpu::BufferAddress,
+            size: (std::mem::size_of::<InstanceData>() * instance_capacity as usize)
+                as wgpu::BufferAddress,
             usage: BufferUsages::VERTEX | BufferUsages::COPY_DST | BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
@@ -97,7 +90,6 @@ impl Chunk {
         }
     }
 
-
     pub fn get_instance_capacity(&self) -> u32 {
         self.instance_capacity
     }
@@ -106,9 +98,3 @@ impl Chunk {
         self.instance_size
     }
 }
-
-
-
-
-
-

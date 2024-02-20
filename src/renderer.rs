@@ -1,27 +1,11 @@
 // This file will be for all rendering to windows
 
-use crate::{
-    camera::*,
-    window_wrapper::*,
-    gpu_data::*,
-    types::*,
-    world::*,
-};
+use crate::{camera::*, gpu_data::*, types::*, window_wrapper::*, world::*};
 
 use wgpu::{
-    Device,
-    Queue,
-    Adapter,
-    Instance,
-    Surface,
-    ShaderModule,
-    PipelineLayout,
-    RenderPipeline,
-    SurfaceConfiguration,
-    util::DeviceExt,
-
+    util::DeviceExt, Adapter, Device, Instance, PipelineLayout, Queue, RenderPipeline,
+    ShaderModule, Surface, SurfaceConfiguration,
 };
-
 
 pub struct Renderer {
     pub instance: Instance,
@@ -40,22 +24,23 @@ pub struct Renderer {
     pub render_pipeline: RenderPipeline,
     pub surface_config: SurfaceConfiguration,
     pub bind_group: wgpu::BindGroup,
-    pub vertex_uniforms: VertexUniforms, 
+    pub vertex_uniforms: VertexUniforms,
     pub uniform_buffer: wgpu::Buffer,
     pub depth_texture: wgpu::Texture,
 }
 
 // this is where i write the functions for the Renderer Struct
-impl Renderer { 
+impl Renderer {
     pub async fn new(window_wrapper: &WindowWrapper, camera: &Camera) -> Renderer {
-        
         // set the window height and width variables
         let window_height = window_wrapper.window.inner_size().height;
         let window_width = window_wrapper.window.inner_size().width;
 
         // create instance and surface
         let instance = wgpu::Instance::default();
-        let surface = instance.create_surface(window_wrapper.window.clone()).unwrap();
+        let surface = instance
+            .create_surface(window_wrapper.window.clone())
+            .unwrap();
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -78,7 +63,6 @@ impl Renderer {
             .await
             .unwrap();
 
-
         // compile my shaders
         let vertex_shader_code = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Vertex Shader"),
@@ -90,29 +74,28 @@ impl Renderer {
             source: wgpu::ShaderSource::Wgsl(include_str!("Shaders/fragment.wgsl").into()),
         });
 
-        let check_air_compute_shader_code = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("check air compute shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("Shaders/check_air_compute.wgsl").into()),
-        });
+        let check_air_compute_shader_code =
+            device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("check air compute shader"),
+                source: wgpu::ShaderSource::Wgsl(
+                    include_str!("Shaders/check_air_compute.wgsl").into(),
+                ),
+            });
 
-        let surface_config = surface.get_default_config(
-            &adapter, 
-            window_width, 
-            window_height)
+        let surface_config = surface
+            .get_default_config(&adapter, window_width, window_height)
             .unwrap();
         surface.configure(&device, &surface_config);
 
         //let swapchain_capabilities = surface.get_capabilities(&adapter);
         //let swapchain_format = swapchain_capabilities.formats[0];
 
-        
         // describe the layout of the vertex buffer in memory, 3 floats of pos
         let vertex_buffer_layout = wgpu::VertexBufferLayout {
             array_stride: 3 * std::mem::size_of::<f32>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
             attributes: &wgpu::vertex_attr_array![0 => Float32x3],
         };
-
 
         // describe the layout of the instance buffer in memory, 4x4 matrix which is actually 4x vec4
         let instance_buffer_layout = wgpu::VertexBufferLayout {
@@ -124,7 +107,6 @@ impl Renderer {
             ],
         };
 
-        
         // this holsd the uniform data for the vertex shader, the view and projection matrixies combined
         let vertex_uniforms: VertexUniforms = VertexUniforms {
             projection_view_matrix: camera.projection_view_matrix,
@@ -139,30 +121,26 @@ impl Renderer {
 
         // Create a bind group layout
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
                 },
-            ],
+                count: None,
+            }],
             label: Some("uniform bind group layout"),
         });
 
         // Create a bind group that binds your uniform buffer to binding point 0
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: uniform_buffer.as_entire_binding(),
-                },
-            ],
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: uniform_buffer.as_entire_binding(),
+            }],
             label: Some("uniform bind group"),
         });
 
@@ -203,7 +181,7 @@ impl Renderer {
                     format: surface_config.format,
                     blend: Some(wgpu::BlendState::REPLACE),
                     write_mask: wgpu::ColorWrites::ALL,
-                })], 
+                })],
             }),
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
@@ -228,9 +206,8 @@ impl Renderer {
             },
             multiview: None,
         });
-        
 
-        Self {       
+        Self {
             instance,
             surface,
             adapter,
@@ -253,66 +230,67 @@ impl Renderer {
         }
     }
 
-
     pub fn render_frame(&self, gpu_data: &GPUData, world: &World) {
-
-        let frame = self.surface
+        let frame = self
+            .surface
             .get_current_texture()
             .expect("Failed to acquire next swap chain texture");
         let view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-    
-    
+
         // create a command encoder for the render pass
-        let mut encoder =
-            self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: None,
-            });
-        
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
         // Update buffers
         // update the uniform buffer with the new camera position matricies ( since it is a queue this must complete before rendering)
-        encoder.copy_buffer_to_buffer(&gpu_data.vertex_uniform_staging_buf, 0, &self.uniform_buffer, 0, gpu_data.vertex_uniform_staging_buf.size());
-        
-    
-        let depth_texture_view = &self.depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
-    
+        encoder.copy_buffer_to_buffer(
+            &gpu_data.vertex_uniform_staging_buf,
+            0,
+            &self.uniform_buffer,
+            0,
+            gpu_data.vertex_uniform_staging_buf.size(),
+        );
+
+        let depth_texture_view = &self
+            .depth_texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
         // set all of the commands i will use in the render pass
         {
-            let mut rpass =
-                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: None,
-                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: &view,
-                        resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                            store: wgpu::StoreOp::Store,
-                        },
-                    })],
-    
-    
-                    depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                        view: depth_texture_view,
-                        depth_ops: Some(wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(1.0),
-                            store: wgpu::StoreOp::Store,
-                        }),
-                        stencil_ops: None,
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: depth_texture_view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: wgpu::StoreOp::Store,
                     }),
-    
-                    timestamp_writes: None,
-                    occlusion_query_set: None,
-                });
-    
+                    stencil_ops: None,
+                }),
+
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+
             // Set the vertex and index buffers here
             rpass.set_vertex_buffer(0, gpu_data.vertex_buf.slice(..));
             rpass.set_index_buffer(gpu_data.index_buf.slice(..), wgpu::IndexFormat::Uint16);
             rpass.set_bind_group(0, &self.bind_group, &[]);
-    
+
             rpass.set_pipeline(&self.render_pipeline);
-    
-    
+
             // draw all full cubes (indicies 0.36 is all the indicies for a cube
             // then draw the number of instances specified
             //rpass.draw_indexed(0..36, 0, 0..gpuData.instancesUsed as u32);
@@ -325,14 +303,10 @@ impl Renderer {
                 // Draw the instances for this chunk
                 rpass.draw_indexed(0..36, 0, 0..chunk.instance_size);
             }
-
-
         } // the render pass must go out of scope before submit and present are called
-        // it finalises the render pass when it goes out of scope so it can be submitted to the gpu
-    
+          // it finalises the render pass when it goes out of scope so it can be submitted to the gpu
+
         self.queue.submit(Some(encoder.finish()));
         frame.present();
     }
 }
-
-

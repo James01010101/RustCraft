@@ -1,32 +1,15 @@
-
-use crate::{
-    character::*, 
-    chunk::*, 
-    file_system::*, 
-    renderer::*, 
-};
-
+use crate::{character::*, chunk::*, file_system::*, renderer::*};
 
 use std::{
-    collections::{
-        HashMap, 
-        HashSet
-    }, 
-
-    fs::File, 
-
-    io::{
-        self, BufRead
-    }, 
-
-    path::PathBuf
+    collections::{HashMap, HashSet},
+    fs::File,
+    io::{self, BufRead},
+    path::PathBuf,
 };
-
 
 // this struct will hold all of the Chunks as well as arrays of mobs
 pub struct World {
-
-    // TODO: #25 Use a hashmap to store currently loaded chunks
+    // Use a hashmap to store currently loaded chunks
     pub chunks: HashMap<(i32, i32), Chunk>,
 
     // stores all of the chunks that have been created before
@@ -44,10 +27,13 @@ pub struct World {
     pub half_chunk_y: usize,
 }
 
-
 impl World {
-    pub fn new(world_name: String, world_seed: u64, render_distance: usize, chunk_sizes: (usize, usize, usize)) -> World {
-
+    pub fn new(
+        world_name: String,
+        world_seed: u64,
+        render_distance: usize,
+        chunk_sizes: (usize, usize, usize),
+    ) -> World {
         // stores all alive chunks in this so they can be rendered and used
         let chunks: HashMap<(i32, i32), Chunk> = HashMap::new();
 
@@ -55,10 +41,9 @@ impl World {
         // the order the hashset is printed changes every run
         let created_chunks: HashSet<(i32, i32)> = HashSet::new();
 
-
         // create and return the world
-        World { 
-            chunks, 
+        World {
+            chunks,
             created_chunks,
             world_name,
             world_seed,
@@ -70,15 +55,17 @@ impl World {
             chunk_size_z: chunk_sizes.2,
             half_chunk_y: chunk_sizes.1 / 2,
         }
-
     }
 
-
     // if the player has changed chunks this frame update the chunks around them
-    pub fn update_chunks_around_character(&mut self, character: &Character, renderer: &Renderer, file_system: &mut FileSystem) {
+    pub fn update_chunks_around_character(
+        &mut self,
+        character: &Character,
+        renderer: &Renderer,
+        file_system: &mut FileSystem,
+    ) {
         // these are the chunk that should be currently loaded
         let mut chunks_to_load: Vec<(i32, i32)> = Vec::new();
-
 
         // ill have a funciton which gets all chunks which should be loaded here
         // start at my current position and go left and right render distance amount
@@ -89,9 +76,10 @@ impl World {
         let current_chunk_z = character.chunk_position.1;
 
         for chunk_z_diff in 0..max_radius + 1 {
-
             // go left and right all the way
-            for chunk_x in (current_chunk_x - current_radius)..(current_chunk_x + current_radius + 1) {
+            for chunk_x in
+                (current_chunk_x - current_radius)..(current_chunk_x + current_radius + 1)
+            {
                 // z up
                 chunks_to_load.push((chunk_x, current_chunk_z + chunk_z_diff));
 
@@ -103,7 +91,6 @@ impl World {
             current_radius -= 1;
         }
 
-
         // now go through the chunks loaded and match them to this array.
         // if something is in the array but not the hashmap ill add it
         // if something is in the hashmap but not the array ill remove it
@@ -114,7 +101,6 @@ impl World {
 
             // if the loaded chunks doesnt contain this chunk ill load it
             if !self.chunks.contains_key(&(x, z)) {
-
                 // load this chunk (i know for sure it isnt contained in the hashmap so i can just insert it)
                 let mut c: Chunk = Chunk::new(x, z, -1, renderer);
                 c.load_chunk(file_system, self, renderer);
@@ -131,16 +117,13 @@ impl World {
             // if the chunk is not in the chunks to load array then remove it
             if !chunks_to_load.contains(&(x, z)) {
                 // remove this chunk and save it to a file
-                self.remove_chunk((x, z), file_system);                
+                self.remove_chunk((x, z), file_system);
             }
         }
     }
 
-
-
     // takes in the filesystem, loads the file where all of the chunks that have been created live and writes them to the hashmap
     pub fn load_created_chunks_file(&mut self, my_file_system: &mut FileSystem) {
-
         // get the path to the ChunksCreated.txt file
         let mut chunks_created_path: PathBuf = my_file_system.my_world_directory.clone();
         chunks_created_path.push("ChunksCreated.txt");
@@ -151,18 +134,19 @@ impl World {
 
         let mut lines = reader.lines();
 
-
         // read the first line to get the total created chunks
-        let line1: String = lines.next()
+        let line1: String = lines
+            .next()
             .expect("Failed to get next line in ChunksCreated.txt, as it is at EOF")
             .unwrap();
 
-        let total_created_chunks: i32 = line1.split_whitespace()
+        let total_created_chunks: i32 = line1
+            .split_whitespace()
             .last()
             .expect("Failed to get last element in split whitespace string (ChunksCreated.txt)")
             .parse::<i32>()
             .unwrap();
-        
+
         // skip the next 2 lines
         lines.next();
         lines.next();
@@ -172,7 +156,8 @@ impl World {
         let mut x: i32 = 0;
         let mut z: i32 = 0;
         for _ in 0..total_created_chunks {
-            line = lines.next()
+            line = lines
+                .next()
                 .expect("Failed to get next line in ChunksCreated.txt, as it is at EOF")
                 .unwrap();
 
@@ -182,18 +167,18 @@ impl World {
             .parse::<i32>()
             .unwrap();
 
-
             z = split_line.next()
             .expect("Failed to get next element of split whitespace line while reading ChunksCreated.txt")
             .parse::<i32>()
             .unwrap();
 
-
-
             // insert these into the hashset and check if it is a dupe
             if !self.created_chunks.insert((x, z)) {
                 // if insert returns false then it was already in the hashmap
-                eprintln!("Duplicate key found when reading chunk ids from ChunksCreated.txt: ({}, {})", x, z);
+                eprintln!(
+                    "Duplicate key found when reading chunk ids from ChunksCreated.txt: ({}, {})",
+                    x, z
+                );
             }
         }
     }
@@ -205,7 +190,6 @@ impl World {
     // TODO: #65 Place block function
 
     // TODO: #66 Break block function
-
 
     // universal remove chunk function so that i remove it correctly and save it to a file without needing to do this myself
     pub fn remove_chunk(&mut self, chunk_id: (i32, i32), file_system: &mut FileSystem) {

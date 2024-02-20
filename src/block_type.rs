@@ -1,10 +1,8 @@
-
-
 // what type of block is it
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BlockType {
     // special blocks
-    Air, // no block
+    Air,     // no block
     Bedrock, // unbreakable block
     Void, // no block (shouldnt really be used, but when doing calculations and checking boarders of chunks when they dont exists yet)
 
@@ -20,9 +18,7 @@ pub enum BlockType {
 
     Stone,
     Cobblestone,
-
 }
-
 
 impl BlockType {
     pub fn is_dynamic(&self) -> bool {
@@ -76,7 +72,6 @@ impl BlockType {
 
             BlockType::Stone => false,
             BlockType::Cobblestone => false,
-
         }
     }
 
@@ -99,11 +94,8 @@ impl BlockType {
 
             BlockType::Stone => 400,
             BlockType::Cobblestone => 401,
-
-            
         }
     }
-
 
     pub fn from_int(id: u16) -> Self {
         match id {
