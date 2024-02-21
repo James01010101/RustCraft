@@ -5,8 +5,6 @@ use wgpu::{
     Buffer, BufferUsages,
 };
 
-use bytemuck;
-
 pub struct GPUData {
     pub cube_vertices: Vec<f32>,
     pub cube_indices: Vec<u16>,
