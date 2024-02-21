@@ -99,13 +99,11 @@ impl super::Chunk {
             // this is needed because locking the mutex returns a immutable reference of self
             // and is still alive when i want to pass a mutable reference to the overwrite function
             // so i need to set it to another variable and drop the mutex before i can use self again
-            let temp_instance_writing_bool: bool;
-            {
-                let new_instance_buffers_writing =
-                    self.new_instance_buffers_writing.lock().unwrap();
-                temp_instance_writing_bool = *new_instance_buffers_writing;
-            }
-            if !temp_instance_writing_bool {
+
+            let new_instance_buffers_writing = self.new_instance_buffers_writing.lock().unwrap();
+            if !*new_instance_buffers_writing {
+                // need to drop the mutex since it is an immutable borrow. and this function need a mut borrow
+                drop(new_instance_buffers_writing);
                 // its finished writing so i can overwrite the old one now
                 self.overwrite_old_instance_buffers();
             }
