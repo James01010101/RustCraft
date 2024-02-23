@@ -30,3 +30,6 @@ Blender/
 shipping/
 
 *.DS_Store
+
+# trace profiling files
+*.etl

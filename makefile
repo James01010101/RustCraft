@@ -14,6 +14,11 @@ run: clear build
 	cargo run --release 
 # > testOutput.txt
 
+# profile the game
+profile: build
+	wpr -start GeneralProfile -filemode
+	cargo run --release
+	wpr -stop MyTrace.etl
 
 # cleans world before running
 cleanworldrun: cleanworld run
