@@ -90,9 +90,7 @@ impl World {
 
         for chunk_z_diff in 0..max_radius + 1 {
             // go left and right all the way
-            for chunk_x in
-                (current_chunk_x - current_radius)..(current_chunk_x + current_radius + 1)
-            {
+            for chunk_x in (current_chunk_x - current_radius)..(current_chunk_x + current_radius + 1) {
                 // z up
                 chunks_to_load.push((chunk_x, current_chunk_z + chunk_z_diff));
 

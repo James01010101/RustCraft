@@ -4,10 +4,7 @@ This is where any chunk functions related to gpu buffers and compute shaders wil
 
 use crate::{chunk::*, renderer::*, world::*};
 
-use flume;
 use std::mem;
-use std::sync::{Arc, Mutex};
-use wgpu;
 use wgpu::util::DeviceExt;
 
 impl Chunk {
