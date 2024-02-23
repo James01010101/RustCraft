@@ -65,6 +65,8 @@ pub fn run_main_game_loop() {
     // temp, add some blocks for testing
     world.load_created_chunks_file(&mut file_system);
 
+    let mut use_cursor: bool = false;
+
     // stats before starting
     let frame_number_outside: Arc<Mutex<u64>> = Arc::new(Mutex::new(0));
     let frame_number_inside: Arc<Mutex<u64>> = frame_number_outside.clone(); // use inside the run loop
@@ -88,9 +90,7 @@ pub fn run_main_game_loop() {
 
                         renderer.surface_config.width = new_width;
                         renderer.surface_config.height = new_height;
-                        renderer
-                            .surface
-                            .configure(&renderer.device, &renderer.surface_config);
+                        renderer.surface.configure(&renderer.device, &renderer.surface_config);
 
                         // so it always generates a new frame
                         window_wrapper.window.request_redraw();
@@ -116,6 +116,7 @@ pub fn run_main_game_loop() {
                             &mut camera,
                             &window_locked,
                             &mut file_system,
+                            use_cursor,
                         );
 
                         // calculate the frame
@@ -126,6 +127,7 @@ pub fn run_main_game_loop() {
 
                         let mut frame_number = frame_number_inside.lock().unwrap();
                         *frame_number += 1;
+                        //println!("Frame Number: {}", *frame_number);
                     }
 
                     WindowEvent::KeyboardInput {
@@ -179,6 +181,15 @@ pub fn run_main_game_loop() {
                                         keyboard.released_d();
                                     }
                                 };
+                            }
+                            PhysicalKey::Code(KeyCode::KeyP) => {
+                                if event.state == ElementState::Pressed {
+                                    use_cursor = !use_cursor;
+                                    let window_locked: &Arc<Window> = window_wrapper.window.borrow_mut();
+                                    window_locked.set_cursor_visible(use_cursor);
+                                    println!("use cursor: {}", use_cursor);
+                                }
+
                             }
                             _ => {} // default
                         };

@@ -15,6 +15,7 @@ pub fn calculate_frame(
     camera: &mut Camera,
     window: &Window,
     file_system: &mut FileSystem,
+    use_cursor: bool,
 ) {
     // check the keyboard for any key presses
     // create a movement vector (to see what direction i need to move in)
@@ -51,16 +52,18 @@ pub fn calculate_frame(
     character.update_view(keyboard);
 
     // set the cursors position back to 0,0
-    window
-        .set_cursor_position(PhysicalPosition::new(
-            keyboard.mouse_center_position.0 as i32,
-            keyboard.mouse_center_position.1 as i32,
-        ))
-        .unwrap();
-    keyboard.update_mouse_position(
-        keyboard.mouse_center_position.0,
-        keyboard.mouse_center_position.1,
-    ); // need this so if no more cursor events come in it wont keep the last position
+    if !use_cursor {
+        window.set_cursor_position(PhysicalPosition::new(
+                keyboard.mouse_center_position.0 as i32,
+                keyboard.mouse_center_position.1 as i32,
+            )).unwrap();
+
+            keyboard.update_mouse_position(
+            keyboard.mouse_center_position.0,
+            keyboard.mouse_center_position.1,
+        ); // need this so if no more cursor events come in it wont keep the last position
+    }
+    
 
     // update characters chunk position
     character.update_chunk_position(world);
