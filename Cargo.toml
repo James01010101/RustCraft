@@ -7,7 +7,7 @@ edition = "2021"
 shipping = []
 
 [profile.release]
-debug = true
+debug = false
 
 [dependencies]
 async-std = "1.12.0"
