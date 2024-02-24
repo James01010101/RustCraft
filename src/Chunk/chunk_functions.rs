@@ -1,6 +1,7 @@
 use crate::{block::*, block_type::*, file_system::*, renderer::*, types::*, world::*, chunk::create_chunks::generate_chunk};
 
 use async_std::task;
+use std::collections::HashMap;
 
 impl super::Chunk {
     // if this chunk has beenc created before then i create a Chunk obj, and fill it from wherever
@@ -11,7 +12,7 @@ impl super::Chunk {
         renderer: &Renderer,
     ) {
         // create the temp chunk Vector, which creates all blocks
-        let mut temp_chunk_vec: Vec<Vec<Vec<Block>>> = create_temp_chunk_vector((self.chunk_id_x, self.chunk_id_z), (world.chunk_size_x, world.chunk_size_y, world.chunk_size_z));
+        let mut temp_chunk_vec: Vec<Vec<Vec<Block>>> = create_temp_chunk_vector((self.chunk_id_x, self.chunk_id_z), world.chunk_sizes);
 
         // fill the temp vector with data
         // first check if the chunk has been created before if so load it
@@ -26,11 +27,11 @@ impl super::Chunk {
                 &mut temp_chunk_vec,
                 self.chunk_id_x,
                 self.chunk_id_z,
-                &world,
+                world.chunk_sizes,
             );
         } else {
             // else create a new one
-            generate_chunk(&mut temp_chunk_vec, (world.chunk_size_x, world.chunk_size_y, world.chunk_size_z), world.chunk_size_y / 2);
+            generate_chunk(&mut temp_chunk_vec, world.chunk_sizes);
 
             // add this chunk to created chunks
             world
@@ -39,10 +40,10 @@ impl super::Chunk {
         }
 
         // check each block if it is touching air (async because reading from gpu is async)
-        task::block_on(self.check_for_touching_air(&mut temp_chunk_vec, &renderer, &world));
+        task::block_on(self.check_for_touching_air(&mut temp_chunk_vec, &renderer, world.chunk_sizes));
 
         // fill the chunkBlocks hashmap from the temp vector
-        self.fill_chunk_hashmap(temp_chunk_vec, &world);
+        fill_chunk_hashmap(&mut self.chunk_blocks, &mut self.instances_to_render, temp_chunk_vec, world.chunk_sizes);
 
         // update the number of alive blocks
         self.alive_blocks = self.chunk_blocks.len() as u32;
@@ -56,43 +57,7 @@ impl super::Chunk {
         self.update_instance_staging_buffer(renderer);
     }
 
-    // convert the temp chunks vector into the hashmap
-    pub fn fill_chunk_hashmap(&mut self, temp_chunk_vec: Vec<Vec<Vec<Block>>>, world: &World) {
-        // loop through the temp vector and fill the hashmap
-        for x in 0..world.chunk_size_x {
-            for y in 0..world.chunk_size_y {
-                for z in 0..world.chunk_size_z {
-                    // if the block is not air then add it to the hashmap
-                    if temp_chunk_vec[x][y][z].block_type != BlockType::Air {
-                        self.chunk_blocks.insert(
-                            (
-                                temp_chunk_vec[x][y][z].position.x,
-                                temp_chunk_vec[x][y][z].position.y,
-                                temp_chunk_vec[x][y][z].position.z,
-                            ),
-                            temp_chunk_vec[x][y][z],
-                        );
-                        self.alive_blocks += 1;
-
-                        // also if it is touching air then add it to the instances to render hashmap
-                        if temp_chunk_vec[x][y][z].touching_air {
-                            self.instances_to_render.insert(
-                                (
-                                    temp_chunk_vec[x][y][z].position.x,
-                                    temp_chunk_vec[x][y][z].position.y,
-                                    temp_chunk_vec[x][y][z].position.z,
-                                ),
-                                InstanceData {
-                                    model_matrix: temp_chunk_vec[x][y][z].model_matrix.clone(),
-                                    colour: temp_chunk_vec[x][y][z].block_type.block_colour(),
-                                },
-                            );
-                        }
-                    }
-                }
-            }
-        }
-    }
+    
 
     // this is called on each chunk per frame so i can do updates if needed
     pub fn update(&mut self, renderer: &Renderer) {
@@ -163,10 +128,117 @@ pub fn create_temp_chunk_vector(chunk_ids: (i32, i32), chunk_sizes: (usize, usiz
     return temp_chunk_vec;
 }
 
+
+// convert the temp chunks vector into the hashmap
+/* new
+pub fn fill_chunk_hashmap( 
+    chunk_blocks: &mut HashMap<(i32, i16, i32), Block>, 
+    instances_to_render: &mut HashMap<(i32, i16, i32), InstanceData>,
+    temp_chunk_vec: Vec<Vec<Vec<Block>>>, 
+    chunk_sizes: (usize, usize, usize)
+) {
+
+    // since i know how many elements i can reserve this amount so it only reallocs once (most of the time)
+    chunk_blocks.reserve(chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2);
+
+    // since ill have atleast 1 block showing ins xz for the ground at minimum i can alloc that much 
+    // ill * by 2 so this should be more than i need in most cases and ill shrink after
+    // and it can realloc more later if it needs
+    instances_to_render.reserve(chunk_sizes.0 * chunk_sizes.2 * 2);
+
+    // cache each vector so i dont have to do 3 indexes each time
+    let mut cached_vec_x: &Vec<Vec<Block>>;
+    let mut cached_vec_y: &Vec<Block>;
+    let mut cached_block: &Block;
+    let mut cached_position: &Position;
+    let mut cached_key: (i32, i16, i32);
+
+    // loop through the temp vector and fill the hashmap
+    for x in 0..chunk_sizes.0 {
+        cached_vec_x = &temp_chunk_vec[x];
+
+        for y in 0..chunk_sizes.1 {
+            cached_vec_y = &cached_vec_x[y];
+
+            for z in 0..chunk_sizes.2 {
+                cached_block = &cached_vec_y[z];
+
+                // if the block is not air then add it to the hashmap
+                if cached_block.block_type != BlockType::Air {
+                    cached_position = &cached_block.position;
+                    cached_key = (cached_position.x, cached_position.y, cached_position.z);
+
+                    // and if it is touching air then add it to the instances to render hashmap
+                    if cached_block.touching_air {
+                        instances_to_render.insert(
+                            cached_key,
+                            InstanceData {
+                                model_matrix: cached_block.model_matrix.clone(),
+                                colour: cached_block.block_type.block_colour(),
+                            },
+                        );
+                    }
+
+                    // always insert the block into the chunk_blocks hashmap
+                    chunk_blocks.insert(
+                        cached_key,
+                        *cached_block,
+                    );
+                }
+            }
+        }
+    }
+    chunk_blocks.shrink_to_fit();
+    instances_to_render.shrink_to_fit();
+}
+*/
+
+pub fn fill_chunk_hashmap( 
+    chunk_blocks: &mut HashMap<(i32, i16, i32), Block>, 
+    instances_to_render: &mut HashMap<(i32, i16, i32), InstanceData>,
+    temp_chunk_vec: Vec<Vec<Vec<Block>>>, 
+    chunk_sizes: (usize, usize, usize)
+) {
+    // loop through the temp vector and fill the hashmap
+    for x in 0..chunk_sizes.0 {
+        for y in 0..chunk_sizes.1 {
+            for z in 0..chunk_sizes.2 {
+                // if the block is not air then add it to the hashmap
+                if temp_chunk_vec[x][y][z].block_type != BlockType::Air {
+                    chunk_blocks.insert(
+                        (
+                            temp_chunk_vec[x][y][z].position.x,
+                            temp_chunk_vec[x][y][z].position.y,
+                            temp_chunk_vec[x][y][z].position.z,
+                        ),
+                        temp_chunk_vec[x][y][z],
+                    );
+
+                    // also if it is touching air then add it to the instances to render hashmap
+                    if temp_chunk_vec[x][y][z].touching_air {
+                        instances_to_render.insert(
+                            (
+                                temp_chunk_vec[x][y][z].position.x,
+                                temp_chunk_vec[x][y][z].position.y,
+                                temp_chunk_vec[x][y][z].position.z,
+                            ),
+                            InstanceData {
+                                model_matrix: temp_chunk_vec[x][y][z].model_matrix.clone(),
+                                colour: temp_chunk_vec[x][y][z].block_type.block_colour(),
+                            },
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 // takes the world position and gives you the chunk id of the chunk that position is in
-pub fn get_chunk_id(pos_x: i32, pos_z: i32, world: &World) -> (i32, i32) {
-    let chunk_x: i32 = pos_x / (world.chunk_size_x as i32);
-    let chunk_z: i32 = pos_z / (world.chunk_size_z as i32);
+pub fn get_chunk_id(pos_x: i32, pos_z: i32, chunk_sizes: (usize, usize, usize)) -> (i32, i32) {
+    let chunk_x: i32 = pos_x / (chunk_sizes.0 as i32);
+    let chunk_z: i32 = pos_z / (chunk_sizes.2 as i32);
 
     return (chunk_x, chunk_z);
 }
@@ -192,10 +264,10 @@ pub fn get_relative_block_pos(
     world_x: i32,
     world_y: i16,
     world_z: i32,
-    world: &World,
+    chunk_sizes: (usize, usize, usize),
 ) -> (i32, i16, i32) {
-    let chunk_relative_x: i32 = world_x.rem_euclid(world.chunk_size_x as i32);
-    let chunk_relative_z: i32 = world_z.rem_euclid(world.chunk_size_z as i32);
+    let chunk_relative_x: i32 = world_x.rem_euclid(chunk_sizes.0 as i32);
+    let chunk_relative_z: i32 = world_z.rem_euclid(chunk_sizes.2 as i32);
 
     return (chunk_relative_x, world_y, chunk_relative_z);
 }

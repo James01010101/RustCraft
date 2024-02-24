@@ -66,7 +66,7 @@ pub fn calculate_frame(
     
 
     // update characters chunk position
-    character.update_chunk_position(world);
+    character.update_chunk_position(world.chunk_sizes);
 
     // go through the pending chunks vec and any that are valid now are put into chunks
     let mut i = 0;

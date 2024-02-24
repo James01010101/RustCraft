@@ -19,11 +19,13 @@ then i can just write it to the hashmap at the end, skipping air
 
 remember the origin of the chunk (index 000) is the front bottom right
 */
-pub fn generate_chunk(temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>, chunk_sizes: (usize, usize, usize), half_chunk_y: usize) {
+pub fn generate_chunk(temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>, chunk_sizes: (usize, usize, usize)) {
     /*println!(
         "Generating Chunk: ({}, {})",
         self.chunk_id_x, self.chunk_id_z
     );*/
+
+    let half_chunk_y: usize = chunk_sizes.1 / 2;
 
     // start with the bottom level being bedrock
     for x in 0..chunk_sizes.0 {
@@ -34,7 +36,7 @@ pub fn generate_chunk(temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>, chunk_sizes: (u
 
     // stone up until the halfway point - 3
     for x in 0..chunk_sizes.0 {
-        for y in 1..chunk_sizes.1 - 3 {
+        for y in 1..half_chunk_y - 3 {
             for z in 0..chunk_sizes.2 {
                 temp_chunk_vec[x][y][z].block_type = BlockType::Stone;
             }
@@ -43,7 +45,7 @@ pub fn generate_chunk(temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>, chunk_sizes: (u
 
     // then 2 layers of dirt
     for x in 0..chunk_sizes.0 {
-        for y in half_chunk_y - 3..half_chunk_y - 1 {
+        for y in (half_chunk_y - 3)..(half_chunk_y - 1) {
             for z in 0..chunk_sizes.2 {
                 temp_chunk_vec[x][y][z].block_type = BlockType::Dirt;
             }
@@ -52,7 +54,7 @@ pub fn generate_chunk(temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>, chunk_sizes: (u
 
     // then one layer of grass
     for x in 0..chunk_sizes.0 {
-        for y in half_chunk_y - 1..half_chunk_y {
+        for y in (half_chunk_y - 1)..half_chunk_y {
             for z in 0..chunk_sizes.2 {
                 temp_chunk_vec[x][y][z].block_type = BlockType::Grass;
             }

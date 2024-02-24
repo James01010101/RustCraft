@@ -42,7 +42,12 @@ pub fn run_main_game_loop() {
     let mut file_system: FileSystem = FileSystem::new();
 
     // create my world
-    let mut world: World = World::new("James's World".to_string(), 1, 5, (8, 16, 8));
+    let mut world: World = World::new(
+        "James's World".to_string(), 
+        1, 
+        5, 
+        (8, 16, 8)
+    );
 
     // create the gpudata buffers
     let mut gpu_data: GPUData = GPUData::new(&renderer);
@@ -237,5 +242,5 @@ pub fn clean_up(world: &mut World, file_system: &mut FileSystem) {
         world.remove_chunk(key, file_system);
     }
 
-    file_system.save_created_chunks_file(world);
+    file_system.save_created_chunks_file(world.chunk_sizes, &mut world.created_chunks);
 }

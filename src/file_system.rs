@@ -7,6 +7,8 @@ use std::{
     path::PathBuf,
 };
 
+use std::collections::HashSet;
+
 pub struct FileSystem {
     pub assets_directory: PathBuf,   // the directory of the assets folder
     pub my_world_directory: PathBuf, // the directory of blah/james's World/
@@ -26,7 +28,7 @@ impl FileSystem {
         self.check_data_folder();
 
         // now check if this game world has a folder and files, if it doesnt ill make them
-        self.check_game_files(&world);
+        self.check_game_files(world.chunk_sizes, &world.world_name);
     }
 
     pub fn check_data_folder(&mut self) {
@@ -51,7 +53,7 @@ impl FileSystem {
         }
     }
 
-    pub fn check_game_files(&mut self, world: &World) {
+    pub fn check_game_files(&mut self, chunk_sizes: (usize, usize, usize), world_name: &str) {
         // get to the data dir
         let mut path: PathBuf = self.assets_directory.clone();
         path.push("data");
@@ -64,12 +66,12 @@ impl FileSystem {
         }
 
         // now check if there is a folder for this game world
-        path.push(world.world_name.clone());
+        path.push(world_name);
         if !path.exists() {
             // Create the directory if it does not exist
             match create_dir_all(&path) {
                 Ok(_) => {
-                    println!("Created new game world directory: {:?}", world.world_name);
+                    println!("Created new game world directory: {:?}", world_name);
                 }
                 Err(e) => {
                     eprintln!(
@@ -104,7 +106,7 @@ impl FileSystem {
             data.push_str("Total Chunks Created : 0\n");
             data.push_str(&format!(
                 "Chunk Sizes: ({}, {}, {})\n",
-                world.chunk_size_x, world.chunk_size_y, world.chunk_size_z
+                chunk_sizes.0, chunk_sizes.1, chunk_sizes.2
             ));
             // any other data i might want to save can go here
 
@@ -154,7 +156,7 @@ impl FileSystem {
 
     // Once a chunk has been loaded and is in play, and then goes out of range it is unloaded and saved back to a file
     // the chunk is not borrowed here so after this call it goes out of scope and is dropped
-    pub fn save_chunk_to_file(&mut self, chunk: Chunk, world: &World) {
+    pub fn save_chunk_to_file(&mut self, chunk: Chunk, chunk_sizes: (usize, usize, usize)) {
         // save the chunk to a file then free it
         //println!("Saving Chunk to File: ({}, {})", chunk.chunk_id_x, chunk.chunk_id_z);
         let mut file_path: PathBuf = self.my_world_directory.clone();
@@ -175,17 +177,14 @@ impl FileSystem {
 
         // make the 3d vector
         let mut temp_chunk_vec: Vec<Vec<Vec<BlockType>>> =
-            vec![
-                vec![vec![BlockType::Air; world.chunk_size_x]; world.chunk_size_y];
-                world.chunk_size_z
-            ];
+            vec![vec![vec![BlockType::Air; chunk_sizes.0]; chunk_sizes.1]; chunk_sizes.2];
 
         // now go through the hashmap
         for (key, block) in chunk.chunk_blocks.iter() {
             // get the position of the block relative to the chunk
-            let chunk_relative_x: usize = key.0.rem_euclid(world.chunk_size_x as i32) as usize;
-            let chunk_relative_y: usize = (key.1 + (world.chunk_size_y as i16 / 2)) as usize;
-            let chunk_relative_z: usize = key.2.rem_euclid(world.chunk_size_z as i32) as usize;
+            let chunk_relative_x: usize = key.0.rem_euclid(chunk_sizes.0 as i32) as usize;
+            let chunk_relative_y: usize = (key.1 + (chunk_sizes.1 as i16 / 2)) as usize;
+            let chunk_relative_z: usize = key.2.rem_euclid(chunk_sizes.2 as i32) as usize;
 
             // put this block into the temp vector, but just its block type
             temp_chunk_vec[chunk_relative_x][chunk_relative_y][chunk_relative_z] = block.block_type;
@@ -196,9 +195,9 @@ impl FileSystem {
         once x is max make a new line and increase z, once z is max make two new lines and increase y
         */
         let mut data: String = String::new();
-        for y in 0..world.chunk_size_y as usize {
-            for z in 0..world.chunk_size_z as usize {
-                for x in 0..world.chunk_size_x as usize {
+        for y in 0..chunk_sizes.1 as usize {
+            for z in 0..chunk_sizes.2 as usize {
+                for x in 0..chunk_sizes.0 as usize {
                     data.push_str(&format!("{:?} ", temp_chunk_vec[x][y][z].to_int()));
                 }
                 data.push_str("\n");
@@ -211,20 +210,20 @@ impl FileSystem {
     }
 
     // save the created chunks file
-    pub fn save_created_chunks_file(&mut self, world: &mut World) {
+    pub fn save_created_chunks_file(&mut self, chunk_sizes: (usize, usize, usize), created_chunks: &mut HashSet<(i32, i32)>) {
         let mut data: String = String::new();
 
         // write the header lines
         data.push_str(&format!(
             "Total Chunks Created : {:?}\n",
-            world.created_chunks.len()
+            created_chunks.len()
         ));
         data.push_str(&format!(
             "Chunk Sizes: ({}, {}, {})\n",
-            world.chunk_size_x, world.chunk_size_y, world.chunk_size_z
+            chunk_sizes.0, chunk_sizes.1, chunk_sizes.2
         ));
         data.push_str("Created Chunks: \n");
-        for key in world.created_chunks.drain() {
+        for key in created_chunks.drain() {
             data.push_str(&format!("{} {}\n", key.0, key.1));
         }
 
@@ -242,7 +241,7 @@ impl FileSystem {
         temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>,
         chunk_id_x: i32,
         chunk_id_z: i32,
-        world: &World,
+        chunk_sizes: (usize, usize, usize),
     ) {
         // read the chunk from a file and fill the temp vector with the data
         //println!("Reading Chunk from File: ({}, {})", chunk_id_x, chunk_id_z);
@@ -291,7 +290,7 @@ impl FileSystem {
             z += 1;
 
             // if ive read the whole layer increase y
-            if z == world.chunk_size_z {
+            if z == chunk_sizes.2 {
                 z = 0;
                 y += 1;
 
@@ -299,7 +298,7 @@ impl FileSystem {
                 skip_line = true;
 
                 // if im at the end then break
-                if y == world.chunk_size_y {
+                if y == chunk_sizes.1 {
                     break;
                 }
             }

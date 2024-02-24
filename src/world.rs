@@ -30,10 +30,7 @@ pub struct World {
 
     pub render_distance: usize,
 
-    pub chunk_size_x: usize,
-    pub chunk_size_y: usize,
-    pub chunk_size_z: usize,
-    pub half_chunk_y: usize,
+    pub chunk_sizes: (usize, usize, usize),
 }
 
 impl World {
@@ -45,8 +42,6 @@ impl World {
     ) -> World {
         // stores all alive chunks in this so they can be rendered and used
         let chunks: HashMap<(i32, i32), Chunk> = HashMap::new();
-
-
 
         // a table of all of the chunks that have been calculated before, Key: (chunkIDx, chunkIDy)
         // the order the hashset is printed changes every run
@@ -63,10 +58,7 @@ impl World {
 
             render_distance,
 
-            chunk_size_x: chunk_sizes.0,
-            chunk_size_y: chunk_sizes.1,
-            chunk_size_z: chunk_sizes.2,
-            half_chunk_y: chunk_sizes.1 / 2,
+            chunk_sizes,
         }
     }
 
@@ -220,7 +212,7 @@ impl World {
     pub fn remove_chunk(&mut self, chunk_id: (i32, i32), file_system: &mut FileSystem) {
         // remove the chunk from the hashmap and return it
         if let Some(chunk) = self.chunks.remove(&chunk_id) {
-            file_system.save_chunk_to_file(chunk, self);
+            file_system.save_chunk_to_file(chunk, self.chunk_sizes);
             //println!("Removed Chunk ({}, {})", chunk_id.0, chunk_id.1);
         } else {
             // if the key doesnt match a value ill print this but not panic so i can save the rest

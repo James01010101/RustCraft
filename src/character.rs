@@ -1,4 +1,4 @@
-use crate::{my_keyboard::*, types::*, world::*};
+use crate::{my_keyboard::*, types::*};
 
 pub struct Character {
     // current position im standing at (where my head is)
@@ -43,11 +43,11 @@ impl Character {
     }
 
     // calculate the chunk the player is in from its position
-    pub fn update_chunk_position(&mut self, world: &World) {
+    pub fn update_chunk_position(&mut self, chunk_sizes: (usize, usize, usize)) {
         // this does the divide thing but if negative works properly
 
-        let new_chunk_x: i32 = self.position.x.div_euclid(world.chunk_size_x as f32) as i32;
-        let new_chunk_z: i32 = self.position.z.div_euclid(world.chunk_size_z as f32) as i32;
+        let new_chunk_x: i32 = self.position.x.div_euclid(chunk_sizes.0 as f32) as i32;
+        let new_chunk_z: i32 = self.position.z.div_euclid(chunk_sizes.2 as f32) as i32;
 
         // check if these are not the same as last frame
         if new_chunk_x != self.chunk_position.0 || new_chunk_z != self.chunk_position.1 {

@@ -2,7 +2,7 @@
 This is where any chunk functions related to gpu buffers and compute shaders will live
 */
 
-use crate::{chunk::*, renderer::*, world::*};
+use crate::{chunk::*, renderer::*};
 
 use std::mem;
 use wgpu::util::DeviceExt;
@@ -174,7 +174,7 @@ impl Chunk {
         &mut self,
         temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>,
         renderer: &Renderer,
-        world: &World,
+        chunk_sizes: (usize, usize, usize),
     ) {
         /*
         create 2 buffers
@@ -199,11 +199,10 @@ impl Chunk {
         */
 
         // create the block types array
-        let mut chunk_block_types: Vec<u32> =
-            Vec::with_capacity(world.chunk_size_x * world.chunk_size_y * world.chunk_size_z);
-        for z in 0..world.chunk_size_x as i32 {
-            for y in 0..world.chunk_size_y as i16 {
-                for x in 0..world.chunk_size_z as i32 {
+        let mut chunk_block_types: Vec<u32> = Vec::with_capacity(chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2);
+        for z in 0..chunk_sizes.2 as i32 {
+            for y in 0..chunk_sizes.1 as i16 {
+                for x in 0..chunk_sizes.0 as i32 {
                     chunk_block_types.push(
                         temp_chunk_vec[x as usize][y as usize][z as usize]
                             .block_type
@@ -214,11 +213,10 @@ impl Chunk {
         }
 
         // create the block transparancy array
-        let mut chunk_block_transparency: Vec<u32> =
-            Vec::with_capacity(world.chunk_size_x * world.chunk_size_y * world.chunk_size_z);
-        for z in 0..world.chunk_size_x as i32 {
-            for y in 0..world.chunk_size_y as i16 {
-                for x in 0..world.chunk_size_z as i32 {
+        let mut chunk_block_transparency: Vec<u32> = Vec::with_capacity(chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2);
+        for z in 0..chunk_sizes.2 as i32 {
+            for y in 0..chunk_sizes.1 as i16 {
+                for x in 0..chunk_sizes.0 as i32 {
                     chunk_block_transparency.push(
                         temp_chunk_vec[x as usize][y as usize][z as usize]
                             .block_type
@@ -230,9 +228,9 @@ impl Chunk {
 
         // create the dimentions buffer so the gpu knows the max of xyz
         let dimentions: [u32; 3] = [
-            world.chunk_size_x as u32,
-            world.chunk_size_y as u32,
-            world.chunk_size_z as u32,
+            chunk_sizes.0 as u32,
+            chunk_sizes.1 as u32,
+            chunk_sizes.2 as u32,
         ];
 
         // now the resulting buffer (cant use bool with the gpu, since rust bools arnt guarenteed to be 1 byte)
@@ -264,7 +262,7 @@ impl Chunk {
         );
 
         let result_buffer_size: wgpu::BufferAddress =
-            (world.chunk_size_x * world.chunk_size_y * world.chunk_size_z * mem::size_of::<u32>())
+            (chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2 * mem::size_of::<u32>())
                 as wgpu::BufferAddress;
         let result_buffer = renderer.device.create_buffer(
             &(wgpu::BufferDescriptor {
@@ -393,7 +391,7 @@ impl Chunk {
             compute_pass.set_pipeline(&compute_pipeline);
             compute_pass.set_bind_group(0, &bind_group, &[]);
             compute_pass.dispatch_workgroups(
-                (world.chunk_size_x * world.chunk_size_y * world.chunk_size_z) as u32,
+                (chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2) as u32,
                 1,
                 1,
             ); // Number of cells to run, the (x,y,z) size of item being processed
@@ -524,11 +522,10 @@ impl Chunk {
 
         // update the blocks with the results
         let mut index: usize;
-        for y in 0..world.chunk_size_y {
-            for z in 0..world.chunk_size_z {
-                for x in 0..world.chunk_size_x {
-                    index =
-                        x + y * world.chunk_size_x + z * world.chunk_size_x * world.chunk_size_y;
+        for y in 0..chunk_sizes.1 {
+            for z in 0..chunk_sizes.2 {
+                for x in 0..chunk_sizes.0 {
+                    index = x + (y * chunk_sizes.0) + (z * chunk_sizes.0 * chunk_sizes.1);
                     temp_chunk_vec[x][y][z].touching_air = result[index] != 0;
                 }
             }
