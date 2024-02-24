@@ -26,6 +26,13 @@ where
     let chunk_blocks_global: HashMap<(i32, i16, i32), Block> = HashMap::new();
     let instances_to_render_global: HashMap<(i32, i16, i32), InstanceData> = HashMap::new();
 
+    // set some as touching air
+    for x in 0..chunk_sizes.0 {
+        for z in 0..chunk_sizes.2 {
+            temp_chunk_vector_global[x][(chunk_sizes.1 / 2) - 1][z].touching_air = true;
+        }
+    }
+
     b.iter(|| {
         let temp_chunk_vector = temp_chunk_vector_global.clone();
         let mut chunk_blocks = chunk_blocks_global.clone();
@@ -60,7 +67,6 @@ fn bench_fill_chunk_hashmap_new_4(b: &mut Bencher) {
     bench_fill_chunk_hashmap(b, fill_chunk_hashmap_new_4);
 }
 
-
 #[bench]
 fn bench_fill_chunk_hashmap_new_5(b: &mut Bencher) {
     bench_fill_chunk_hashmap(b, fill_chunk_hashmap_new_5);
@@ -71,7 +77,11 @@ fn bench_fill_chunk_hashmap_new_6(b: &mut Bencher) {
     bench_fill_chunk_hashmap(b, fill_chunk_hashmap_new_6);
 }
 
-#[bench]
-fn bench_fill_chunk_hashmap_new_7(b: &mut Bencher) {
-    bench_fill_chunk_hashmap(b, fill_chunk_hashmap_new_7);
-}
+
+
+
+
+
+
+
+

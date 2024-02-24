@@ -27,7 +27,7 @@ where
     // set some as touching air
     for x in 0..chunk_sizes.0 {
         for z in 0..chunk_sizes.2 {
-            temp_chunk_vector_global[x][chunk_sizes.1 / 2][z].touching_air = true;
+            temp_chunk_vector_global[x][(chunk_sizes.1 / 2) - 1][z].touching_air = true;
         }
     }
 
@@ -38,34 +38,51 @@ where
 
     fill_chunk_hashmap(&mut chunk_blocks, &mut instances_to_render, temp_chunk_vector, chunk_sizes); // end iterations
 
-    // check the hashmap now
+    // check the hashmap now for non air blocks
     for x in 0..chunk_sizes.0 {
         for y in 0..chunk_sizes.1 {
             for z in 0..chunk_sizes.2 {
                 if temp_chunk_vector_global[x][y][z].block_type != BlockType::Air {
                     assert_eq!(chunk_blocks.contains_key(&(
-                        temp_chunk_vector_global[x][y][z].position.x, 
-                        temp_chunk_vector_global[x][y][z].position.y, 
+                        temp_chunk_vector_global[x][y][z].position.x,
+                        temp_chunk_vector_global[x][y][z].position.y,
                         temp_chunk_vector_global[x][y][z].position.z)), true);
                 } else {
                     assert_eq!(chunk_blocks.contains_key(&(
-                        temp_chunk_vector_global[x][y][z].position.x, 
-                        temp_chunk_vector_global[x][y][z].position.y, 
+                        temp_chunk_vector_global[x][y][z].position.x,
+                        temp_chunk_vector_global[x][y][z].position.y,
                         temp_chunk_vector_global[x][y][z].position.z)), false);
                 }
             }
         }
     }
+
+    // check for instances
+    for x in 0..chunk_sizes.0 {
+        for z in 0..chunk_sizes.2 {
+            // assert_eq!(instances_to_render_global.contains_key(&(x as i32, chunk_sizes.1 as i16 / 2, z as i32)), true);
+            assert_eq!(chunk_blocks.contains_key(&(
+                temp_chunk_vector_global[x][(chunk_sizes.1 / 2) - 1][z].position.x,
+                temp_chunk_vector_global[x][(chunk_sizes.1 / 2) - 1][z].position.y,
+                temp_chunk_vector_global[x][(chunk_sizes.1 / 2) - 1][z].position.z)), true);
+        }
+    }
 }
 
 
+// this is the current one i am using in my actual code
+#[test]
+fn test_fill_chunk_hashmap_current() {
+    test_fill_chunk_hashmap(fill_chunk_hashmap);
+}
 
-
+// my initial version that was slow
 #[test]
 fn test_fill_chunk_hashmap_old() {
     test_fill_chunk_hashmap(fill_chunk_hashmap_old);
 }
 
+// all of my improved versions
 #[test]
 fn test_fill_chunk_hashmap_new_1() {
     test_fill_chunk_hashmap(fill_chunk_hashmap_new_1);
@@ -94,10 +111,5 @@ fn test_fill_chunk_hashmap_new_5() {
 #[test]
 fn test_fill_chunk_hashmap_new_6() {
     test_fill_chunk_hashmap(fill_chunk_hashmap_new_6);
-}
-
-#[test]
-fn test_fill_chunk_hashmap_new_7() {
-    test_fill_chunk_hashmap(fill_chunk_hashmap_new_7);
 }
 

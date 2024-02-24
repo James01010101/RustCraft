@@ -129,109 +129,51 @@ pub fn create_temp_chunk_vector(chunk_ids: (i32, i32), chunk_sizes: (usize, usiz
 }
 
 
-// convert the temp chunks vector into the hashmap
-/* new
+// once the temp chunk vector has all the blocks in it correctly ill fill them into the hashmap to save space on non air blocks
 pub fn fill_chunk_hashmap( 
     chunk_blocks: &mut HashMap<(i32, i16, i32), Block>, 
     instances_to_render: &mut HashMap<(i32, i16, i32), InstanceData>,
     temp_chunk_vec: Vec<Vec<Vec<Block>>>, 
     chunk_sizes: (usize, usize, usize)
 ) {
-
-    // since i know how many elements i can reserve this amount so it only reallocs once (most of the time)
-    chunk_blocks.reserve(chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2);
-
-    // since ill have atleast 1 block showing ins xz for the ground at minimum i can alloc that much 
-    // ill * by 2 so this should be more than i need in most cases and ill shrink after
-    // and it can realloc more later if it needs
-    instances_to_render.reserve(chunk_sizes.0 * chunk_sizes.2 * 2);
 
     // cache each vector so i dont have to do 3 indexes each time
-    let mut cached_vec_x: &Vec<Vec<Block>>;
-    let mut cached_vec_y: &Vec<Block>;
-    let mut cached_block: &Block;
-    let mut cached_position: &Position;
     let mut cached_key: (i32, i16, i32);
 
+    let max_elements: usize = chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2;
+    let mut blocks_to_insert: Vec<((i32, i16, i32), Block)> = Vec::with_capacity(max_elements);
+    let mut instances_to_insert: Vec<((i32, i16, i32), InstanceData)> = Vec::with_capacity(max_elements);
+
     // loop through the temp vector and fill the hashmap
-    for x in 0..chunk_sizes.0 {
-        cached_vec_x = &temp_chunk_vec[x];
-
-        for y in 0..chunk_sizes.1 {
-            cached_vec_y = &cached_vec_x[y];
-
-            for z in 0..chunk_sizes.2 {
-                cached_block = &cached_vec_y[z];
+    for vec_x in temp_chunk_vec.iter() {
+        for vec_y in vec_x.iter() {
+            for block in vec_y.iter() {
 
                 // if the block is not air then add it to the hashmap
-                if cached_block.block_type != BlockType::Air {
-                    cached_position = &cached_block.position;
-                    cached_key = (cached_position.x, cached_position.y, cached_position.z);
+                if block.block_type != BlockType::Air {
+                    cached_key = (block.position.x, block.position.y, block.position.z);
+                    blocks_to_insert.push((cached_key, *block));
 
                     // and if it is touching air then add it to the instances to render hashmap
-                    if cached_block.touching_air {
-                        instances_to_render.insert(
-                            cached_key,
+                    if block.touching_air {
+                        instances_to_insert.push((cached_key,
                             InstanceData {
-                                model_matrix: cached_block.model_matrix.clone(),
-                                colour: cached_block.block_type.block_colour(),
-                            },
-                        );
-                    }
-
-                    // always insert the block into the chunk_blocks hashmap
-                    chunk_blocks.insert(
-                        cached_key,
-                        *cached_block,
-                    );
-                }
-            }
-        }
-    }
-    chunk_blocks.shrink_to_fit();
-    instances_to_render.shrink_to_fit();
-}
-*/
-
-pub fn fill_chunk_hashmap( 
-    chunk_blocks: &mut HashMap<(i32, i16, i32), Block>, 
-    instances_to_render: &mut HashMap<(i32, i16, i32), InstanceData>,
-    temp_chunk_vec: Vec<Vec<Vec<Block>>>, 
-    chunk_sizes: (usize, usize, usize)
-) {
-    // loop through the temp vector and fill the hashmap
-    for x in 0..chunk_sizes.0 {
-        for y in 0..chunk_sizes.1 {
-            for z in 0..chunk_sizes.2 {
-                // if the block is not air then add it to the hashmap
-                if temp_chunk_vec[x][y][z].block_type != BlockType::Air {
-                    chunk_blocks.insert(
-                        (
-                            temp_chunk_vec[x][y][z].position.x,
-                            temp_chunk_vec[x][y][z].position.y,
-                            temp_chunk_vec[x][y][z].position.z,
-                        ),
-                        temp_chunk_vec[x][y][z],
-                    );
-
-                    // also if it is touching air then add it to the instances to render hashmap
-                    if temp_chunk_vec[x][y][z].touching_air {
-                        instances_to_render.insert(
-                            (
-                                temp_chunk_vec[x][y][z].position.x,
-                                temp_chunk_vec[x][y][z].position.y,
-                                temp_chunk_vec[x][y][z].position.z,
-                            ),
-                            InstanceData {
-                                model_matrix: temp_chunk_vec[x][y][z].model_matrix.clone(),
-                                colour: temp_chunk_vec[x][y][z].block_type.block_colour(),
-                            },
-                        );
+                                model_matrix: block.model_matrix.clone(),
+                                colour: block.block_type.block_colour(),
+                            }
+                        ));
                     }
                 }
             }
         }
     }
+
+    // now reserve exactly the amount of memory needed and fill the hashmaps
+    chunk_blocks.reserve(blocks_to_insert.len());
+    chunk_blocks.extend(blocks_to_insert.into_iter());
+
+    instances_to_render.reserve(instances_to_insert.len());
+    instances_to_render.extend(instances_to_insert.into_iter());
 }
 
 
