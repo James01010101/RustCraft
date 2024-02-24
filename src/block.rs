@@ -18,10 +18,20 @@ pub struct Block {
 
 impl Block {
     pub fn new(block_type: BlockType, pos_x: i32, pos_y: i16, pos_z: i32) -> Block {
-        let model_matrix: [[f32; 4]; 4] =
-            nalgebra::Translation3::new(pos_x as f32, pos_y as f32, pos_z as f32)
-                .to_homogeneous()
-                .into(); // into a float 4x4 array
+        let model_matrix: [[f32; 4]; 4] = [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [pos_x as f32, pos_y as f32, pos_z as f32, 1.0],
+        ];
+
+        // this is the same as this:
+        /*
+        nalgebra::Translation3::new(pos_x as f32, pos_y as f32, pos_z as f32)
+            .to_homogeneous()
+            .into(); // into a float 4x4 array
+        */
+
 
         Block {
             block_type,
