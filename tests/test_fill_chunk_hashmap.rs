@@ -19,7 +19,7 @@ where
     let chunk_sizes: (usize, usize, usize) = (32, 256, 32);
 
     let mut temp_chunk_vector_global: Vec<Vec<Vec<Block>>> = create_temp_chunk_vector((0, 0), chunk_sizes);
-    generate_chunk(&mut temp_chunk_vector_global, chunk_sizes, chunk_sizes.1/2);
+    generate_chunk(&mut temp_chunk_vector_global, chunk_sizes);
 
     let chunk_blocks_global: HashMap<(i32, i16, i32), Block> = HashMap::new();
     let instances_to_render_global: HashMap<(i32, i16, i32), InstanceData> = HashMap::new();
