@@ -7,7 +7,7 @@ use rust_craft::world::World;
 // these all assume chunk sizes of (32 x 256 x 32)
 fn test_get_chunk_id(posX: i32, posY: i32, correctChunkX: i32, correctChunkY: i32) {
     let world: World = World::new("James's World".to_string(), 1, 5, (32, 256, 32));
-    let ids: (i32, i32) = get_chunk_id(posX, posY, &world);
+    let ids: (i32, i32) = get_chunk_id(posX, posY, world.chunk_sizes);
 
     assert_eq!(
         ids,
@@ -90,7 +90,12 @@ fn test_get_world_block_pos_4() {
 
 fn test_get_relative_block_pos(worldBlockX: i32, worldBlockY: i16, worldBlockZ: i32, answer: (i32, i16, i32)) {
     let world: World = World::new("James's World".to_string(), 1, 5, (32, 256, 32));
-    let result: (i32, i16, i32) = get_relative_block_pos(worldBlockX, worldBlockY, worldBlockZ, &world);
+    let result: (i32, i16, i32) = get_relative_block_pos(
+        worldBlockX, 
+        worldBlockY, 
+        worldBlockZ, 
+        world.chunk_sizes
+    );
 
     assert_eq!(
         result, answer,
