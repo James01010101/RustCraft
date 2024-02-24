@@ -17,6 +17,8 @@
 #![allow(unused_assignments)]
 
 // create any modules i need
+pub mod optimisations; // where i put functions i am benching to improve them
+
 pub mod block; // where i create my basic objects like spheres and squares
 pub mod block_type; // seperating the block type from the block struct
 pub mod calculate_frame;

@@ -72,3 +72,15 @@ ship:
 
 clear: 
 	clear
+
+
+
+# optimisations
+
+
+
+opt_fill_chunk_hashmap: clear
+	cargo build --release
+	cargo test --test test_fill_chunk_hashmap --release
+	cargo bench --bench bench_fill_chunk_hashmap
+	

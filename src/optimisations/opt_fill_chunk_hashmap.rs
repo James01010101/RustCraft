@@ -1,0 +1,468 @@
+
+use std::collections::HashMap;
+
+use crate::{
+    block::*, 
+    block_type::*, 
+    types::*, 
+};
+
+
+// origional function
+pub fn fill_chunk_hashmap_old( 
+    chunk_blocks: &mut HashMap<(i32, i16, i32), Block>, 
+    instances_to_render: &mut HashMap<(i32, i16, i32), InstanceData>,
+    temp_chunk_vec: Vec<Vec<Vec<Block>>>, 
+    chunk_sizes: (usize, usize, usize)
+) {
+    // loop through the temp vector and fill the hashmap
+    for x in 0..chunk_sizes.0 {
+        for y in 0..chunk_sizes.1 {
+            for z in 0..chunk_sizes.2 {
+                // if the block is not air then add it to the hashmap
+                if temp_chunk_vec[x][y][z].block_type != BlockType::Air {
+                    chunk_blocks.insert(
+                        (
+                            temp_chunk_vec[x][y][z].position.x,
+                            temp_chunk_vec[x][y][z].position.y,
+                            temp_chunk_vec[x][y][z].position.z,
+                        ),
+                        temp_chunk_vec[x][y][z],
+                    );
+
+                    // also if it is touching air then add it to the instances to render hashmap
+                    if temp_chunk_vec[x][y][z].touching_air {
+                        instances_to_render.insert(
+                            (
+                                temp_chunk_vec[x][y][z].position.x,
+                                temp_chunk_vec[x][y][z].position.y,
+                                temp_chunk_vec[x][y][z].position.z,
+                            ),
+                            InstanceData {
+                                model_matrix: temp_chunk_vec[x][y][z].model_matrix.clone(),
+                                colour: temp_chunk_vec[x][y][z].block_type.block_colour(),
+                            },
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+// reserve space for the number of elements i need to add to the chunk blocks array
+// i dont know the exact number of elements that will be in chunk blocks so ill over estimate here
+pub fn fill_chunk_hashmap_new_1( 
+    chunk_blocks: &mut HashMap<(i32, i16, i32), Block>, 
+    instances_to_render: &mut HashMap<(i32, i16, i32), InstanceData>,
+    temp_chunk_vec: Vec<Vec<Vec<Block>>>, 
+    chunk_sizes: (usize, usize, usize)
+) {
+
+    // since i know how many elements i can reserve this amount so it only reallocs once (most of the time)
+    chunk_blocks.reserve(chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2);
+
+    // loop through the temp vector and fill the hashmap
+    for x in 0..chunk_sizes.0 {
+        for y in 0..chunk_sizes.1 {
+            for z in 0..chunk_sizes.2 {
+                // if the block is not air then add it to the hashmap
+                if temp_chunk_vec[x][y][z].block_type != BlockType::Air {
+
+                    // and if it is touching air then add it to the instances to render hashmap
+                    if temp_chunk_vec[x][y][z].touching_air {
+                        instances_to_render.insert(
+                            (
+                                temp_chunk_vec[x][y][z].position.x,
+                                temp_chunk_vec[x][y][z].position.y,
+                                temp_chunk_vec[x][y][z].position.z,
+                            ),
+                            InstanceData {
+                                model_matrix: temp_chunk_vec[x][y][z].model_matrix.clone(),
+                                colour: temp_chunk_vec[x][y][z].block_type.block_colour(),
+                            },
+                        );
+                    }
+
+                    // always insert the block into the chunk_blocks hashmap
+                    chunk_blocks.insert(
+                        (
+                            temp_chunk_vec[x][y][z].position.x,
+                            temp_chunk_vec[x][y][z].position.y,
+                            temp_chunk_vec[x][y][z].position.z,
+                        ),
+                        temp_chunk_vec[x][y][z],
+                    );
+                }
+            }
+        }
+    }
+
+    // so i dont waste any memory but dont do many reallocs during runtime. just one at the start to reserve the space
+    // and one at the end to cleanup unneeded memory
+    chunk_blocks.shrink_to_fit();
+}
+
+
+// caches the vectors and then the block are it goes along so it doesnt have to index 3 times every time
+pub fn fill_chunk_hashmap_new_2( 
+    chunk_blocks: &mut HashMap<(i32, i16, i32), Block>, 
+    instances_to_render: &mut HashMap<(i32, i16, i32), InstanceData>,
+    temp_chunk_vec: Vec<Vec<Vec<Block>>>, 
+    chunk_sizes: (usize, usize, usize)
+) {
+
+    // since i know how many elements i can reserve this amount so it only reallocs once (most of the time)
+    chunk_blocks.reserve(chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2);
+
+    // cache each vector so i dont have to do 3 indexes each time
+    let mut cached_vec_x: &Vec<Vec<Block>>;
+    let mut cached_vec_y: &Vec<Block>;
+    let mut cached_block: &Block;
+
+    // loop through the temp vector and fill the hashmap
+    for x in 0..chunk_sizes.0 {
+        cached_vec_x = &temp_chunk_vec[x];
+
+        for y in 0..chunk_sizes.1 {
+            cached_vec_y = &cached_vec_x[y];
+
+            for z in 0..chunk_sizes.2 {
+                cached_block = &cached_vec_y[z];
+
+                // if the block is not air then add it to the hashmap
+                if cached_block.block_type != BlockType::Air {
+
+                    // and if it is touching air then add it to the instances to render hashmap
+                    if cached_block.touching_air {
+                        instances_to_render.insert(
+                            (
+                                cached_block.position.x,
+                                cached_block.position.y,
+                                cached_block.position.z,
+                            ),
+                            InstanceData {
+                                model_matrix: cached_block.model_matrix.clone(),
+                                colour: cached_block.block_type.block_colour(),
+                            },
+                        );
+                    }
+
+                    // always insert the block into the chunk_blocks hashmap
+                    chunk_blocks.insert(
+                        (
+                            cached_block.position.x,
+                            cached_block.position.y,
+                            cached_block.position.z,
+                        ),
+                        *cached_block,
+                    );
+                }
+            }
+        }
+    }
+    chunk_blocks.shrink_to_fit();
+}
+
+
+// adds a cache for the position
+pub fn fill_chunk_hashmap_new_3( 
+    chunk_blocks: &mut HashMap<(i32, i16, i32), Block>, 
+    instances_to_render: &mut HashMap<(i32, i16, i32), InstanceData>,
+    temp_chunk_vec: Vec<Vec<Vec<Block>>>, 
+    chunk_sizes: (usize, usize, usize)
+) {
+
+    // since i know how many elements i can reserve this amount so it only reallocs once (most of the time)
+    chunk_blocks.reserve(chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2);
+
+    // cache each vector so i dont have to do 3 indexes each time
+    let mut cached_vec_x: &Vec<Vec<Block>>;
+    let mut cached_vec_y: &Vec<Block>;
+    let mut cached_block: &Block;
+    let mut cached_position: &Position;
+
+    // loop through the temp vector and fill the hashmap
+    for x in 0..chunk_sizes.0 {
+        cached_vec_x = &temp_chunk_vec[x];
+
+        for y in 0..chunk_sizes.1 {
+            cached_vec_y = &cached_vec_x[y];
+
+            for z in 0..chunk_sizes.2 {
+                cached_block = &cached_vec_y[z];
+
+                // if the block is not air then add it to the hashmap
+                if cached_block.block_type != BlockType::Air {
+                    cached_position = &cached_block.position;
+
+                    // and if it is touching air then add it to the instances to render hashmap
+                    if cached_block.touching_air {
+                        instances_to_render.insert(
+                            (
+                                cached_position.x,
+                                cached_position.y,
+                                cached_position.z,
+                            ),
+                            InstanceData {
+                                model_matrix: cached_block.model_matrix.clone(),
+                                colour: cached_block.block_type.block_colour(),
+                            },
+                        );
+                    }
+
+                    // always insert the block into the chunk_blocks hashmap
+                    chunk_blocks.insert(
+                        (
+                            cached_position.x,
+                            cached_position.y,
+                            cached_position.z,
+                        ),
+                        *cached_block,
+                    );
+                }
+            }
+        }
+    }
+    chunk_blocks.shrink_to_fit();
+}
+
+
+// adds a cache for the key
+pub fn fill_chunk_hashmap_new_4( 
+    chunk_blocks: &mut HashMap<(i32, i16, i32), Block>, 
+    instances_to_render: &mut HashMap<(i32, i16, i32), InstanceData>,
+    temp_chunk_vec: Vec<Vec<Vec<Block>>>, 
+    chunk_sizes: (usize, usize, usize)
+) {
+
+    // since i know how many elements i can reserve this amount so it only reallocs once (most of the time)
+    chunk_blocks.reserve(chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2);
+
+    // cache each vector so i dont have to do 3 indexes each time
+    let mut cached_vec_x: &Vec<Vec<Block>>;
+    let mut cached_vec_y: &Vec<Block>;
+    let mut cached_block: &Block;
+    let mut cached_key: (i32, i16, i32);
+
+    // loop through the temp vector and fill the hashmap
+    for x in 0..chunk_sizes.0 {
+        cached_vec_x = &temp_chunk_vec[x];
+
+        for y in 0..chunk_sizes.1 {
+            cached_vec_y = &cached_vec_x[y];
+
+            for z in 0..chunk_sizes.2 {
+                cached_block = &cached_vec_y[z];
+
+                // if the block is not air then add it to the hashmap
+                if cached_block.block_type != BlockType::Air {
+                    cached_key = (cached_block.position.x, cached_block.position.y, cached_block.position.z);
+
+                    // and if it is touching air then add it to the instances to render hashmap
+                    if cached_block.touching_air {
+                        instances_to_render.insert(
+                            cached_key,
+                            InstanceData {
+                                model_matrix: cached_block.model_matrix.clone(),
+                                colour: cached_block.block_type.block_colour(),
+                            },
+                        );
+                    }
+
+                    // always insert the block into the chunk_blocks hashmap
+                    chunk_blocks.insert(
+                        cached_key,
+                        *cached_block,
+                    );
+                }
+            }
+        }
+    }
+    chunk_blocks.shrink_to_fit();
+}
+
+
+// caches the position and key
+pub fn fill_chunk_hashmap_new_5( 
+    chunk_blocks: &mut HashMap<(i32, i16, i32), Block>, 
+    instances_to_render: &mut HashMap<(i32, i16, i32), InstanceData>,
+    temp_chunk_vec: Vec<Vec<Vec<Block>>>, 
+    chunk_sizes: (usize, usize, usize)
+) {
+
+    // since i know how many elements i can reserve this amount so it only reallocs once (most of the time)
+    chunk_blocks.reserve(chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2);
+
+    // cache each vector so i dont have to do 3 indexes each time
+    let mut cached_vec_x: &Vec<Vec<Block>>;
+    let mut cached_vec_y: &Vec<Block>;
+    let mut cached_block: &Block;
+    let mut cached_position: &Position;
+    let mut cached_key: (i32, i16, i32);
+
+    // loop through the temp vector and fill the hashmap
+    for x in 0..chunk_sizes.0 {
+        cached_vec_x = &temp_chunk_vec[x];
+
+        for y in 0..chunk_sizes.1 {
+            cached_vec_y = &cached_vec_x[y];
+
+            for z in 0..chunk_sizes.2 {
+                cached_block = &cached_vec_y[z];
+
+                // if the block is not air then add it to the hashmap
+                if cached_block.block_type != BlockType::Air {
+                    cached_position = &cached_block.position;
+                    cached_key = (cached_position.x, cached_position.y, cached_position.z);
+
+                    // and if it is touching air then add it to the instances to render hashmap
+                    if cached_block.touching_air {
+                        instances_to_render.insert(
+                            cached_key,
+                            InstanceData {
+                                model_matrix: cached_block.model_matrix.clone(),
+                                colour: cached_block.block_type.block_colour(),
+                            },
+                        );
+                    }
+
+                    // always insert the block into the chunk_blocks hashmap
+                    chunk_blocks.insert(
+                        cached_key,
+                        *cached_block,
+                    );
+                }
+            }
+        }
+    }
+    chunk_blocks.shrink_to_fit();
+}
+
+
+// reserved space for the instance to render hashmap too
+pub fn fill_chunk_hashmap_new_6( 
+    chunk_blocks: &mut HashMap<(i32, i16, i32), Block>, 
+    instances_to_render: &mut HashMap<(i32, i16, i32), InstanceData>,
+    temp_chunk_vec: Vec<Vec<Vec<Block>>>, 
+    chunk_sizes: (usize, usize, usize)
+) {
+
+    // since i know how many elements i can reserve this amount so it only reallocs once (most of the time)
+    chunk_blocks.reserve(chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2);
+
+    // since ill have atleast 1 block showing ins xz for the ground at minimum i can alloc that much 
+    // ill * by 2 so this should be more than i need in most cases and ill shrink after
+    // and it can realloc more later if it needs
+    instances_to_render.reserve(chunk_sizes.0 * chunk_sizes.2 * 2);
+
+    // cache each vector so i dont have to do 3 indexes each time
+    let mut cached_vec_x: &Vec<Vec<Block>>;
+    let mut cached_vec_y: &Vec<Block>;
+    let mut cached_block: &Block;
+    let mut cached_position: &Position;
+    let mut cached_key: (i32, i16, i32);
+
+    // loop through the temp vector and fill the hashmap
+    for x in 0..chunk_sizes.0 {
+        cached_vec_x = &temp_chunk_vec[x];
+
+        for y in 0..chunk_sizes.1 {
+            cached_vec_y = &cached_vec_x[y];
+
+            for z in 0..chunk_sizes.2 {
+                cached_block = &cached_vec_y[z];
+
+                // if the block is not air then add it to the hashmap
+                if cached_block.block_type != BlockType::Air {
+                    cached_position = &cached_block.position;
+                    cached_key = (cached_position.x, cached_position.y, cached_position.z);
+
+                    // and if it is touching air then add it to the instances to render hashmap
+                    if cached_block.touching_air {
+                        instances_to_render.insert(
+                            cached_key,
+                            InstanceData {
+                                model_matrix: cached_block.model_matrix.clone(),
+                                colour: cached_block.block_type.block_colour(),
+                            },
+                        );
+                    }
+
+                    // always insert the block into the chunk_blocks hashmap
+                    chunk_blocks.insert(
+                        cached_key,
+                        *cached_block,
+                    );
+                }
+            }
+        }
+    }
+    chunk_blocks.shrink_to_fit();
+    instances_to_render.shrink_to_fit();
+}
+
+
+//
+pub fn fill_chunk_hashmap_new_7( 
+    chunk_blocks: &mut HashMap<(i32, i16, i32), Block>, 
+    instances_to_render: &mut HashMap<(i32, i16, i32), InstanceData>,
+    temp_chunk_vec: Vec<Vec<Vec<Block>>>, 
+    chunk_sizes: (usize, usize, usize)
+) {
+
+    // since i know how many elements i can reserve this amount so it only reallocs once (most of the time)
+    chunk_blocks.reserve(chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2);
+
+    // since ill have atleast 1 block showing ins xz for the ground at minimum i can alloc that much 
+    // ill * by 2 so this should be more than i need in most cases and ill shrink after
+    // and it can realloc more later if it needs
+    instances_to_render.reserve(chunk_sizes.0 * chunk_sizes.2 * 2);
+
+    // cache each vector so i dont have to do 3 indexes each time
+    let mut cached_vec_x: &Vec<Vec<Block>>;
+    let mut cached_vec_y: &Vec<Block>;
+    let mut cached_block: &Block;
+    let mut cached_position: &Position;
+    let mut cached_key: (i32, i16, i32);
+
+    // loop through the temp vector and fill the hashmap
+    for x in 0..chunk_sizes.0 {
+        cached_vec_x = &temp_chunk_vec[x];
+
+        for y in 0..chunk_sizes.1 {
+            cached_vec_y = &cached_vec_x[y];
+
+            for z in 0..chunk_sizes.2 {
+                cached_block = &cached_vec_y[z];
+
+                // if the block is not air then add it to the hashmap
+                if cached_block.block_type != BlockType::Air {
+                    cached_position = &cached_block.position;
+                    cached_key = (cached_position.x, cached_position.y, cached_position.z);
+
+                    // and if it is touching air then add it to the instances to render hashmap
+                    if cached_block.touching_air {
+                        instances_to_render.insert(
+                            cached_key,
+                            InstanceData {
+                                model_matrix: cached_block.model_matrix.clone(),
+                                colour: cached_block.block_type.block_colour(),
+                            },
+                        );
+                    }
+
+                    // always insert the block into the chunk_blocks hashmap
+                    chunk_blocks.insert(
+                        cached_key,
+                        *cached_block,
+                    );
+                }
+            }
+        }
+    }
+    chunk_blocks.shrink_to_fit();
+    instances_to_render.shrink_to_fit();
+}
+
