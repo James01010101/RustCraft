@@ -19,38 +19,8 @@ pub fn calculate_frame(
 ) {
     // check the keyboard for any key presses
     // create a movement vector (to see what direction i need to move in)
-    let mut movement_vector: (f32, f32) = (0.0, 0.0);
-
-    if keyboard.w_held {
-        movement_vector.0 += 1.0;
-    }
-    if keyboard.s_held {
-        movement_vector.0 -= 1.0;
-    }
-
-    if keyboard.d_held {
-        movement_vector.1 += 1.0;
-    }
-    if keyboard.a_held {
-        movement_vector.1 -= 1.0;
-    }
-
-    // Normalize the movement vector
-    let length: f32 =
-        ((movement_vector.0 * movement_vector.0) + (movement_vector.1 * movement_vector.1)).sqrt();
-    if length > 0.001 {
-        movement_vector.0 /= length;
-        movement_vector.1 /= length;
-    }
-
-    // TODO: #129 move this code into characters own function. which checks for movement and then runs the move forward or sideways
-    // Apply the movement
-    character.move_forward(movement_vector.0 * character.movement_speed);
-    character.move_sideways(movement_vector.1 * character.movement_speed);
-
-    // mouse and camera movement
-    character.update_view(keyboard);
-
+    character.update_movement(keyboard);
+    
     // set the cursors position back to 0,0
     if !use_cursor {
         window.set_cursor_position(PhysicalPosition::new(
@@ -71,7 +41,6 @@ pub fn calculate_frame(
     // go through the pending chunks vec and any that are valid now are put into chunks
     let mut i = 0;
     while i < world.pending_chunks.len() {
-
         // call update so it can finish off its copy when ready
         world.pending_chunks[i].update(renderer);
         if world.pending_chunks[i].instance_capacity > world.pending_chunks[i].instance_size {
@@ -81,6 +50,7 @@ pub fn calculate_frame(
             i += 1;
         }
     }
+
 
     // update the chunks that are loaded in the world around the player only if the chunk position changed
     if character.chunk_changed {

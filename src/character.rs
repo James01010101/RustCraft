@@ -56,9 +56,47 @@ impl Character {
         }
     }
 
+
+    // check what keys are pressed and move the character
+    pub fn update_movement(&mut self, keyboard: &mut MyKeyboard) {
+        let mut movement_vector: (f32, f32) = (0.0, 0.0);
+
+        if keyboard.w_held {
+            movement_vector.0 += 1.0;
+        }
+        if keyboard.s_held {
+            movement_vector.0 -= 1.0;
+        }
+
+        if keyboard.d_held {
+            movement_vector.1 += 1.0;
+        }
+        if keyboard.a_held {
+            movement_vector.1 -= 1.0;
+        }
+
+        // Normalize the movement vector
+        let length: f32 =
+            ((movement_vector.0 * movement_vector.0) + (movement_vector.1 * movement_vector.1)).sqrt();
+        if length > 0.001 {
+            movement_vector.0 /= length;
+            movement_vector.1 /= length;
+        }
+
+        // TODO: #129 move this code into characters own function. which checks for movement and then runs the move forward or sideways
+        // Apply the movement
+        self.move_forward(movement_vector.0 * self.movement_speed);
+        self.move_sideways(movement_vector.1 * self.movement_speed);
+
+        // mouse and camera movement
+        self.update_view(keyboard);
+    }
+
+
     pub fn get_current_chunk(&self) -> (i32, i32) {
         self.chunk_position
     }
+    
 
     pub fn move_forward(&mut self, amount: f32) {
         // move forward in the direction im facing
