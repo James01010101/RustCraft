@@ -197,9 +197,9 @@ pub fn get_world_block_pos(
     relative_block_z: i32,
     chunk_sizes: (usize, usize, usize),
 ) -> (i32, i16, i32) {
-    let world_x: i32 = chunk_id_x * (chunk_sizes.0 as i32) + relative_block_x;
+    let world_x: i32 = (chunk_id_x * chunk_sizes.0 as i32) + relative_block_x;
     let world_y: i16 = relative_block_y;
-    let world_z: i32 = chunk_id_z * (chunk_sizes.2 as i32) + relative_block_z;
+    let world_z: i32 = (chunk_id_z * chunk_sizes.2 as i32) + relative_block_z;
 
     return (world_x, world_y, world_z);
 }
