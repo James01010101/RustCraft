@@ -65,7 +65,7 @@ pub fn run_main_game_loop() {
     let mut character: Character = Character::new(0.1);
 
     // validate the file system and add files and folders if needed
-    file_system.check_file_system(&world);
+    file_system.check_file_system(world.chunk_sizes, &world.world_name);
 
     // temp, add some blocks for testing
     world.load_created_chunks_file(&mut file_system);
@@ -125,7 +125,7 @@ pub fn run_main_game_loop() {
                         );
 
                         // calculate the frame
-                        renderer.render_frame(&gpu_data, &world);
+                        renderer.render_frame(&gpu_data, &world.chunks);
 
                         // so it always generates a new frame
                         window_wrapper.window.request_redraw();

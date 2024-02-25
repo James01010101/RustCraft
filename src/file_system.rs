@@ -1,13 +1,16 @@
-use crate::{block::*, block_type::*, chunk::*, world::*};
+use crate::{
+    block::*, 
+    block_type::*, 
+    chunk::*,
+};
 
 use std::{
     env,
     fs::{create_dir_all, File},
     io::{self, BufRead, Write},
     path::PathBuf,
+    collections::HashSet,
 };
-
-use std::collections::HashSet;
 
 pub struct FileSystem {
     pub assets_directory: PathBuf,   // the directory of the assets folder
@@ -23,12 +26,12 @@ impl FileSystem {
     }
 
     // will check if the files have been created for this world and if not it will create them
-    pub fn check_file_system(&mut self, world: &World) {
+    pub fn check_file_system(&mut self, chunk_sizes: (usize, usize, usize), world_name: &str) {
         // first check that the data folder exists
         self.check_data_folder();
 
         // now check if this game world has a folder and files, if it doesnt ill make them
-        self.check_game_files(world.chunk_sizes, &world.world_name);
+        self.check_game_files(chunk_sizes, world_name);
     }
 
     pub fn check_data_folder(&mut self) {

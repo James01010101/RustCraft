@@ -117,7 +117,7 @@ impl World {
                 if !is_in_pending {
                     // load this chunk (i know for sure it isnt contained in the hashmap so i can just insert it)
                     let mut c: Chunk = Chunk::new(x, z, -1, renderer);
-                    c.load_chunk(file_system, self, renderer);
+                    c.load_chunk(file_system, renderer, self.chunk_sizes, &mut self.created_chunks);
                     self.pending_chunks.push(c);
                 }
 
