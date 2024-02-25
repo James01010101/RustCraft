@@ -13,7 +13,7 @@ pub struct Block {
     pub model_matrix: [[f32; 4]; 4],
 
     // so i know to send it to the gpu or not (later only send faces touching air)
-    pub touching_air: bool,
+    pub is_touching_air: bool,
 }
 
 impl Block {
@@ -41,7 +41,7 @@ impl Block {
                 z: pos_z,
             },
             model_matrix,
-            touching_air: false,
+            is_touching_air: false,
         }
     }
 }

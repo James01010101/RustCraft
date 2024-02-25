@@ -26,7 +26,7 @@ cleanworldrun: cleanworld run
 
 # test crates
 test: clear
-	cargo test
+	cargo test -- --nocapture
 
 # run my benchmarks, in nightly because bench cant be used in stable
 bench: clear

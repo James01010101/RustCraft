@@ -31,7 +31,7 @@ pub fn fill_chunk_hashmap_old(
                     );
 
                     // also if it is touching air then add it to the instances to render hashmap
-                    if temp_chunk_vec[x][y][z].touching_air {
+                    if temp_chunk_vec[x][y][z].is_touching_air {
                         instances_to_render.insert(
                             (
                                 temp_chunk_vec[x][y][z].position.x,
@@ -71,7 +71,7 @@ pub fn fill_chunk_hashmap_new_1(
                 if temp_chunk_vec[x][y][z].block_type != BlockType::Air {
 
                     // and if it is touching air then add it to the instances to render hashmap
-                    if temp_chunk_vec[x][y][z].touching_air {
+                    if temp_chunk_vec[x][y][z].is_touching_air {
                         instances_to_render.insert(
                             (
                                 temp_chunk_vec[x][y][z].position.x,
@@ -144,7 +144,7 @@ pub fn fill_chunk_hashmap_new_2(
                     cached_key = (cached_position.x, cached_position.y, cached_position.z);
 
                     // and if it is touching air then add it to the instances to render hashmap
-                    if cached_block.touching_air {
+                    if cached_block.is_touching_air {
                         instances_to_render.insert(
                             cached_key,
                             InstanceData {
@@ -208,7 +208,7 @@ pub fn fill_chunk_hashmap_new_3(
                     cached_key = (cached_position.x, cached_position.y, cached_position.z);
 
                     // and if it is touching air then add it to the instances to render hashmap
-                    if cached_block.touching_air {
+                    if cached_block.is_touching_air {
                         instances_to_insert.push(InstanceData {
                             model_matrix: cached_block.model_matrix.clone(),
                             colour: cached_block.block_type.block_colour(),
@@ -272,7 +272,7 @@ pub fn fill_chunk_hashmap_new_4(
                     cached_key = (cached_position.x, cached_position.y, cached_position.z);
 
                     // and if it is touching air then add it to the instances to render hashmap
-                    if cached_block.touching_air {
+                    if cached_block.is_touching_air {
                         instances_to_insert.push((cached_key,
                             InstanceData {
                                 model_matrix: cached_block.model_matrix.clone(),
@@ -328,7 +328,7 @@ pub fn fill_chunk_hashmap_new_5(
                     cached_key = (cached_position.x, cached_position.y, cached_position.z);
 
                     // and if it is touching air then add it to the instances to render hashmap
-                    if block.touching_air {
+                    if block.is_touching_air {
                         instances_to_insert.push((cached_key,
                             InstanceData {
                                 model_matrix: block.model_matrix.clone(),
@@ -378,7 +378,7 @@ pub fn fill_chunk_hashmap_new_6(
                     blocks_to_insert.push((cached_key, *block));
 
                     // and if it is touching air then add it to the instances to render hashmap
-                    if block.touching_air {
+                    if block.is_touching_air {
                         instances_to_insert.push((cached_key,
                             InstanceData {
                                 model_matrix: block.model_matrix.clone(),

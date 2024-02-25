@@ -5,6 +5,7 @@ This is where any chunk functions related to gpu buffers and compute shaders wil
 use crate::{chunk::*, renderer::*};
 
 use std::mem;
+use wgpu::{Device, Queue, ShaderModule};
 use wgpu::util::DeviceExt;
 
 impl Chunk {
@@ -166,14 +167,17 @@ impl Chunk {
         // update so that capacity always holds the exact size of the buffer, and is only updated to the new size once the new buffers are in place
         self.instance_capacity = self.new_instance_capacity;
     }
+}
 
-    // compute shader to label which blocks are touching air
+
+// compute shader to label which blocks are touching air
     // iterate through the whole vector and update all blocks that are touching air using a compute shader
     // this is run once on chunk creation
     pub async fn check_for_touching_air(
-        &mut self,
         temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>,
-        renderer: &Renderer,
+        device: &Device,
+        queue: &Queue,
+        shader_code: &ShaderModule,
         chunk_sizes: (usize, usize, usize),
     ) {
         /*
@@ -237,7 +241,7 @@ impl Chunk {
         // so instead ill use u8 for all calculations on the gpu and then just convert it to a bool on the cpu once i recieve the results
 
         // now create the gpu buffers for both of these
-        let block_type_buffer = renderer.device.create_buffer_init(
+        let block_type_buffer = device.create_buffer_init(
             &(wgpu::util::BufferInitDescriptor {
                 label: Some("block type compute buffer"),
                 contents: bytemuck::cast_slice(&chunk_block_types),
@@ -245,7 +249,7 @@ impl Chunk {
             }),
         );
 
-        let block_transparency_buffer = renderer.device.create_buffer_init(
+        let block_transparency_buffer = device.create_buffer_init(
             &(wgpu::util::BufferInitDescriptor {
                 label: Some("block transparency compute buffer"),
                 contents: bytemuck::cast_slice(&chunk_block_transparency),
@@ -253,7 +257,7 @@ impl Chunk {
             }),
         );
 
-        let dimentions_buffer = renderer.device.create_buffer_init(
+        let dimentions_buffer = device.create_buffer_init(
             &(wgpu::util::BufferInitDescriptor {
                 label: Some("block transparency compute buffer"),
                 contents: bytemuck::cast_slice(&dimentions),
@@ -264,7 +268,7 @@ impl Chunk {
         let result_buffer_size: wgpu::BufferAddress =
             (chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2 * mem::size_of::<u32>())
                 as wgpu::BufferAddress;
-        let result_buffer = renderer.device.create_buffer(
+        let result_buffer = device.create_buffer(
             &(wgpu::BufferDescriptor {
                 label: Some("Result compute buffer"),
                 size: result_buffer_size,
@@ -280,7 +284,7 @@ impl Chunk {
         // create the bind group and pipeline
         // Instantiates the bind group, once again specifying the binding of buffers.
 
-        let bind_group_layout = renderer.device.create_bind_group_layout(
+        let bind_group_layout = device.create_bind_group_layout(
             &(wgpu::BindGroupLayoutDescriptor {
                 label: Some("Bind Group Layout"),
                 entries: &[
@@ -333,7 +337,7 @@ impl Chunk {
             }),
         );
 
-        let bind_group = renderer.device.create_bind_group(
+        let bind_group = device.create_bind_group(
             &(wgpu::BindGroupDescriptor {
                 label: None,
                 layout: &bind_group_layout,
@@ -358,7 +362,7 @@ impl Chunk {
             }),
         );
 
-        let pipeline_layout = renderer.device.create_pipeline_layout(
+        let pipeline_layout = device.create_pipeline_layout(
             &(wgpu::PipelineLayoutDescriptor {
                 label: Some("Pipeline Layout"),
                 bind_group_layouts: &[&bind_group_layout],
@@ -366,17 +370,17 @@ impl Chunk {
             }),
         );
 
-        let compute_pipeline = renderer.device.create_compute_pipeline(
+        let compute_pipeline = device.create_compute_pipeline(
             &(wgpu::ComputePipelineDescriptor {
                 label: Some("check for air Compute Pipeline"),
                 layout: Some(&pipeline_layout),
-                module: &renderer.check_air_compute_shader_code,
+                module: &shader_code,
                 entry_point: "main",
             }),
         );
 
         // run the shader
-        let mut encoder = renderer.device.create_command_encoder(
+        let mut encoder = device.create_command_encoder(
             &(wgpu::CommandEncoderDescriptor {
                 label: Some("check air compute encoder"),
             }),
@@ -391,18 +395,18 @@ impl Chunk {
             compute_pass.set_pipeline(&compute_pipeline);
             compute_pass.set_bind_group(0, &bind_group, &[]);
             compute_pass.dispatch_workgroups(
-                (chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2) as u32,
-                1,
-                1,
+                chunk_sizes.0 as u32,
+                chunk_sizes.1 as u32,
+                chunk_sizes.2 as u32,
             ); // Number of cells to run, the (x,y,z) size of item being processed
         }
 
         // submit the compute shader render pass command
-        renderer.queue.submit(Some(encoder.finish()));
+        queue.submit(Some(encoder.finish()));
 
         // get the results from the shader
         // make the buffer ill read from
-        let read_result_buffer = renderer.device.create_buffer(
+        let read_result_buffer = device.create_buffer(
             &(wgpu::BufferDescriptor {
                 label: Some("Read Buffer"),
                 size: result_buffer_size,
@@ -411,7 +415,7 @@ impl Chunk {
             }),
         );
 
-        let mut encoder = renderer.device.create_command_encoder(
+        let mut encoder = device.create_command_encoder(
             &(wgpu::CommandEncoderDescriptor {
                 label: Some("read buffer copy encoder"),
             }),
@@ -427,7 +431,7 @@ impl Chunk {
         );
 
         // submit the copy buffer command and the fence submitted work done command
-        renderer.queue.submit(Some(encoder.finish()));
+        queue.submit(Some(encoder.finish()));
 
         // make a fence so i know once the copy buffer function has finished
         // Create a shared variable
@@ -437,7 +441,7 @@ impl Chunk {
         let fence_clone = Arc::clone(&fence);
 
         // Set up a callback to run when the submitted work is done
-        renderer.queue.on_submitted_work_done(move || {
+        queue.on_submitted_work_done(move || {
             // This code will run when all work submitted to the queue up to this point has completed
             let mut fence_guard = fence_clone.lock().unwrap();
             *fence_guard = 1;
@@ -447,7 +451,7 @@ impl Chunk {
         // normally i would have this checked once per frame not in a busy waiting loop
         loop {
             // Poll the device to process outstanding work
-            renderer.device.poll(wgpu::Maintain::Poll);
+            device.poll(wgpu::Maintain::Poll);
 
             // Check if the fence has been set to 1
             let fence_guard = fence.lock().unwrap();
@@ -465,10 +469,7 @@ impl Chunk {
         buffer_slice.map_async(wgpu::MapMode::Read, move |v| sender.send(v).unwrap());
 
         // poll the device waiting for the may async to finish since it is the only command in the queue
-        renderer
-            .device
-            .poll(wgpu::Maintain::Wait)
-            .panic_on_timeout();
+        device.poll(wgpu::Maintain::Wait).panic_on_timeout();
 
         // Awaits until `buffer_future` can be read from once the callback is run
         let result = if let Ok(Ok(())) = receiver.recv_async().await {
@@ -526,9 +527,8 @@ impl Chunk {
             for z in 0..chunk_sizes.2 {
                 for x in 0..chunk_sizes.0 {
                     index = x + (y * chunk_sizes.0) + (z * chunk_sizes.0 * chunk_sizes.1);
-                    temp_chunk_vec[x][y][z].touching_air = result[index] != 0;
+                    temp_chunk_vec[x][y][z].is_touching_air = result[index] != 0;
                 }
             }
         }
     }
-}
