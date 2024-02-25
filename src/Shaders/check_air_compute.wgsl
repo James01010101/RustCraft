@@ -26,7 +26,7 @@ fn get_index(x: u32, y: u32, z: u32) -> u32 {
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 
-    let id: u32 = global_id.x;
+    let id: u32 = global_id.x + global_id.y * dimentions_buffer[0] + global_id.z * dimentions_buffer[0] * dimentions_buffer[1];
     var newid: u32 = 0;
 
 

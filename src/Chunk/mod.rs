@@ -1,5 +1,5 @@
 pub mod chunk_functions;
-pub mod chunk_gpu_function;
+pub mod chunk_gpu_functions;
 pub mod create_chunks;
 
 use crate::{block::*, renderer::*, types::*};

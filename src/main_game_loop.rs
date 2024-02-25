@@ -45,8 +45,8 @@ pub fn run_main_game_loop() {
     let mut world: World = World::new(
         "James's World".to_string(), 
         1, 
-        5, 
-        (8, 16, 8)
+        3, 
+        (32, 256, 32)
     );
 
     // create the gpudata buffers

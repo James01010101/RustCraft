@@ -27,7 +27,7 @@ where
     // set some as touching air
     for x in 0..chunk_sizes.0 {
         for z in 0..chunk_sizes.2 {
-            temp_chunk_vector_global[x][(chunk_sizes.1 / 2) - 1][z].touching_air = true;
+            temp_chunk_vector_global[x][(chunk_sizes.1 / 2) - 1][z].is_touching_air = true;
         }
     }
 
