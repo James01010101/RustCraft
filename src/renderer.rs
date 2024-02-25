@@ -1,11 +1,19 @@
 // This file will be for all rendering to windows
 
-use crate::{camera::*, gpu_data::*, types::*, window_wrapper::*, world::*};
+use crate::{
+    camera::*, 
+    gpu_data::*, 
+    types::*, 
+    window_wrapper::*, 
+    chunk::*,
+};
 
 use wgpu::{
     util::DeviceExt, Adapter, Device, Instance, PipelineLayout, Queue, RenderPipeline,
     ShaderModule, Surface, SurfaceConfiguration,
 };
+
+use std::collections::HashMap;
 
 pub struct Renderer {
     pub instance: Instance,
@@ -230,7 +238,7 @@ impl Renderer {
         }
     }
 
-    pub fn render_frame(&self, gpu_data: &GPUData, world: &World) {
+    pub fn render_frame(&self, gpu_data: &GPUData, chunks: &HashMap<(i32, i32), Chunk>) {
         let frame = self
             .surface
             .get_current_texture()
@@ -296,7 +304,7 @@ impl Renderer {
             //rpass.draw_indexed(0..36, 0, 0..gpuData.instancesUsed as u32);
 
             // Iterate over each chunk
-            for chunk in world.chunks.values() {
+            for chunk in chunks.values() {
                 // Set the instance buffer for this chunk
                 rpass.set_vertex_buffer(1, chunk.instance_buffer.slice(..));
 

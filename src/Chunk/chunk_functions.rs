@@ -1,25 +1,30 @@
-use crate::{block::*, block_type::*, file_system::*, renderer::*, types::*, world::*, chunk::create_chunks::generate_chunk};
+use crate::{
+    block::*, 
+    block_type::*, 
+    file_system::*, 
+    renderer::*, 
+    types::*, 
+    chunk::create_chunks::generate_chunk
+};
 
 use async_std::task;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 impl super::Chunk {
     // if this chunk has beenc created before then i create a Chunk obj, and fill it from wherever
     pub fn load_chunk(
         &mut self,
         file_system: &mut FileSystem,
-        world: &mut World,
         renderer: &Renderer,
+        chunk_sizes: (usize, usize, usize),
+        created_chunks: &mut HashSet<(i32, i32)>,
     ) {
         // create the temp chunk Vector, which creates all blocks
-        let mut temp_chunk_vec: Vec<Vec<Vec<Block>>> = create_temp_chunk_vector((self.chunk_id_x, self.chunk_id_z), world.chunk_sizes);
+        let mut temp_chunk_vec: Vec<Vec<Vec<Block>>> = create_temp_chunk_vector((self.chunk_id_x, self.chunk_id_z), chunk_sizes);
 
         // fill the temp vector with data
         // first check if the chunk has been created before if so load it
-        if world
-            .created_chunks
-            .contains(&(self.chunk_id_x, self.chunk_id_z))
-        {
+        if created_chunks.contains(&(self.chunk_id_x, self.chunk_id_z)) {
             // now check if it is loaded, if it is then i can just ignore it, if it isnt loaded then i need to read it from a file
             // it will already be loaded if i try to load a chunk already in the game
             // has been created before so load from file
@@ -27,23 +32,21 @@ impl super::Chunk {
                 &mut temp_chunk_vec,
                 self.chunk_id_x,
                 self.chunk_id_z,
-                world.chunk_sizes,
+                chunk_sizes,
             );
         } else {
             // else create a new one
-            generate_chunk(&mut temp_chunk_vec, world.chunk_sizes);
+            generate_chunk(&mut temp_chunk_vec, chunk_sizes);
 
             // add this chunk to created chunks
-            world
-                .created_chunks
-                .insert((self.chunk_id_x, self.chunk_id_z));
+            created_chunks.insert((self.chunk_id_x, self.chunk_id_z));
         }
 
         // check each block if it is touching air (async because reading from gpu is async)
-        task::block_on(self.check_for_touching_air(&mut temp_chunk_vec, &renderer, world.chunk_sizes));
+        task::block_on(self.check_for_touching_air(&mut temp_chunk_vec, &renderer, chunk_sizes));
 
         // fill the chunkBlocks hashmap from the temp vector
-        fill_chunk_hashmap(&mut self.chunk_blocks, &mut self.instances_to_render, temp_chunk_vec, world.chunk_sizes);
+        fill_chunk_hashmap(&mut self.chunk_blocks, &mut self.instances_to_render, temp_chunk_vec, chunk_sizes);
 
         // update the number of alive blocks
         self.alive_blocks = self.chunk_blocks.len() as u32;
