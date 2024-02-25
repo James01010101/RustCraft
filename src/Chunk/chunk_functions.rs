@@ -4,7 +4,8 @@ use crate::{
     file_system::*, 
     renderer::*, 
     types::*, 
-    chunk::create_chunks::generate_chunk
+    chunk::create_chunks::generate_chunk,
+    chunk::chunk_gpu_functions::check_for_touching_air,
 };
 
 use async_std::task;
@@ -43,7 +44,13 @@ impl super::Chunk {
         }
 
         // check each block if it is touching air (async because reading from gpu is async)
-        task::block_on(self.check_for_touching_air(&mut temp_chunk_vec, &renderer, chunk_sizes));
+        task::block_on(check_for_touching_air(
+            &mut temp_chunk_vec, 
+            &renderer.device, 
+            &renderer.queue, 
+            &renderer.check_air_compute_shader_code, 
+            chunk_sizes
+        ));
 
         // fill the chunkBlocks hashmap from the temp vector
         fill_chunk_hashmap(&mut self.chunk_blocks, &mut self.instances_to_render, temp_chunk_vec, chunk_sizes);
@@ -158,7 +165,7 @@ pub fn fill_chunk_hashmap(
                     blocks_to_insert.push((cached_key, *block));
 
                     // and if it is touching air then add it to the instances to render hashmap
-                    if block.touching_air {
+                    if block.is_touching_air {
                         instances_to_insert.push((cached_key,
                             InstanceData {
                                 model_matrix: block.model_matrix.clone(),
