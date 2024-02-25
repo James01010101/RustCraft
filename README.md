@@ -1,7 +1,5 @@
 # RustCraft
-Minecraft from scratch using Rust
-
-// with window stuff
+Minecraft from scratch using Rust and wgpu
 testing shaders
 https://github.com/austinEng/webgpu-samples/blob/main/src/shaders/basic.vert.wgsl
 
@@ -15,14 +13,6 @@ Z: forward and back, forward is positive, backwards is negative
 
 the point of a block is the front bottom left vertex
 same for the start of a chunk
-
-
-**GL Functions** 
-BufferData copys the data to the gpu, it allocates a new array for the data and will automatically free the unused one
-give it either DYNAMIC_DRAW or STATIC_DRAW, dynamic is for objects ill change the values on constantly
-static for objects that dont have values changed often, but they can still change
-
-BufferSubData rewrites data in a buffer, doesnt realloc.
 
 
 **Static and Dynamic Objects** 
@@ -52,7 +42,6 @@ away feom the camera up to say 10 blocks away
 then i just check theough the blocks and check the first one i hit that is not air
 
 can also use queus for lighting 
-
 
 
 **GitHub** 
