@@ -27,5 +27,9 @@ name = "bench_test"
 harness = false
 
 [[bench]]
-name = "bench_fill_chunk_hashmap"
+name = "chunk_fill_chunk_hashmap"
+harness = false
+
+[[bench]]
+name = "world_get_chunks_around_character"
 harness = false

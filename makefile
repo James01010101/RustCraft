@@ -36,10 +36,8 @@ bench: clear
 clean: 
 	cargo clean
 
-
 cleanworld:
 	rm -rf assets/data/Worlds/*
-
 
 
 # make a compresses shipping version of the game to be saved so i can see my progress
@@ -78,8 +76,8 @@ clear:
 # optimisations
 opt_fill_chunk_hashmap: clear
 	cargo build --release
-	cargo test --test test_fill_chunk_hashmap --release
-	cargo bench --bench bench_fill_chunk_hashmap
+	cargo test --test fill_chunk_hashmap --release
+	cargo bench --bench fill_chunk_hashmap
 	
 
 test_bench: clear
@@ -88,5 +86,10 @@ test_bench: clear
 bench_fill_chunk_hashmap: clear
 	cargo build --release
 	clear
-	cargo bench --bench bench_fill_chunk_hashmap
-	open target/criterion/report/index.html
+	cargo bench --bench fill_chunk_hashmap
+
+
+opt_get_chunks_around_character: clear
+	cargo build --release
+	cargo test --test world_get_chunks_around_character --release -- --nocapture
+	cargo bench --bench world_get_chunks_around_character
