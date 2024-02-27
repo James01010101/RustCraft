@@ -63,36 +63,50 @@ impl World {
     }
 
     // if the player has changed chunks this frame update the chunks around them
-    pub fn update_chunks_around_character(
+    pub fn get_chunks_around_character(
         &mut self,
         character: &Character,
-        renderer: &Renderer,
-        file_system: &mut FileSystem,
-    ) {
+    ) -> Vec<(i32, i32)> {
         // these are the chunk that should be currently loaded
         let mut chunks_to_load: Vec<(i32, i32)> = Vec::new();
 
         // ill have a funciton which gets all chunks which should be loaded here
         // start at my current position and go left and right render distance amount
         // then go up once and go render distance -1 left and right continue until the top
-        let max_radius: i32 = self.render_distance as i32;
-        let mut current_radius: i32 = max_radius;
+        let mut current_radius: i32 = self.render_distance as i32;
         let current_chunk_x = character.chunk_position.0;
         let current_chunk_z = character.chunk_position.1;
 
-        for chunk_z_diff in 0..max_radius + 1 {
+        for chunk_z_diff in 0..(self.render_distance as i32 + 1) {
             // go left and right all the way
             for chunk_x in (current_chunk_x - current_radius)..(current_chunk_x + current_radius + 1) {
-                // z up
-                chunks_to_load.push((chunk_x, current_chunk_z + chunk_z_diff));
 
-                // z down
-                chunks_to_load.push((chunk_x, current_chunk_z - chunk_z_diff));
+                if chunk_z_diff == 0 {
+                    // just do this layer
+                    chunks_to_load.push((chunk_x, current_chunk_z));
+                } else {
+                    // z up
+                    chunks_to_load.push((chunk_x, current_chunk_z + chunk_z_diff));
+
+                    // z down
+                    chunks_to_load.push((chunk_x, current_chunk_z - chunk_z_diff));
+                }
             }
 
             // now decrease current radius
             current_radius -= 1;
         }
+
+        chunks_to_load
+    }
+
+
+    pub fn update_chunks_around_character(
+        &mut self,
+        renderer: &Renderer,
+        file_system: &mut FileSystem,
+        chunks_to_load: Vec<(i32, i32)>,
+    ) {
 
         // now go through the chunks loaded and match them to this array.
         // if something is in the array but not the hashmap ill add it

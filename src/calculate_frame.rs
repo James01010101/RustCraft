@@ -55,7 +55,8 @@ pub fn calculate_frame(
     // update the chunks that are loaded in the world around the player only if the chunk position changed
     if character.chunk_changed {
         character.chunk_changed = false;
-        world.update_chunks_around_character(character, renderer, file_system);
+        let chunks_to_load: Vec<(i32, i32)> = world.get_chunks_around_character(character);
+        world.update_chunks_around_character(renderer, file_system, chunks_to_load)
     }
 
     // Calculate the new view and combined matrices
