@@ -140,7 +140,7 @@ pub fn create_temp_chunk_vector(chunk_ids: (i32, i32), chunk_sizes: (usize, usiz
 
 
 // once the temp chunk vector has all the blocks in it correctly ill fill them into the hashmap to save space on non air blocks
-pub fn fill_chunk_hashmap_new_4( 
+pub fn fill_chunk_hashmap( 
     chunk_blocks: &mut HashMap<(i32, i16, i32), Block>, 
     instances_to_render: &mut HashMap<(i32, i16, i32), InstanceData>,
     temp_chunk_vec: Vec<Vec<Vec<Block>>>, 
