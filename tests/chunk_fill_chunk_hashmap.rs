@@ -3,7 +3,7 @@ extern crate rust_craft;
 
 use std::collections::HashMap;
 use rust_craft::{
-    optimisations::opt_fill_chunk_hashmap::*,
+    optimisations::chunk_fill_chunk_hashmap::*,
     block::*, 
     block_type::*,
     chunk::{chunk_functions::*, create_chunks::generate_chunk},

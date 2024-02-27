@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
 use std::collections::HashMap;
 use rust_craft::{
-    optimisations::opt_fill_chunk_hashmap::*,
+    optimisations::chunk_fill_chunk_hashmap::*,
     block::*, 
     chunk::{chunk_functions::*, create_chunks::generate_chunk},
     types::*, 
