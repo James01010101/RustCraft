@@ -76,11 +76,17 @@ clear:
 
 
 # optimisations
-
-
-
 opt_fill_chunk_hashmap: clear
 	cargo build --release
 	cargo test --test test_fill_chunk_hashmap --release
 	cargo bench --bench bench_fill_chunk_hashmap
 	
+
+test_bench: clear
+	cargo bench --bench bench_test
+
+bench_fill_chunk_hashmap: clear
+	cargo build --release
+	clear
+	cargo bench --bench bench_fill_chunk_hashmap
+	open target/criterion/report/index.html

@@ -12,8 +12,20 @@ debug = false
 [dependencies]
 async-std = "1.12.0"
 bytemuck = { version = "1.14.1", features = ["derive"] }
+criterion = "0.5"
 flume = "0.11.0"
 nalgebra = "0.32.3"
 rand = "0.8.5"
 wgpu = "0.19.1"
 winit = "0.29.10"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "bench_test"
+harness = false
+
+[[bench]]
+name = "bench_fill_chunk_hashmap"
+harness = false

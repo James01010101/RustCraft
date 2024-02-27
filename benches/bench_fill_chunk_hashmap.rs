@@ -1,10 +1,5 @@
-#![feature(test)]
-
-extern crate test;
+use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
 use std::collections::HashMap;
-
-use test::Bencher;
-
 use rust_craft::{
     optimisations::opt_fill_chunk_hashmap::*,
     block::*, 
@@ -13,11 +8,8 @@ use rust_craft::{
 };
 
 
-// takes in the function as a param so i dont need to rewrite the whole test each time
-fn bench_fill_chunk_hashmap<F>(b: &mut Bencher, fill_chunk_hashmap: F)
-where
-    F: Fn(&mut HashMap<(i32, i16, i32), Block>, &mut HashMap<(i32, i16, i32), InstanceData>, Vec<Vec<Vec<Block>>>, (usize, usize, usize)),
-{
+
+fn bench_fill_chunk_hashmap(c: &mut Criterion) {
     let chunk_sizes: (usize, usize, usize) = (32, 256, 32);
 
     let mut temp_chunk_vector_global: Vec<Vec<Vec<Block>>> = create_temp_chunk_vector((0, 0), chunk_sizes);
@@ -33,55 +25,37 @@ where
         }
     }
 
-    b.iter(|| {
-        let temp_chunk_vector = temp_chunk_vector_global.clone();
-        let mut chunk_blocks = chunk_blocks_global.clone();
-        let mut instances_to_render = instances_to_render_global.clone();
+    let mut group = c.benchmark_group("fill_chunk_hashmap");
 
-        fill_chunk_hashmap(&mut chunk_blocks, &mut instances_to_render, temp_chunk_vector, chunk_sizes);
-    });
+    for (name, func) in [
+        ("old", fill_chunk_hashmap_old as fn(&mut _, &mut _, _, _)),
+        ("new_1", fill_chunk_hashmap_new_1 as fn(&mut _, &mut _, _, _)),
+        ("new_2", fill_chunk_hashmap_new_2 as fn(&mut _, &mut _, _, _)),
+        ("new_3", fill_chunk_hashmap_new_3 as fn(&mut _, &mut _, _, _)),
+        ("new_4", fill_chunk_hashmap_new_4 as fn(&mut _, &mut _, _, _)),
+        ("new_5", fill_chunk_hashmap_new_5 as fn(&mut _, &mut _, _, _)),
+        ("new_6", fill_chunk_hashmap_new_6 as fn(&mut _, &mut _, _, _)),
+        ("new_7", fill_chunk_hashmap_new_7 as fn(&mut _, &mut _, _, _)),
+        // add more function versions here...
+    ].iter() {
+        group.bench_function(BenchmarkId::new("fill_chunk_hashmap", name), |b| {
+            b.iter(|| {
+                let temp_chunk_vector = temp_chunk_vector_global.clone();
+                let mut chunk_blocks = chunk_blocks_global.clone();
+                let mut instances_to_render = instances_to_render_global.clone();
+
+                func(&mut chunk_blocks, &mut instances_to_render, temp_chunk_vector, chunk_sizes);
+            });
+        });
+    }
+
+    group.finish();
 }
 
-#[bench]
-fn bench_fill_chunk_hashmap_old(b: &mut Bencher) {
-    bench_fill_chunk_hashmap(b, fill_chunk_hashmap_old);
+criterion_group!{
+    name = benches;
+    // This can be any expression that returns a `Criterion` object.
+    config = Criterion::default().sample_size(1000); //.measurement_time(std::time::Duration::from_secs(10));
+    targets = bench_fill_chunk_hashmap
 }
-
-#[bench]
-fn bench_fill_chunk_hashmap_new_1(b: &mut Bencher) {
-    bench_fill_chunk_hashmap(b, fill_chunk_hashmap_new_1);
-}
-
-#[bench]
-fn bench_fill_chunk_hashmap_new_2(b: &mut Bencher) {
-    bench_fill_chunk_hashmap(b, fill_chunk_hashmap_new_2);
-}
-
-#[bench]
-fn bench_fill_chunk_hashmap_new_3(b: &mut Bencher) {
-    bench_fill_chunk_hashmap(b, fill_chunk_hashmap_new_3);
-}
-
-#[bench]
-fn bench_fill_chunk_hashmap_new_4(b: &mut Bencher) {
-    bench_fill_chunk_hashmap(b, fill_chunk_hashmap_new_4);
-}
-
-#[bench]
-fn bench_fill_chunk_hashmap_new_5(b: &mut Bencher) {
-    bench_fill_chunk_hashmap(b, fill_chunk_hashmap_new_5);
-}
-
-#[bench]
-fn bench_fill_chunk_hashmap_new_6(b: &mut Bencher) {
-    bench_fill_chunk_hashmap(b, fill_chunk_hashmap_new_6);
-}
-
-
-
-
-
-
-
-
-
+criterion_main!(benches);
