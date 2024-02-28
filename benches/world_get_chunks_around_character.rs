@@ -20,8 +20,8 @@ fn bench_get_chunks_around_character(c: &mut Criterion) {
 
     for (name, func) in [
         ("old", get_chunks_around_character_old as fn(&mut _, & _,) -> Vec<(i32, i32)>),
-        ("new_1", get_chunks_around_character_old as fn(&mut _, & _,) -> Vec<(i32, i32)>),
-        ("new_2", get_chunks_around_character_old as fn(&mut _, & _,) -> Vec<(i32, i32)>),
+        ("new_1", get_chunks_around_character_new_1 as fn(&mut _, & _,) -> Vec<(i32, i32)>),
+        ("new_2", get_chunks_around_character_new_2 as fn(&mut _, & _,) -> Vec<(i32, i32)>),
 
 
     ].iter() {
@@ -38,7 +38,7 @@ fn bench_get_chunks_around_character(c: &mut Criterion) {
 criterion_group!{
     name = benches;
     // This can be any expression that returns a `Criterion` object.
-    config = Criterion::default().sample_size(1500); //.measurement_time(std::time::Duration::from_secs(10));
+    config = Criterion::default().sample_size(1500).measurement_time(std::time::Duration::from_secs(10));
     targets = bench_get_chunks_around_character
 }
 criterion_main!(benches);
