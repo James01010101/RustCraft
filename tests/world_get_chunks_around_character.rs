@@ -5,6 +5,7 @@ use rust_craft::{
     world::World
 };
 
+use std::collections::HashSet;
 
 // these all assume chunk sizes of (32 x 256 x 32)
 fn test_get_chunks_around_character(render_distance: usize, correct_chunks: Vec<(i32, i32)>) {
@@ -16,7 +17,7 @@ fn test_get_chunks_around_character(render_distance: usize, correct_chunks: Vec<
     character.chunk_position = (0, 0);  
 
     // run the function
-    let result: Vec<(i32, i32)> = world.get_chunks_around_character(&character);
+    let result: HashSet<(i32, i32)> = world.get_chunks_around_character(&character);
 
     //println!("result: {:?}", result);
 

@@ -1,6 +1,6 @@
 // THis will be all the main code to do all calculations for the frame before it is rendered
 use crate::{
-    camera::*, character::*, file_system::*, gpu_data::*, my_keyboard::*, renderer::*, world::*, chunk::*,
+    camera::*, character::*, file_system::*, gpu_data::*, my_keyboard::*, renderer::*, world::*,
 };
 
 use winit::{dpi::PhysicalPosition, window::Window};
