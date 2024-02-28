@@ -48,3 +48,7 @@ can also use queus for lighting
 Once a pull request has gone through to delete the branch locally
 git branch -d "branchname" // this will delete the local version of the branch (if it has been merged)
 git fetch --prune // this will delete the remote connection to this branch
+
+
+Raspberry pi Rust
+when installing if it fails with aarch64 which it will default to, this 'arm-unknown-linux-gnueabihf' works
