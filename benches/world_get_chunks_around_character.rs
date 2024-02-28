@@ -27,7 +27,8 @@ fn bench_get_chunks_around_character(c: &mut Criterion) {
     ].iter() {
         group.bench_function(BenchmarkId::new("get_chunks_around_character", name), |b| {
             b.iter(|| {
-                let _: Vec<(i32, i32)> = func(&mut world, &character);
+                let result: Vec<(i32, i32)> = func(criterion::black_box(&mut world), criterion::black_box(&character));
+                criterion::black_box(result);
             });
         });
     }
