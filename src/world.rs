@@ -19,7 +19,7 @@ pub struct World {
     to check if it is valid, ill add each new chunk here and the once a frame ill check if it is valid and if it is ill remove it from here and 
     put it into chunks, so it can be rendered like normal
     */
-    pub pending_chunks: Vec<Chunk>,
+    pub pending_chunks: HashMap<(i32, i32), Chunk>,
 
     // stores all of the chunks that have been created before
     pub created_chunks: HashSet<(i32, i32)>,
@@ -50,7 +50,7 @@ impl World {
         // create and return the world
         World {
             chunks,
-            pending_chunks: Vec::new(),
+            pending_chunks: HashMap::new(),
 
             created_chunks,
             world_name,
@@ -66,9 +66,9 @@ impl World {
     pub fn get_chunks_around_character(
         &mut self,
         character: &Character,
-    ) -> Vec<(i32, i32)> {
+    ) -> HashSet<(i32, i32)> {
         // these are the chunk that should be currently loaded
-        let mut chunks_to_load: Vec<(i32, i32)> = Vec::new();
+        let mut chunks_to_load: HashSet<(i32, i32)> = HashSet::new();
 
         // ill have a funciton which gets all chunks which should be loaded here
         // start at my current position and go left and right render distance amount
@@ -83,13 +83,13 @@ impl World {
 
                 if chunk_z_diff == 0 {
                     // just do this layer
-                    chunks_to_load.push((chunk_x, current_chunk_z));
+                    chunks_to_load.insert((chunk_x, current_chunk_z));
                 } else {
                     // z up
-                    chunks_to_load.push((chunk_x, current_chunk_z + chunk_z_diff));
+                    chunks_to_load.insert((chunk_x, current_chunk_z + chunk_z_diff));
 
                     // z down
-                    chunks_to_load.push((chunk_x, current_chunk_z - chunk_z_diff));
+                    chunks_to_load.insert((chunk_x, current_chunk_z - chunk_z_diff));
                 }
             }
 
@@ -105,9 +105,36 @@ impl World {
         &mut self,
         renderer: &Renderer,
         file_system: &mut FileSystem,
-        chunks_to_load: Vec<(i32, i32)>,
+        chunks_to_load: HashSet<(i32, i32)>,
     ) {
 
+        let chunks_hashset: HashSet<(i32, i32)> = self.chunks.keys().cloned().collect();
+        // get the chunks that are in chunks_to_load but not in the chunks
+        // these will need to be loaded
+        let load = chunks_to_load.difference(&chunks_hashset);
+        for (x, z) in load {
+            // also check that it isnt in the pending chunks
+            if !self.pending_chunks.contains_key(&(*x, *z)) {
+                // load this chunk (i know for sure it isnt contained in the hashmap so i can just insert it)
+                let mut c: Chunk = Chunk::new(*x, *z, -1, renderer);
+                c.load_chunk(file_system, renderer, self.chunk_sizes, &mut self.created_chunks);
+
+                // add the chunk to pending
+                self.pending_chunks.insert((*x, *z), c);
+            }
+        }
+
+
+        // now get the chunks that are in chunks but not in chunks to load
+        // these need to be unloaded
+        let unload = chunks_hashset.difference(&chunks_to_load);
+        for (x, z) in unload {
+            // remove this chunk and save it to a file
+            self.remove_chunk((*x, *z), file_system);
+        }
+
+
+        /*
         // now go through the chunks loaded and match them to this array.
         // if something is in the array but not the hashmap ill add it
         // if something is in the hashmap but not the array ill remove it
@@ -134,8 +161,6 @@ impl World {
                     c.load_chunk(file_system, renderer, self.chunk_sizes, &mut self.created_chunks);
                     self.pending_chunks.push(c);
                 }
-
-
             }
         }
 
@@ -151,6 +176,7 @@ impl World {
                 self.remove_chunk((x, z), file_system);
             }
         }
+        */
     }
 
     // takes in the filesystem, loads the file where all of the chunks that have been created live and writes them to the hashmap
@@ -231,6 +257,26 @@ impl World {
         } else {
             // if the key doesnt match a value ill print this but not panic so i can save the rest
             eprintln!("Failed to remove chunk with key {:?}", chunk_id);
+        }
+    }
+
+
+
+    pub fn update_pending_chunks(&mut self, renderer: &Renderer) {
+        // go through the pending chunks vec and any that are valid now are put into chunks
+        let current_pending_chunks: Vec<(i32, i32)> = self.pending_chunks.keys().cloned().collect();
+        for chunk_ids in current_pending_chunks {
+            // get this chunk from pending
+            let chunk: &mut Chunk = self.pending_chunks.get_mut(&chunk_ids).expect("could not get pending chunk");
+
+            // call update so it can finish off its copy when ready
+            chunk.update(renderer);
+
+            // if its capacity is enough remove it form pending and move it to chunks
+            if chunk.instance_capacity > chunk.instance_size {
+                let move_chunk: Chunk = self.pending_chunks.remove(&chunk_ids).expect("could not remove pending chunk");
+                self.chunks.insert((move_chunk.chunk_id_x, move_chunk.chunk_id_z), move_chunk);
+            }
         }
     }
 }

@@ -1,9 +1,11 @@
 // THis will be all the main code to do all calculations for the frame before it is rendered
 use crate::{
-    camera::*, character::*, file_system::*, gpu_data::*, my_keyboard::*, renderer::*, world::*,
+    camera::*, character::*, file_system::*, gpu_data::*, my_keyboard::*, renderer::*, world::*, chunk::*,
 };
 
 use winit::{dpi::PhysicalPosition, window::Window};
+
+use std::collections::HashSet;
 
 // do any game logic each frame
 pub fn calculate_frame(
@@ -38,24 +40,14 @@ pub fn calculate_frame(
     // update characters chunk position
     character.update_chunk_position(world.chunk_sizes);
 
-    // go through the pending chunks vec and any that are valid now are put into chunks
-    let mut i = 0;
-    while i < world.pending_chunks.len() {
-        // call update so it can finish off its copy when ready
-        world.pending_chunks[i].update(renderer);
-        if world.pending_chunks[i].instance_capacity > world.pending_chunks[i].instance_size {
-            let chunk = world.pending_chunks.remove(i);
-            world.chunks.insert((chunk.chunk_id_x, chunk.chunk_id_z), chunk);
-        } else {
-            i += 1;
-        }
-    }
+    // update the pending chunks and add them to the chunks if they are ready
+    world.update_pending_chunks(renderer);
 
 
     // update the chunks that are loaded in the world around the player only if the chunk position changed
     if character.chunk_changed {
         character.chunk_changed = false;
-        let chunks_to_load: Vec<(i32, i32)> = world.get_chunks_around_character(character);
+        let chunks_to_load: HashSet<(i32, i32)> = world.get_chunks_around_character(character);
         world.update_chunks_around_character(renderer, file_system, chunks_to_load)
     }
 
