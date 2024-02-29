@@ -33,3 +33,4 @@ pub mod renderer;
 pub mod types; // where any small types live, like position, instances
 pub mod window_wrapper; // where i store the window and event loop
 pub mod world; // this is where all of the objects in the world are stored // where i do all the calculations for the frame
+pub mod chunk_generation_thread; // where the chunk generation thread is run
