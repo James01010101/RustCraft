@@ -5,6 +5,7 @@ use std::{
     fs::File,
     io::{self, BufRead},
     path::PathBuf,
+    sync::{Arc, Mutex},
 };
 
 // this struct will hold all of the Chunks as well as arrays of mobs
@@ -22,7 +23,7 @@ pub struct World {
     pub pending_chunks: HashMap<(i32, i32), Chunk>,
 
     // stores all of the chunks that have been created before
-    pub created_chunks: HashSet<(i32, i32)>,
+    pub created_chunks: Arc<Mutex<HashSet<(i32, i32)>>>,
 
     // settings
     pub world_name: String,
@@ -45,7 +46,7 @@ impl World {
 
         // a table of all of the chunks that have been calculated before, Key: (chunkIDx, chunkIDy)
         // the order the hashset is printed changes every run
-        let created_chunks: HashSet<(i32, i32)> = HashSet::new();
+        let created_chunks: Arc<Mutex<HashSet<(i32, i32)>>> = Arc::new(Mutex::new(HashSet::new()));
 
         // create and return the world
         World {
@@ -62,6 +63,7 @@ impl World {
         }
     }
 
+    // TODO: #143 match a load with an unload and add it to the generation thread queue
     // if the player has changed chunks this frame update the chunks around them
     pub fn get_chunks_around_character(
         &mut self,
@@ -132,52 +134,8 @@ impl World {
             // remove this chunk and save it to a file
             self.remove_chunk((*x, *z), file_system);
         }
-
-
-        /*
-        // now go through the chunks loaded and match them to this array.
-        // if something is in the array but not the hashmap ill add it
-        // if something is in the hashmap but not the array ill remove it
-        // if something is in both ill do nothing
-        for i in 0..chunks_to_load.len() {
-            let x: i32 = chunks_to_load[i].0;
-            let z: i32 = chunks_to_load[i].1;
-
-            // if the loaded chunks doesnt contain this chunk ill load it
-            if !self.chunks.contains_key(&(x, z)) {
-
-                // also check that it isnt in the pending chunks
-                let mut is_in_pending: bool = false;
-                for chunk in self.pending_chunks.iter() {
-                    if chunk.chunk_id_x == x && chunk.chunk_id_z == z {
-                        is_in_pending = true;
-                        break;
-                    }
-                }  
-
-                if !is_in_pending {
-                    // load this chunk (i know for sure it isnt contained in the hashmap so i can just insert it)
-                    let mut c: Chunk = Chunk::new(x, z, -1, renderer);
-                    c.load_chunk(file_system, renderer, self.chunk_sizes, &mut self.created_chunks);
-                    self.pending_chunks.push(c);
-                }
-            }
-        }
-
-        // now go through the chunks loaded and match them to this array.
-        // if something is in the array but not the hashmap ill add ià
-        // if something is in the hashmap but not the array ill remove it
-        // if something is in both ill do nothing
-        let chunk_keys: Vec<(i32, i32)> = self.chunks.keys().cloned().collect();
-        for (x, z) in chunk_keys {
-            // if the chunk is not in the chunks to load array then remove it
-            if !chunks_to_load.contains(&(x, z)) {
-                // remove this chunk and save it to a file
-                self.remove_chunk((x, z), file_system);
-            }
-        }
-        */
     }
+
 
     // takes in the filesystem, loads the file where all of the chunks that have been created live and writes them to the hashmap
     pub fn load_created_chunks_file(&mut self, my_file_system: &mut FileSystem) {
@@ -248,20 +206,10 @@ impl World {
 
     // TODO: #66 Break block function
 
-    // universal remove chunk function so that i remove it correctly and save it to a file without needing to do this myself
-    pub fn remove_chunk(&mut self, chunk_id: (i32, i32), file_system: &mut FileSystem) {
-        // remove the chunk from the hashmap and return it
-        if let Some(chunk) = self.chunks.remove(&chunk_id) {
-            file_system.save_chunk_to_file(chunk, self.chunk_sizes);
-            //println!("Removed Chunk ({}, {})", chunk_id.0, chunk_id.1);
-        } else {
-            // if the key doesnt match a value ill print this but not panic so i can save the rest
-            eprintln!("Failed to remove chunk with key {:?}", chunk_id);
-        }
-    }
+    
 
 
-
+    // TODO: #144 remove pending chunks as its not needed
     pub fn update_pending_chunks(&mut self, renderer: &Renderer) {
         // go through the pending chunks vec and any that are valid now are put into chunks
         let current_pending_chunks: Vec<(i32, i32)> = self.pending_chunks.keys().cloned().collect();
@@ -278,5 +226,20 @@ impl World {
                 self.chunks.insert((move_chunk.chunk_id_x, move_chunk.chunk_id_z), move_chunk);
             }
         }
+    }
+}
+
+
+// universal remove chunk function so that i remove it correctly and save it to a file without needing to do this myself
+pub fn remove_chunk(chunks: Arc<Mutex<HashMap<(i32, i32), Chunk>>>, chunk_id: (i32, i32), file_system: Arc<Mutex<FileSystem>>, chunk_sizes: (usize, usize, usize)) {
+    // remove the chunk from the hashmap and return it
+    let mut chunks_locked = chunks.lock().unwrap();
+    if let Some(chunk) = chunks_locked.remove(&chunk_id) {
+        let mut file_system_locked = file_system.lock().unwrap();
+        file_system_locked.save_chunk_to_file(chunk, chunk_sizes);
+        //println!("Removed Chunk ({}, {})", chunk_id.0, chunk_id.1);
+    } else {
+        // if the key doesnt match a value ill print this but not panic so i can save the rest
+        eprintln!("Failed to remove chunk with key {:?}", chunk_id);
     }
 }
