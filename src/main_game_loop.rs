@@ -8,12 +8,15 @@ use crate::{
     renderer::*, 
     window_wrapper::*, 
     world::*,
+    chunk_generation_thread::*,
 };
 
 use std::{
     borrow::BorrowMut,
     sync::{Arc, Mutex},
     time::Instant,
+    thread,
+    collections::VecDeque,
 };
 
 use async_std::task;
@@ -45,8 +48,8 @@ pub fn run_main_game_loop() {
     let mut world: World = World::new(
         "James's World".to_string(), 
         1, 
-        3, 
-        (32, 256, 32)
+        5, 
+        (8, 16, 8)
     );
 
     // create the gpudata buffers
@@ -71,6 +74,29 @@ pub fn run_main_game_loop() {
     world.load_created_chunks_file(&mut file_system);
 
     let mut use_cursor: bool = false;
+
+    
+
+    
+    // create the queue that i will use to load chunks on the chunk generation thread
+    let mut loading_chunks_queue: Arc<Mutex<VecDeque<(i32, i32)>>> = Arc::new(Mutex::new(VecDeque::new()));
+
+    let loading_chunks_queue_clone: Arc<Mutex<VecDeque<(i32, i32)>>> = loading_chunks_queue.clone();
+    let chunk_sizes = world.chunk_sizes;
+    let created_chunks_clone = world.created_chunks.clone();
+
+    // start up the chunk generation thread
+    let chunk_generation_thread = thread::spawn(move || run_chunk_generation_thread(
+                                                                            loading_chunks_queue_clone,
+                                                                            chunk_sizes,
+                                                                            created_chunks_clone)
+                                                                );
+
+
+
+
+
+
 
     // stats before starting
     let frame_number_outside: Arc<Mutex<u64>> = Arc::new(Mutex::new(0));
@@ -232,6 +258,9 @@ pub fn run_main_game_loop() {
 
 // this will clean up all data before the program ends
 pub fn clean_up(world: &mut World, file_system: &mut FileSystem) {
+
+    // TODO: #138 finish off the chunk generation thread before saving the alive chunks to file
+
     let hashmap_chunk_keys: Vec<(i32, i32)> = world.chunks.keys().cloned().collect();
 
     // go through each chunk and call unload on it
