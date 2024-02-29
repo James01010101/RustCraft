@@ -58,7 +58,7 @@ pub struct Chunk {
 }
 
 impl Chunk {
-    pub fn new(idx: i32, idz: i32, num_blocks: i32, renderer: &Renderer) -> Chunk {
+    pub fn new(idx: i32, idz: i32, num_blocks: i32, device: Arc<Mutex<wgpu::Device>>) -> Chunk {
         // if a numBlocks was passed in ill allocate the hashmap of that size
         let chunk_blocks: HashMap<(i32, i16, i32), Block>;
         let instances_to_render: HashMap<(i32, i16, i32), InstanceData> = HashMap::new();
@@ -74,8 +74,9 @@ impl Chunk {
         }
 
         // make the instance buffer for the chunk init it with size of 100
+        let device_locked = device.lock().unwrap();
         let instance_capacity: u32 = 100;
-        let instance_buffer: wgpu::Buffer = renderer.device.create_buffer(&BufferDescriptor {
+        let instance_buffer: wgpu::Buffer = device_locked.create_buffer(&BufferDescriptor {
             label: Some("Instance Buffer"),
             size: (std::mem::size_of::<InstanceData>() * instance_capacity as usize)
                 as wgpu::BufferAddress,
@@ -83,7 +84,7 @@ impl Chunk {
             mapped_at_creation: false,
         });
 
-        let instance_staging_buffer: wgpu::Buffer = renderer.device.create_buffer(&BufferDescriptor {
+        let instance_staging_buffer: wgpu::Buffer = device_locked.create_buffer(&BufferDescriptor {
                 label: Some("Instance Staging Buffer"),
                 size: (std::mem::size_of::<InstanceData>() * instance_capacity as usize)
                     as wgpu::BufferAddress,
@@ -91,7 +92,7 @@ impl Chunk {
                 mapped_at_creation: false,
             });
 
-        let new_instance_buffer: wgpu::Buffer = renderer.device.create_buffer(&BufferDescriptor {
+        let new_instance_buffer: wgpu::Buffer = device_locked.create_buffer(&BufferDescriptor {
             label: Some("Instance Buffer"),
             size: (std::mem::size_of::<InstanceData>() * instance_capacity as usize)
                 as wgpu::BufferAddress,
@@ -99,13 +100,14 @@ impl Chunk {
             mapped_at_creation: false,
         });
 
-        let new_instance_staging_buffer: wgpu::Buffer = renderer.device.create_buffer(&BufferDescriptor {
+        let new_instance_staging_buffer: wgpu::Buffer = device_locked.create_buffer(&BufferDescriptor {
                 label: Some("Instance Staging Buffer"),
                 size: (std::mem::size_of::<InstanceData>() * instance_capacity as usize)
                     as wgpu::BufferAddress,
                 usage: BufferUsages::VERTEX | BufferUsages::COPY_DST | BufferUsages::COPY_SRC,
                 mapped_at_creation: false,
             });
+        drop(device_locked);
 
         Self {
             chunk_blocks,
