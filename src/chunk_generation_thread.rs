@@ -95,9 +95,6 @@ pub fn run_chunk_generation_thread(
 
                 // add this chunks data to the hashmap so i can check it later
                 currently_creating_chunks.insert(load_chunk_ids, new_chunk_data);
-
-                // TODO: #140 unload a chunk too so i dont have too many loaded
-
             }
             None => {
                 // nothing in the queue so ill sleep for a bit
