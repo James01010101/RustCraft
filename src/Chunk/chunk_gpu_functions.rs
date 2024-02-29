@@ -5,23 +5,30 @@ This is where any chunk functions related to gpu buffers and compute shaders wil
 use crate::{chunk::*, renderer::*};
 
 use std::mem;
+use wgpu::core::device::queue;
 use wgpu::{Device, Queue, ShaderModule};
 use wgpu::util::DeviceExt;
 
 impl Chunk {
     // each frame call this on each chunk. it will update the instance buffer if the instances have been modified
-    pub fn update_instance_buffer(&mut self, renderer: &Renderer) {
+    pub fn update_instance_buffer(&mut self, device: Arc<Mutex<Device>>, queue: Arc<Mutex<Queue>>) {
         // if the instances have been modified then update the instance buffer
         if self.instances_modified {
             // and if the staging buffer is finished writing
-            let staging_buffer_writing = self.staging_buffer_writing.lock().unwrap();
-            if !*staging_buffer_writing {
+            let staging_buffer_writing_locked = self.staging_buffer_writing.lock().unwrap();
+            let writing: bool = *staging_buffer_writing_locked;
+            drop(staging_buffer_writing_locked);
+
+            if !writing {
                 // copy the staging buffer to the instance buffer
-                let mut encoder = renderer.device.create_command_encoder(
+                let device_locked = device.lock().unwrap();
+                let mut encoder = device_locked.create_command_encoder(
                     &(wgpu::CommandEncoderDescriptor {
                         label: Some("instance buffer copy encoder"),
                     }),
                 );
+                drop(device_locked);
+
                 encoder.copy_buffer_to_buffer(
                     &self.instance_staging_buffer,
                     0,
@@ -30,7 +37,10 @@ impl Chunk {
                     ((self.instance_size as usize) * mem::size_of::<InstanceData>())
                         as wgpu::BufferAddress,
                 );
-                renderer.queue.submit(Some(encoder.finish()));
+
+                let queue_locked = queue.lock().unwrap();
+                queue_locked.submit(Some(encoder.finish()));
+                drop(queue_locked);
 
                 // set the flag to false
                 self.instances_modified = false;
@@ -39,11 +49,13 @@ impl Chunk {
     }
 
     // update the instance buffer for the chunk with the instances
-    pub fn update_instance_staging_buffer(&mut self, renderer: &Renderer) {
-        let new_instance_buffers_writing = self.new_instance_buffers_writing.lock().unwrap();
+    pub fn update_instance_staging_buffer(&mut self, queue: Arc<Mutex<Queue>>) {
+        let new_instance_buffers_writing_locked = self.new_instance_buffers_writing.lock().unwrap();
+        let writing: bool = *new_instance_buffers_writing_locked;
+        drop(new_instance_buffers_writing_locked);
 
         // only start staging buffer commands if no new instance buffers are being created and written to
-        if !*new_instance_buffers_writing {
+        if !writing {
             // make the hashmap of instances into a sclice i can pass to a buffer
             let instances_vector = self
                 .instances_to_render
@@ -53,14 +65,15 @@ impl Chunk {
             let instances_slice = instances_vector.as_slice();
 
             // update the staging gpu buffers and set the flag that this data has changed
-            renderer.queue.write_buffer(
+            let queue_locked = queue.lock().unwrap();
+            queue_locked.write_buffer(
                 &self.instance_staging_buffer,
                 0,
                 bytemuck::cast_slice(instances_slice),
             );
 
             // submit the write command
-            renderer.queue.submit(std::iter::empty());
+            queue_locked.submit(std::iter::empty());
 
             self.instances_modified = true;
 
@@ -72,18 +85,19 @@ impl Chunk {
             *staging_buffer_writing = true;
 
             // Set up a callback to run when the instance buffer copy is finished
-            renderer.queue.on_submitted_work_done(move || {
+            queue_locked.on_submitted_work_done(move || {
                 // set the staging buffer writing flag to false so i know its finished writing
                 let mut staging_buffer_writing_gpu = staging_buffer_writing_clone.lock().unwrap();
                 *staging_buffer_writing_gpu = false;
             });
+            drop(queue_locked);
             // dont need to submit the on submitted work done function
         }
     }
 
     // increase instance buffers capasity
     // this will be called when i try to add blocks to the instance buffer but its size exceeds its capasity
-    pub fn update_instance_buffers_capacity(&mut self, renderer: &Renderer) {
+    pub fn update_instance_buffers_capacity(&mut self, device: Arc<Mutex<Device>>, queue: Arc<Mutex<Queue>>) {
         
         self.creating_new_instance_buffers = true;
 
@@ -93,22 +107,16 @@ impl Chunk {
         let amount_needed: u32 = self.instance_size - self.instance_capacity;
         while amount_needed > capacity_increase_amount {
             // if 100 isnt enough then keep adding until it is over, not exact so there is still some room
-            capacity_increase_amount += 10;
+            capacity_increase_amount += 100;
         }
-        
-        /*println!(
-            "Chunk: ({},{}) increasing instance buffer capacity from {} -> {}",
-            self.chunk_id_x,
-            self.chunk_id_z,
-            self.instance_capacity,
-            self.instance_capacity + capacity_increase_amount
-        );*/
 
         // i need to reallocate the capacity of the instance buffers
         self.new_instance_capacity = self.instance_capacity + capacity_increase_amount;
 
+        let device_locked = device.lock().unwrap();
+
         // dont overwrite the staging yet since it might have commands being done
-        self.new_instance_staging_buffer = renderer.device.create_buffer(&BufferDescriptor {
+        self.new_instance_staging_buffer = device_locked.create_buffer(&BufferDescriptor {
             label: Some("Instance Staging Buffer"),
             size: (std::mem::size_of::<InstanceData>() * self.new_instance_capacity as usize)
                 as wgpu::BufferAddress,
@@ -116,13 +124,14 @@ impl Chunk {
             mapped_at_creation: false,
         });
 
-        self.new_instance_buffer = renderer.device.create_buffer(&BufferDescriptor {
+        self.new_instance_buffer = device_locked.create_buffer(&BufferDescriptor {
             label: Some("Instance Buffer"),
             size: (std::mem::size_of::<InstanceData>() * self.new_instance_capacity as usize)
                 as wgpu::BufferAddress,
             usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
+        drop(device_locked);
 
         // dont need to copy the buffer just copy the instance hashmap into the buffer and overwrite the old buffer so it is freed
         let instances_vector = self
@@ -133,24 +142,26 @@ impl Chunk {
         let instances_slice = instances_vector.as_slice();
 
         // update the new actual gpu buffer and set the flag that this data has changed
-        renderer.queue.write_buffer(
+        let queue_locked = queue.lock().unwrap();
+        queue_locked.write_buffer(
             &self.new_instance_buffer,
             0,
             bytemuck::cast_slice(instances_slice),
         );
         // submit the write command
-        renderer.queue.submit(std::iter::empty());
+        queue_locked.submit(std::iter::empty());
 
         // update the fence for the new buffers so i know not to update the old ones anymore
         let new_instance_buffers_writing_clone = self.new_instance_buffers_writing.clone();
         let mut new_instance_buffers_writing = self.new_instance_buffers_writing.lock().unwrap();
         *new_instance_buffers_writing = true;
 
-        renderer.queue.on_submitted_work_done(move || {
+        queue_locked.on_submitted_work_done(move || {
             // set the staging buffer writing flag to false so i know its finished writing
             let mut new_instance_buffers_writing = new_instance_buffers_writing_clone.lock().unwrap();
             *new_instance_buffers_writing = false;
         });
+        drop(queue_locked);
     }
 
     // once the new buffer has finished being written to with new data i can overwrite the old buffers
@@ -173,13 +184,13 @@ impl Chunk {
 // compute shader to label which blocks are touching air
     // iterate through the whole vector and update all blocks that are touching air using a compute shader
     // this is run once on chunk creation
-    pub async fn check_for_touching_air(
+    pub fn check_for_touching_air(
         temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>,
-        device: &Device,
-        queue: &Queue,
+        device: Arc<Mutex<Device>>,
+        queue: Arc<Mutex<Queue>>,
         shader_code: &ShaderModule,
         chunk_sizes: (usize, usize, usize),
-    ) {
+    ) -> (Arc<Mutex<i32>>, wgpu::Buffer) {
         /*
         create 2 buffers
         buffer 1: hold all block types (as u16)
@@ -241,7 +252,8 @@ impl Chunk {
         // so instead ill use u8 for all calculations on the gpu and then just convert it to a bool on the cpu once i recieve the results
 
         // now create the gpu buffers for both of these
-        let block_type_buffer = device.create_buffer_init(
+        let mut device_locked = device.lock().unwrap();
+        let block_type_buffer = device_locked.create_buffer_init(
             &(wgpu::util::BufferInitDescriptor {
                 label: Some("block type compute buffer"),
                 contents: bytemuck::cast_slice(&chunk_block_types),
@@ -249,7 +261,7 @@ impl Chunk {
             }),
         );
 
-        let block_transparency_buffer = device.create_buffer_init(
+        let block_transparency_buffer = device_locked.create_buffer_init(
             &(wgpu::util::BufferInitDescriptor {
                 label: Some("block transparency compute buffer"),
                 contents: bytemuck::cast_slice(&chunk_block_transparency),
@@ -257,7 +269,7 @@ impl Chunk {
             }),
         );
 
-        let dimentions_buffer = device.create_buffer_init(
+        let dimentions_buffer = device_locked.create_buffer_init(
             &(wgpu::util::BufferInitDescriptor {
                 label: Some("block transparency compute buffer"),
                 contents: bytemuck::cast_slice(&dimentions),
@@ -265,10 +277,9 @@ impl Chunk {
             }),
         );
 
-        let result_buffer_size: wgpu::BufferAddress =
-            (chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2 * mem::size_of::<u32>())
-                as wgpu::BufferAddress;
-        let result_buffer = device.create_buffer(
+        let result_buffer_size: wgpu::BufferAddress = 
+            (chunk_sizes.0 * chunk_sizes.1 * chunk_sizes.2 * mem::size_of::<u32>()) as wgpu::BufferAddress;
+        let result_buffer = device_locked.create_buffer(
             &(wgpu::BufferDescriptor {
                 label: Some("Result compute buffer"),
                 size: result_buffer_size,
@@ -284,7 +295,7 @@ impl Chunk {
         // create the bind group and pipeline
         // Instantiates the bind group, once again specifying the binding of buffers.
 
-        let bind_group_layout = device.create_bind_group_layout(
+        let bind_group_layout = device_locked.create_bind_group_layout(
             &(wgpu::BindGroupLayoutDescriptor {
                 label: Some("Bind Group Layout"),
                 entries: &[
@@ -337,7 +348,7 @@ impl Chunk {
             }),
         );
 
-        let bind_group = device.create_bind_group(
+        let bind_group = device_locked.create_bind_group(
             &(wgpu::BindGroupDescriptor {
                 label: None,
                 layout: &bind_group_layout,
@@ -362,7 +373,7 @@ impl Chunk {
             }),
         );
 
-        let pipeline_layout = device.create_pipeline_layout(
+        let pipeline_layout = device_locked.create_pipeline_layout(
             &(wgpu::PipelineLayoutDescriptor {
                 label: Some("Pipeline Layout"),
                 bind_group_layouts: &[&bind_group_layout],
@@ -370,7 +381,7 @@ impl Chunk {
             }),
         );
 
-        let compute_pipeline = device.create_compute_pipeline(
+        let compute_pipeline = device_locked.create_compute_pipeline(
             &(wgpu::ComputePipelineDescriptor {
                 label: Some("check for air Compute Pipeline"),
                 layout: Some(&pipeline_layout),
@@ -380,7 +391,7 @@ impl Chunk {
         );
 
         // run the shader
-        let mut encoder = device.create_command_encoder(
+        let mut encoder = device_locked.create_command_encoder(
             &(wgpu::CommandEncoderDescriptor {
                 label: Some("check air compute encoder"),
             }),
@@ -402,11 +413,12 @@ impl Chunk {
         }
 
         // submit the compute shader render pass command
-        queue.submit(Some(encoder.finish()));
+        let queue_locked = queue.lock().unwrap();
+        queue_locked.submit(Some(encoder.finish()));
 
         // get the results from the shader
         // make the buffer ill read from
-        let read_result_buffer = device.create_buffer(
+        let read_result_buffer: wgpu::Buffer = device_locked.create_buffer(
             &(wgpu::BufferDescriptor {
                 label: Some("Read Buffer"),
                 size: result_buffer_size,
@@ -415,7 +427,7 @@ impl Chunk {
             }),
         );
 
-        let mut encoder = device.create_command_encoder(
+        let mut encoder = device_locked.create_command_encoder(
             &(wgpu::CommandEncoderDescriptor {
                 label: Some("read buffer copy encoder"),
             }),
@@ -431,7 +443,8 @@ impl Chunk {
         );
 
         // submit the copy buffer command and the fence submitted work done command
-        queue.submit(Some(encoder.finish()));
+        queue_locked.submit(Some(encoder.finish()));
+        
 
         // make a fence so i know once the copy buffer function has finished
         // Create a shared variable
@@ -441,94 +454,15 @@ impl Chunk {
         let fence_clone = Arc::clone(&fence);
 
         // Set up a callback to run when the submitted work is done
-        queue.on_submitted_work_done(move || {
+        queue_locked.on_submitted_work_done(move || {
             // This code will run when all work submitted to the queue up to this point has completed
             let mut fence_guard = fence_clone.lock().unwrap();
             *fence_guard = 1;
         });
+    
+        drop(device_locked); // dont need this anymore so i wont hold it
+        drop(queue_locked); // dont need this anymore so i wont hold it
 
-        // loop until the fence is 1 meaning the copy buffer is done
-        // normally i would have this checked once per frame not in a busy waiting loop
-        loop {
-            // Poll the device to process outstanding work
-            device.poll(wgpu::Maintain::Poll);
-
-            // Check if the fence has been set to 1
-            let fence_guard = fence.lock().unwrap();
-            if *fence_guard == 1 {
-                break;
-            }
-        }
-
-        // now the result buffer will have finished being copied over
-
-        let buffer_slice = read_result_buffer.slice(..);
-
-        // Sets the buffer up for mapping, sending over the result of the mapping back to us when it is finished.
-        let (sender, receiver) = flume::bounded(1);
-        buffer_slice.map_async(wgpu::MapMode::Read, move |v| sender.send(v).unwrap());
-
-        // poll the device waiting for the may async to finish since it is the only command in the queue
-        device.poll(wgpu::Maintain::Wait).panic_on_timeout();
-
-        // Awaits until `buffer_future` can be read from once the callback is run
-        let result = if let Ok(Ok(())) = receiver.recv_async().await {
-            // Gets contents of buffer
-            let data = buffer_slice.get_mapped_range();
-
-            // Since contents are got in bytes, this converts these bytes back to u32
-            let result: Vec<u32> = bytemuck::cast_slice(&data).to_vec();
-
-            // With the current interface, we have to make sure all mapped views are
-            // dropped before we unmap the buffer.
-            drop(data);
-            read_result_buffer.unmap(); // Unmaps buffer from memory
-                                        // If you are familiar with C++ these 2 lines can be thought of similarly to:
-                                        //   delete myPointer;
-                                        //   myPointer = NULL;
-                                        // It effectively frees the memory
-
-            // Returns data from buffer
-            result
-        } else {
-            panic!("failed to run compute on gpu!")
-        };
-
-        // print the results to check that they are right
-        /*
-        println!("testing results");
-
-        println!("length of results: {}", result.len());
-        println!("length of temp: {}", chunkSizeX * chunkSizeY * chunkSizeZ);
-        // print the blocks and then next to it the touching air result
-        for y in 0..chunkSizeY {
-            for z in 0..chunkSizeZ {
-                for x in 0..chunkSizeX {
-                    print!("{} ", tempChunkVec[x][y][z].blockType.ToInt());
-                }
-
-                // for spacing
-                print!("   ");
-
-                for x in 0..chunkSizeX {
-                    let index: usize = x + (y * chunkSizeX) + (z * chunkSizeX * chunkSizeY);
-                    print!("{} ", result[index]);
-                }
-
-                println!();
-            }
-            println!();
-        }
-        */
-
-        // update the blocks with the results
-        let mut index: usize;
-        for y in 0..chunk_sizes.1 {
-            for z in 0..chunk_sizes.2 {
-                for x in 0..chunk_sizes.0 {
-                    index = x + (y * chunk_sizes.0) + (z * chunk_sizes.0 * chunk_sizes.1);
-                    temp_chunk_vec[x][y][z].is_touching_air = result[index] != 0;
-                }
-            }
-        }
+        // stop here since itll be waiting for gpu stuff
+        return (fence, read_result_buffer);
     }

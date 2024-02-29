@@ -1,3 +1,4 @@
+use crate::file_system;
 use crate::{
     block::*, 
     block_type::*, 
@@ -6,51 +7,69 @@ use crate::{
     types::*, 
     chunk::create_chunks::generate_chunk,
     chunk::chunk_gpu_functions::check_for_touching_air,
+    chunk_generation_thread::*,
 };
 
 use async_std::task;
+use wgpu::{Device, Queue, ShaderModule};
 use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex};
 
 impl super::Chunk {
     // if this chunk has beenc created before then i create a Chunk obj, and fill it from wherever
     pub fn load_chunk(
         &mut self,
-        file_system: &mut FileSystem,
-        renderer: &Renderer,
+        file_system: Arc<Mutex<FileSystem>>,
+        device: Arc<Mutex<Device>>,
+        queue: Arc<Mutex<Queue>>,
+        check_air_compute_shader_code: &ShaderModule,
         chunk_sizes: (usize, usize, usize),
-        created_chunks: &mut HashSet<(i32, i32)>,
-    ) {
+        created_chunks: Arc<Mutex<HashSet<(i32, i32)>>>,
+    ) -> (Vec<Vec<Vec<Block>>>, Arc<Mutex<i32>>, wgpu::Buffer) {
         // create the temp chunk Vector, which creates all blocks
         let mut temp_chunk_vec: Vec<Vec<Vec<Block>>> = create_temp_chunk_vector((self.chunk_id_x, self.chunk_id_z), chunk_sizes);
 
         // fill the temp vector with data
         // first check if the chunk has been created before if so load it
-        if created_chunks.contains(&(self.chunk_id_x, self.chunk_id_z)) {
+        let mut created_chunks_locked = created_chunks.lock().unwrap();
+        let chunk_created: bool = created_chunks_locked.contains(&(self.chunk_id_x, self.chunk_id_z));
+        drop(created_chunks_locked); // so i dont hold the lock for it and main can use it
+
+        if chunk_created {
             // now check if it is loaded, if it is then i can just ignore it, if it isnt loaded then i need to read it from a file
             // it will already be loaded if i try to load a chunk already in the game
             // has been created before so load from file
-            file_system.read_chunks_from_file(
+            let file_system_locked = file_system.lock().unwrap();
+            file_system_locked.read_chunks_from_file(
                 &mut temp_chunk_vec,
                 self.chunk_id_x,
                 self.chunk_id_z,
                 chunk_sizes,
             );
+            drop(file_system_locked);
         } else {
             // else create a new one
             generate_chunk(&mut temp_chunk_vec, chunk_sizes);
 
             // add this chunk to created chunks
-            created_chunks.insert((self.chunk_id_x, self.chunk_id_z));
+            let mut created_chunks_locked = created_chunks.lock().unwrap();
+            created_chunks_locked.insert((self.chunk_id_x, self.chunk_id_z));
+            drop(created_chunks_locked); // so i dont hold the lock for it and main can use it
         }
 
-        // check each block if it is touching air (async because reading from gpu is async)
-        task::block_on(check_for_touching_air(
+
+        // check each block if it is touching air, this just starts the calculation but doesnt hold until its finished
+        let (compute_shader_fence, read_buffer) = check_for_touching_air(
             &mut temp_chunk_vec, 
-            &renderer.device, 
-            &renderer.queue, 
-            &renderer.check_air_compute_shader_code, 
+            device.clone(), 
+            queue.clone(), 
+            &check_air_compute_shader_code, 
             chunk_sizes
-        ));
+        );
+
+        // return back from here until the check air compute shader is finished
+        return (temp_chunk_vec, compute_shader_fence, read_buffer);
+       
 
         // fill the chunkBlocks hashmap from the temp vector
         fill_chunk_hashmap(&mut self.chunk_blocks, &mut self.instances_to_render, temp_chunk_vec, chunk_sizes);
@@ -61,16 +80,16 @@ impl super::Chunk {
         // update instance size
         self.instance_size = self.instances_to_render.len() as u32;
         if self.instance_size > self.instance_capacity {
-            self.update_instance_buffers_capacity(renderer);
+            self.update_instance_buffers_capacity(&device, &queue);
         }
 
-        self.update_instance_staging_buffer(renderer);
+        self.update_instance_staging_buffer(&queue);
     }
 
     
 
     // this is called on each chunk per frame so i can do updates if needed
-    pub fn update(&mut self, renderer: &Renderer) {
+    pub fn update(&mut self, device: Arc<Mutex<Device>>, queue: Arc<Mutex<Queue>>) {
         // first check if there is a new instance buffer to be updated
         if self.creating_new_instance_buffers {
             // check if the new instance buffer is finished being written to
@@ -89,7 +108,7 @@ impl super::Chunk {
             // set creating new instance buffers to false
         } else {
             // if i am not currently creating new instance buffers
-            self.update_instance_buffer(renderer);
+            self.update_instance_buffer(device.clone(), queue.clone());
         }
     }
 }
@@ -201,6 +220,7 @@ pub fn fill_chunk_hashmap(
         instances_to_render.insert(instances_to_insert[i].0, instances_to_insert[i].1);
     }
 }
+
 
 
 // takes the world position and gives you the chunk id of the chunk that position is in
