@@ -11,7 +11,7 @@ use std::{
 // this struct will hold all of the Chunks as well as arrays of mobs
 pub struct World {
     // Use a hashmap to store currently loaded chunks
-    pub chunks: HashMap<(i32, i32), Chunk>,
+    pub chunks: Arc<Mutex<HashMap<(i32, i32), Chunk>>>,
 
     /* 
     once i create a chunk. it may not be vaid this frame. this can be if it create the instances buffer with less than the number of instance
@@ -48,6 +48,7 @@ impl World {
         // the order the hashset is printed changes every run
         let created_chunks: Arc<Mutex<HashSet<(i32, i32)>>> = Arc::new(Mutex::new(HashSet::new()));
 
+        let chunks: Arc<Mutex<HashMap<(i32, i32), Chunk>>> = Arc::new(Mutex::new(chunks));
         // create and return the world
         World {
             chunks,

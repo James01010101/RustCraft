@@ -2,10 +2,9 @@
 This is where any chunk functions related to gpu buffers and compute shaders will live
 */
 
-use crate::{chunk::*, renderer::*};
+use crate::chunk::*;
 
 use std::mem;
-use wgpu::core::device::queue;
 use wgpu::{Device, Queue, ShaderModule};
 use wgpu::util::DeviceExt;
 
@@ -188,7 +187,7 @@ impl Chunk {
         temp_chunk_vec: &mut Vec<Vec<Vec<Block>>>,
         device: Arc<Mutex<Device>>,
         queue: Arc<Mutex<Queue>>,
-        shader_code: &ShaderModule,
+        shader_code: Arc<Mutex<ShaderModule>>,
         chunk_sizes: (usize, usize, usize),
     ) -> (Arc<Mutex<i32>>, wgpu::Buffer) {
         /*
@@ -381,14 +380,16 @@ impl Chunk {
             }),
         );
 
+        let check_air_shader_locked = shader_code.lock().unwrap();
         let compute_pipeline = device_locked.create_compute_pipeline(
             &(wgpu::ComputePipelineDescriptor {
                 label: Some("check for air Compute Pipeline"),
                 layout: Some(&pipeline_layout),
-                module: &shader_code,
+                module: &check_air_shader_locked,
                 entry_point: "main",
             }),
         );
+        drop(check_air_shader_locked);
 
         // run the shader
         let mut encoder = device_locked.create_command_encoder(

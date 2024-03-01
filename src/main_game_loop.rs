@@ -9,6 +9,7 @@ use crate::{
     window_wrapper::*, 
     world::*,
     chunk_generation_thread::*,
+    chunk::*,
 };
 
 use std::{
@@ -42,7 +43,7 @@ pub fn run_main_game_loop() {
     let mut renderer: Renderer = task::block_on(Renderer::new(&window_wrapper, &camera));
 
     // create MY file system struct
-    let mut file_system: FileSystem = FileSystem::new();
+    let mut file_system: Arc<Mutex<FileSystem>> = Arc::new(Mutex::new(FileSystem::new()));
 
     // create my world
     let mut world: World = World::new(
@@ -68,10 +69,12 @@ pub fn run_main_game_loop() {
     let mut character: Character = Character::new(0.1);
 
     // validate the file system and add files and folders if needed
-    file_system.check_file_system(world.chunk_sizes, &world.world_name);
+    let mut file_system_locked = file_system.lock().unwrap();
+    file_system_locked.check_file_system(world.chunk_sizes, &world.world_name);
 
     // temp, add some blocks for testing
-    world.load_created_chunks_file(&mut file_system);
+    world.load_created_chunks_file(&mut file_system_locked);
+    drop(file_system_locked);
 
     let mut use_cursor: bool = false;
 
@@ -79,19 +82,29 @@ pub fn run_main_game_loop() {
 
     
     // create the queue that i will use to load chunks on the chunk generation thread
-    let mut loading_chunks_queue: Arc<Mutex<VecDeque<(i32, i32)>>> = Arc::new(Mutex::new(VecDeque::new()));
+    let mut loading_chunks_queue: Arc<Mutex<VecDeque<((i32, i32), Option<(i32, i32)>)>>> = Arc::new(Mutex::new(VecDeque::new()));
 
-    let loading_chunks_queue_clone: Arc<Mutex<VecDeque<(i32, i32)>>> = loading_chunks_queue.clone();
-    let chunk_sizes = world.chunk_sizes;
-    let created_chunks_clone = world.created_chunks.clone();
+    let loading_chunks_queue_clone: Arc<Mutex<VecDeque<((i32, i32), Option<(i32, i32)>)>>> = loading_chunks_queue.clone();
+    let chunk_sizes: (usize, usize, usize) = world.chunk_sizes;
+    let created_chunks_clone: Arc<Mutex<std::collections::HashSet<(i32, i32)>>> = world.created_chunks.clone();
+    let device_clone: Arc<Mutex<wgpu::Device>> = renderer.device.clone();
+    let queue_clone: Arc<Mutex<wgpu::Queue>> = renderer.queue.clone();
+    let shader_code: Arc<Mutex<wgpu::ShaderModule>> = renderer.check_air_compute_shader_code.clone();
+    let file_system_clone: Arc<Mutex<FileSystem>> = file_system.clone();
+    let chunks_clone: Arc<Mutex<std::collections::HashMap<(i32, i32), Chunk>>> = world.chunks.clone();
 
     // start up the chunk generation thread
     let chunk_generation_thread = thread::spawn(move || run_chunk_generation_thread(
                                                                             loading_chunks_queue_clone,
                                                                             chunk_sizes,
-                                                                            created_chunks_clone)
+                                                                            created_chunks_clone,
+                                                                            device_clone,
+                                                                            queue_clone,
+                                                                            shader_code, // this doesnt need to be arc mutex it can be cloned in
+                                                                            file_system_clone,
+                                                                            chunks_clone
+                                                                        )
                                                                 );
-
 
 
 

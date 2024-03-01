@@ -14,18 +14,19 @@ use wgpu::{
 };
 
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 pub struct Renderer {
     pub instance: Instance,
     pub surface: Surface<'static>,
     pub adapter: Adapter,
-    pub device: Device,
-    pub queue: Queue,
+    pub device: Arc<Mutex<Device>>,
+    pub queue: Arc<Mutex<Queue>>,
 
     // shaders
     pub vertex_shader_code: ShaderModule,
     pub fragment_shader_code: ShaderModule,
-    pub check_air_compute_shader_code: ShaderModule,
+    pub check_air_compute_shader_code: Arc<Mutex<ShaderModule>>,
 
     // pipeline
     pub pipeline_layout: PipelineLayout,
@@ -214,6 +215,9 @@ impl Renderer {
             },
             multiview: None,
         });
+        let device = Arc::new(Mutex::new(device));
+        let queue = Arc::new(Mutex::new(queue));
+        let check_air_compute_shader_code = Arc::new(Mutex::new(check_air_compute_shader_code));
 
         Self {
             instance,

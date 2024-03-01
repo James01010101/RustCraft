@@ -2,7 +2,7 @@ pub mod chunk_functions;
 pub mod chunk_gpu_functions;
 pub mod create_chunks;
 
-use crate::{block::*, renderer::*, types::*};
+use crate::{block::*, types::*};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use wgpu::{BufferDescriptor, BufferUsages};

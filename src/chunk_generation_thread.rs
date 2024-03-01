@@ -9,7 +9,7 @@ use std::{
 
 use crate::{
     block::*,
-    chunk::{chunk_functions::*, create_chunks::*, Chunk},
+    chunk::{chunk_functions::*, Chunk},
     file_system::*,
     world::*,
 };
@@ -51,7 +51,7 @@ pub fn run_chunk_generation_thread(
     created_chunks: Arc<Mutex<HashSet<(i32, i32)>>>,
     device: Arc<Mutex<wgpu::Device>>,
     queue: Arc<Mutex<wgpu::Queue>>,
-    check_air_compute_shader_code: wgpu::ShaderModule, // this doesnt need to be arc mutex it can be cloned in
+    check_air_compute_shader_code: Arc<Mutex<wgpu::ShaderModule>>,
     filesystem: Arc<Mutex<FileSystem>>,
     chunks: Arc<Mutex<HashMap<(i32, i32), Chunk>>>,
 ) {
@@ -76,7 +76,7 @@ pub fn run_chunk_generation_thread(
                     filesystem.clone(), 
                     device.clone(), 
                     queue.clone(), 
-                    &check_air_compute_shader_code, 
+                    check_air_compute_shader_code.clone(), 
                     chunk_sizes, 
                     created_chunks.clone()
                 );

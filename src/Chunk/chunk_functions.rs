@@ -1,16 +1,13 @@
-use crate::file_system;
+
 use crate::{
     block::*, 
     block_type::*, 
     file_system::*, 
-    renderer::*, 
     types::*, 
     chunk::create_chunks::generate_chunk,
     chunk::chunk_gpu_functions::check_for_touching_air,
-    chunk_generation_thread::*,
 };
 
-use async_std::task;
 use wgpu::{Device, Queue, ShaderModule};
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
@@ -22,7 +19,7 @@ impl super::Chunk {
         file_system: Arc<Mutex<FileSystem>>,
         device: Arc<Mutex<Device>>,
         queue: Arc<Mutex<Queue>>,
-        check_air_compute_shader_code: &ShaderModule,
+        check_air_compute_shader_code: Arc<Mutex<ShaderModule>>,
         chunk_sizes: (usize, usize, usize),
         created_chunks: Arc<Mutex<HashSet<(i32, i32)>>>,
     ) -> (Vec<Vec<Vec<Block>>>, Arc<Mutex<i32>>, wgpu::Buffer) {
@@ -39,7 +36,7 @@ impl super::Chunk {
             // now check if it is loaded, if it is then i can just ignore it, if it isnt loaded then i need to read it from a file
             // it will already be loaded if i try to load a chunk already in the game
             // has been created before so load from file
-            let file_system_locked = file_system.lock().unwrap();
+            let mut file_system_locked = file_system.lock().unwrap();
             file_system_locked.read_chunks_from_file(
                 &mut temp_chunk_vec,
                 self.chunk_id_x,
@@ -63,27 +60,12 @@ impl super::Chunk {
             &mut temp_chunk_vec, 
             device.clone(), 
             queue.clone(), 
-            &check_air_compute_shader_code, 
+            check_air_compute_shader_code.clone(), 
             chunk_sizes
         );
 
         // return back from here until the check air compute shader is finished
         return (temp_chunk_vec, compute_shader_fence, read_buffer);
-       
-
-        // fill the chunkBlocks hashmap from the temp vector
-        fill_chunk_hashmap(&mut self.chunk_blocks, &mut self.instances_to_render, temp_chunk_vec, chunk_sizes);
-
-        // update the number of alive blocks
-        self.alive_blocks = self.chunk_blocks.len() as u32;
-
-        // update instance size
-        self.instance_size = self.instances_to_render.len() as u32;
-        if self.instance_size > self.instance_capacity {
-            self.update_instance_buffers_capacity(&device, &queue);
-        }
-
-        self.update_instance_staging_buffer(&queue);
     }
 
     
