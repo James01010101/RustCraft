@@ -8,19 +8,12 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use std::collections::VecDeque;
+
 // this struct will hold all of the Chunks as well as arrays of mobs
 pub struct World {
     // Use a hashmap to store currently loaded chunks
     pub chunks: Arc<Mutex<HashMap<(i32, i32), Chunk>>>,
-
-    /* 
-    once i create a chunk. it may not be vaid this frame. this can be if it create the instances buffer with less than the number of instance
-    in this case there is no valid instance buffer which has enough room to render all the instance, there would be a new buffer being created 
-    at this point and is in the middle of copying, but it isnt finished. so instead of having a check every single frame for every single buffer
-    to check if it is valid, ill add each new chunk here and the once a frame ill check if it is valid and if it is ill remove it from here and 
-    put it into chunks, so it can be rendered like normal
-    */
-    pub pending_chunks: HashMap<(i32, i32), Chunk>,
 
     // stores all of the chunks that have been created before
     pub created_chunks: Arc<Mutex<HashSet<(i32, i32)>>>,
@@ -52,7 +45,6 @@ impl World {
         // create and return the world
         World {
             chunks,
-            pending_chunks: HashMap::new(),
 
             created_chunks,
             world_name,
@@ -106,35 +98,42 @@ impl World {
 
     pub fn update_chunks_around_character(
         &mut self,
-        renderer: &Renderer,
-        file_system: &mut FileSystem,
         chunks_to_load: HashSet<(i32, i32)>,
+        loading_chunks_queue: Arc<Mutex<VecDeque<((i32, i32), Option<(i32, i32)>)>>>,
     ) {
 
-        let chunks_hashset: HashSet<(i32, i32)> = self.chunks.keys().cloned().collect();
+        println!("Loading Chunks Around Character");
+        let chunks_locked = self.chunks.lock().unwrap();
+        let chunks_hashset: HashSet<(i32, i32)> = chunks_locked.keys().cloned().collect();
+        drop(chunks_locked);
+
         // get the chunks that are in chunks_to_load but not in the chunks
         // these will need to be loaded
-        let load = chunks_to_load.difference(&chunks_hashset);
-        for (x, z) in load {
-            // also check that it isnt in the pending chunks
-            if !self.pending_chunks.contains_key(&(*x, *z)) {
-                // load this chunk (i know for sure it isnt contained in the hashmap so i can just insert it)
-                let mut c: Chunk = Chunk::new(*x, *z, -1, renderer);
-                c.load_chunk(file_system, renderer, self.chunk_sizes, &mut self.created_chunks);
-
-                // add the chunk to pending
-                self.pending_chunks.insert((*x, *z), c);
-            }
-        }
-
+        let load: Vec<(i32, i32)> = chunks_to_load.difference(&chunks_hashset).cloned().collect();
 
         // now get the chunks that are in chunks but not in chunks to load
         // these need to be unloaded
-        let unload = chunks_hashset.difference(&chunks_to_load);
-        for (x, z) in unload {
-            // remove this chunk and save it to a file
-            self.remove_chunk((*x, *z), file_system);
+        let unload: Vec<(i32, i32)> = chunks_hashset.difference(&chunks_to_load).cloned().collect();
+
+        // just to check
+        if unload.len() > load.len() {
+            panic!("Im trying to unload more chunks than im loading, i havent taken this into consideration yet");
         }
+
+        // pair up loads and unloads (if unload doesnt exist then none)
+        let mut loading_chunks_queue_locked = loading_chunks_queue.lock().unwrap();
+        let mut load_element: ((i32, i32), Option<(i32, i32)>);
+        for i in 0..load.len() {
+            if i < unload.len() {
+                load_element = (load[i], Some(unload[i]));
+            } else {
+                load_element = (load[i], None);
+            }
+            
+            loading_chunks_queue_locked.push_back(load_element);
+            println!("Sending to loading queue: {:?}", load_element);
+        }
+        drop(loading_chunks_queue_locked);
     }
 
 
@@ -188,14 +187,16 @@ impl World {
             .parse::<i32>()
             .unwrap();
 
-            // insert these into the hashset and check if it is a dupe
-            if !self.created_chunks.insert((x, z)) {
+            // insert these into the hashset and check if it is a dupe (just a info message so i can fix something if i start getting dupes, which shouldnt happen)
+            let mut created_chunks_locked = self.created_chunks.lock().unwrap();
+            if !created_chunks_locked.insert((x, z)) {
                 // if insert returns false then it was already in the hashmap
                 eprintln!(
                     "Duplicate key found when reading chunk ids from ChunksCreated.txt: ({}, {})",
                     x, z
                 );
             }
+            drop(created_chunks_locked);
         }
     }
 
@@ -207,37 +208,14 @@ impl World {
 
     // TODO: #66 Break block function
 
-    
-
-
-    // TODO: #144 remove pending chunks as its not needed
-    pub fn update_pending_chunks(&mut self, renderer: &Renderer) {
-        // go through the pending chunks vec and any that are valid now are put into chunks
-        let current_pending_chunks: Vec<(i32, i32)> = self.pending_chunks.keys().cloned().collect();
-        for chunk_ids in current_pending_chunks {
-            // get this chunk from pending
-            let chunk: &mut Chunk = self.pending_chunks.get_mut(&chunk_ids).expect("could not get pending chunk");
-
-            // call update so it can finish off its copy when ready
-            chunk.update(renderer);
-
-            // if its capacity is enough remove it form pending and move it to chunks
-            if chunk.instance_capacity > chunk.instance_size {
-                let move_chunk: Chunk = self.pending_chunks.remove(&chunk_ids).expect("could not remove pending chunk");
-                self.chunks.insert((move_chunk.chunk_id_x, move_chunk.chunk_id_z), move_chunk);
-            }
-        }
-    }
 }
 
 
 // universal remove chunk function so that i remove it correctly and save it to a file without needing to do this myself
-pub fn remove_chunk(chunks: Arc<Mutex<HashMap<(i32, i32), Chunk>>>, chunk_id: (i32, i32), file_system: Arc<Mutex<FileSystem>>, chunk_sizes: (usize, usize, usize)) {
+pub fn remove_chunk(chunks: &mut HashMap<(i32, i32), Chunk>, chunk_id: (i32, i32), file_system: &mut FileSystem, chunk_sizes: (usize, usize, usize)) {
     // remove the chunk from the hashmap and return it
-    let mut chunks_locked = chunks.lock().unwrap();
-    if let Some(chunk) = chunks_locked.remove(&chunk_id) {
-        let mut file_system_locked = file_system.lock().unwrap();
-        file_system_locked.save_chunk_to_file(chunk, chunk_sizes);
+    if let Some(chunk) = chunks.remove(&chunk_id) {
+        file_system.save_chunk_to_file(chunk, chunk_sizes);
         //println!("Removed Chunk ({}, {})", chunk_id.0, chunk_id.1);
     } else {
         // if the key doesnt match a value ill print this but not panic so i can save the rest

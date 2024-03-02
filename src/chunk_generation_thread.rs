@@ -54,6 +54,7 @@ pub fn run_chunk_generation_thread(
     check_air_compute_shader_code: Arc<Mutex<wgpu::ShaderModule>>,
     filesystem: Arc<Mutex<FileSystem>>,
     chunks: Arc<Mutex<HashMap<(i32, i32), Chunk>>>,
+    continue_running: Arc<Mutex<bool>>,
 ) {
 
 
@@ -63,10 +64,15 @@ pub fn run_chunk_generation_thread(
     // keep checking for new chunks to load and generate
     loop {  
 
+        // check continue running
+        { // mutex lock scope
+            if !*continue_running.lock().unwrap() { break; }
+        }
+
         // check if there is something in the queue to do
-        let mut loading_chunks_queue_locked = loading_chunks_queue.lock().unwrap();
-        let element = loading_chunks_queue_locked.pop_front();
-        drop(loading_chunks_queue_locked); // so i dont hold the lock for it and main can use it
+        let element = { // mutex scope
+            loading_chunks_queue.lock().unwrap().pop_front()
+        };
 
         match element {
             Some((load_chunk_ids, unload_chunk_ids)) => {
@@ -104,17 +110,17 @@ pub fn run_chunk_generation_thread(
 
         // TODO: #142 check my waiting chunks if they are ready and if they are add them to the chunks map
         // poll the gpu to update anything i need
-        let mut device_locked = device.lock().unwrap();
-        device_locked.poll(wgpu::Maintain::Poll);
-        drop(device_locked);
+        { // mutex lock scope
+            device.lock().unwrap().poll(wgpu::Maintain::Poll);
+        }
 
-        for (waiting_chunk_id, waiting_chunk_data) in currently_creating_chunks.iter() {
-            let mut chunk: &Chunk = &waiting_chunk_data.chunk;
+        for (waiting_chunk_id, waiting_chunk_data) in currently_creating_chunks.iter_mut() {
+            let chunk: &mut Chunk = &mut waiting_chunk_data.chunk;
 
             // Check if the compute fence has been set to 1 so the shader is finished running and results copied to the correct buffer
-            let check_air_fence_locked = waiting_chunk_data.compute_shader_fence.lock().unwrap();
-            let fence_value = *check_air_fence_locked;
-            drop(check_air_fence_locked);
+            let fence_value: i32 = { // mutex lock scope
+                *waiting_chunk_data.compute_shader_fence.lock().unwrap()
+            };
 
             if fence_value == 1 {
                 // check if the buffer hasnt started being mapped yet
@@ -139,7 +145,8 @@ pub fn run_chunk_generation_thread(
                     if !waiting_chunk_data.temp_chunk_vector_finished {
 
                         // check if it has finished mapping (mapping state wont be None)
-                        match *waiting_chunk_data.mapping_state {
+                        let state = (*waiting_chunk_data.mapping_state).clone();
+                        match state {
                             Some(r) => {
                                 r.unwrap(); // if it is an error it will panic
 
@@ -175,7 +182,7 @@ pub fn run_chunk_generation_thread(
                                 fill_chunk_hashmap(
                                     &mut chunk.chunk_blocks, 
                                     &mut chunk.instances_to_render, 
-                                    waiting_chunk_data.temp_chunk_vector, 
+                                    &waiting_chunk_data.temp_chunk_vector, 
                                     chunk_sizes
                                 );
 
@@ -202,7 +209,9 @@ pub fn run_chunk_generation_thread(
                         // if the buffer are of size and ready to go
 
                         // update the instance buffer if possible so finish up the chunk, will finished resizing the buffer and update main buffer if needed
-                        chunk.update(device.clone(), queue.clone());
+                        { // so mutex will be dropped
+                            chunk.update(&device.lock().unwrap(), &queue.lock().unwrap());
+                        }
 
 
                         // if no instances are modified (the buffers were of the correct size when they were created so it did the usual buffer update and the main buffer now has the correct data)
@@ -210,6 +219,8 @@ pub fn run_chunk_generation_thread(
                         // then the main buffer has the correct data and size so i can move to the main thread
                         if !chunk.instances_modified && !chunk.creating_new_instance_buffers {
                             // remove the chunk from the creating hashmap
+
+                            // TODO: #146 Fix this, its because im trying to remove the chunk from the hashmap while im iterating over it
                             let mut finished_chunk_data: ChunkGenerationData = currently_creating_chunks
                                 .remove(waiting_chunk_id)
                                 .expect("unable to remove chunk from 'currently_creating_chunks' as they key doesnt exist");
@@ -218,7 +229,7 @@ pub fn run_chunk_generation_thread(
                             // if there is an actual chunk to unload (not always if im first loading in all chunks)
                             match finished_chunk_data.unload_chunk_ids {
                                 Some(unload_chunk_id) => {
-                                    remove_chunk(chunks.clone(), unload_chunk_id, filesystem.clone(), chunk_sizes);
+                                    remove_chunk(&mut chunks.lock().unwrap(), unload_chunk_id, &mut filesystem.lock().unwrap(), chunk_sizes);
                                 }
                                 None => {
                                     // if there is no chunk to unload then i dont need to do anything
@@ -226,16 +237,55 @@ pub fn run_chunk_generation_thread(
                             }
 
                             // add the new one to the actual chunks in main
-                            let mut chunks_locked = chunks.lock().unwrap();
-                            chunks_locked.insert((finished_chunk_data.chunk.chunk_id_x, finished_chunk_data.chunk.chunk_id_z), finished_chunk_data.chunk);
+                            { // mutex lock scope
+                                chunks.lock().unwrap().insert((finished_chunk_data.chunk.chunk_id_x, finished_chunk_data.chunk.chunk_id_z), finished_chunk_data.chunk);
+                            }
+
+                            // add this chunk to created chunks now that it is finished
+                            { // mutex lock scope
+                                created_chunks.lock().unwrap().insert((finished_chunk_data.chunk.chunk_id_x, finished_chunk_data.chunk.chunk_id_z));
+                            }
                         }
                     }
                 }
             }
         }
-
-
-        // TODO: #139 have some break condition so i can stop the generate chunks thread
     } // end loop
+
+
+    // wrap up the generation thread
+
+    // unload and save all chunks to file
+    { // mutex lock scope
+        unload_all_chunks(
+            &mut chunks.lock().unwrap(), 
+            &mut filesystem.lock().unwrap(), 
+            &mut created_chunks.lock().unwrap(), 
+            chunk_sizes
+        );
+    }
+
+}
+
+pub fn unload_all_chunks(
+    chunks: &mut HashMap<(i32, i32), Chunk>, 
+    file_system: &mut FileSystem, 
+    created_chunks: &mut HashSet<(i32, i32)>,
+    chunk_sizes: (usize, usize, usize)
+) {
+    let hashmap_chunk_keys: Vec<(i32, i32)> = chunks.keys().cloned().collect();
     
+
+    // go through each chunk and call unload on it
+        for key in hashmap_chunk_keys {
+        // remove the chunk from the hashmap and return it
+        remove_chunk(
+            chunks, 
+            key, 
+            file_system,
+            chunk_sizes
+        );
+    }
+    
+    file_system.save_created_chunks_file(chunk_sizes, created_chunks);
 }

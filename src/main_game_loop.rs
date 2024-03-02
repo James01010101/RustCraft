@@ -54,7 +54,9 @@ pub fn run_main_game_loop() {
     );
 
     // create the gpudata buffers
-    let mut gpu_data: GPUData = GPUData::new(&renderer);
+    let mut gpu_data: GPUData = { // mutex lock scope
+        GPUData::new(&renderer.device.lock().unwrap(), &renderer.vertex_uniforms)
+    };
 
     // create keyboard
     let mut keyboard: MyKeyboard = MyKeyboard::new(
@@ -84,7 +86,11 @@ pub fn run_main_game_loop() {
     // create the queue that i will use to load chunks on the chunk generation thread
     let mut loading_chunks_queue: Arc<Mutex<VecDeque<((i32, i32), Option<(i32, i32)>)>>> = Arc::new(Mutex::new(VecDeque::new()));
 
-    let loading_chunks_queue_clone: Arc<Mutex<VecDeque<((i32, i32), Option<(i32, i32)>)>>> = loading_chunks_queue.clone();
+    // make a continue running variable so i can tell the chunk thread to stop
+    let mut continue_running: Arc<Mutex<bool>> = Arc::new(Mutex::new(true));
+
+    // clone all variabled needed for the generation thread
+    let loading_chunks_queue_thread_clone: Arc<Mutex<VecDeque<((i32, i32), Option<(i32, i32)>)>>> = loading_chunks_queue.clone();
     let chunk_sizes: (usize, usize, usize) = world.chunk_sizes;
     let created_chunks_clone: Arc<Mutex<std::collections::HashSet<(i32, i32)>>> = world.created_chunks.clone();
     let device_clone: Arc<Mutex<wgpu::Device>> = renderer.device.clone();
@@ -92,24 +98,27 @@ pub fn run_main_game_loop() {
     let shader_code: Arc<Mutex<wgpu::ShaderModule>> = renderer.check_air_compute_shader_code.clone();
     let file_system_clone: Arc<Mutex<FileSystem>> = file_system.clone();
     let chunks_clone: Arc<Mutex<std::collections::HashMap<(i32, i32), Chunk>>> = world.chunks.clone();
+    let continue_running_thread_clone: Arc<Mutex<bool>> = continue_running.clone();
 
     // start up the chunk generation thread
     let chunk_generation_thread = thread::spawn(move || run_chunk_generation_thread(
-                                                                            loading_chunks_queue_clone,
-                                                                            chunk_sizes,
-                                                                            created_chunks_clone,
-                                                                            device_clone,
-                                                                            queue_clone,
-                                                                            shader_code, // this doesnt need to be arc mutex it can be cloned in
-                                                                            file_system_clone,
-                                                                            chunks_clone
-                                                                        )
-                                                                );
+            loading_chunks_queue_thread_clone,
+            chunk_sizes,
+            created_chunks_clone,
+            device_clone,
+            queue_clone,
+            shader_code,
+            file_system_clone,
+            chunks_clone,
+            continue_running_thread_clone,
+        )
+    );
 
 
 
-
-
+    // move any variables i need to into the closure
+    let loading_chunks_queue_clone: Arc<Mutex<VecDeque<((i32, i32), Option<(i32, i32)>)>>> = loading_chunks_queue.clone();
+    let continue_running_clone: Arc<Mutex<bool>> = continue_running.clone();
 
     // stats before starting
     let frame_number_outside: Arc<Mutex<u64>> = Arc::new(Mutex::new(0));
@@ -134,7 +143,10 @@ pub fn run_main_game_loop() {
 
                         renderer.surface_config.width = new_width;
                         renderer.surface_config.height = new_height;
-                        renderer.surface.configure(&renderer.device, &renderer.surface_config);
+
+                        let device_locked = renderer.device.lock().unwrap();
+                        renderer.surface.configure(&device_locked, &renderer.surface_config);
+                        drop(device_locked);
 
                         // so it always generates a new frame
                         window_wrapper.window.request_redraw();
@@ -143,8 +155,7 @@ pub fn run_main_game_loop() {
                         camera.aspect_ratio = new_width as f32 / new_height as f32;
                         camera.calculate_projection_matrix();
 
-                        keyboard
-                            .update_screen_center(new_width as f32 / 2.0, new_height as f32 / 2.0);
+                        keyboard.update_screen_center(new_width as f32 / 2.0, new_height as f32 / 2.0);
 
                         println!("Resized screen to: {} x {}", new_width, new_height);
                     }
@@ -159,12 +170,14 @@ pub fn run_main_game_loop() {
                             &mut keyboard,
                             &mut camera,
                             &window_locked,
-                            &mut file_system,
                             use_cursor,
+                            loading_chunks_queue_clone,
                         );
 
                         // calculate the frame
-                        renderer.render_frame(&gpu_data, &world.chunks);
+                        { // to drop the mutex
+                            renderer.render_frame(&gpu_data, &world.chunks.lock().unwrap());
+                        }
 
                         // so it always generates a new frame
                         window_wrapper.window.request_redraw();
@@ -183,7 +196,7 @@ pub fn run_main_game_loop() {
                             PhysicalKey::Code(KeyCode::Escape) => {
                                 // request a close so the cleanup can happen
                                 // cleanup which saves all chunks to files
-                                clean_up(&mut world, &mut file_system);
+                                clean_up(continue_running_clone);
                                 target.exit();
                             }
                             PhysicalKey::Code(KeyCode::KeyW) => {
@@ -250,7 +263,7 @@ pub fn run_main_game_loop() {
                     // if i close the window
                     WindowEvent::CloseRequested => {
                         // cleanup which saves all chunks to files
-                        clean_up(&mut world, &mut file_system);
+                        clean_up(continue_running_clone);
 
                         // finally exit the program
                         target.exit();
@@ -261,28 +274,23 @@ pub fn run_main_game_loop() {
         })
         .unwrap();
 
+    // finally join the threads
+    chunk_generation_thread.join().unwrap();
+
     let frame_number = *frame_number_outside.lock().unwrap();
     let total_window_duration_ms = window_start_time.elapsed().as_millis();
     let avg_fps: f32 = frame_number as f32 / (total_window_duration_ms as f32 / 1000.0);
     println!("\nTotal Window Time (ms): {:?}", total_window_duration_ms);
     println!("Total Frames Rendered: {}", frame_number);
     println!("Average Frame Rate: {}", avg_fps);
+
 }
 
 // this will clean up all data before the program ends
-pub fn clean_up(world: &mut World, file_system: &mut FileSystem) {
+pub fn clean_up(continue_running: Arc<Mutex<bool>>) {
 
-    // TODO: #138 finish off the chunk generation thread before saving the alive chunks to file
-
-    let hashmap_chunk_keys: Vec<(i32, i32)> = world.chunks.keys().cloned().collect();
-
-    // go through each chunk and call unload on it
-    //let mut chunk: &Chunk;
-
-    for key in hashmap_chunk_keys {
-        // remove the chunk from the hashmap and return it
-        world.remove_chunk(key, file_system);
-    }
-
-    file_system.save_created_chunks_file(world.chunk_sizes, &mut world.created_chunks);
+    // send the stop signal to the generation thread
+    let mut continue_running_locked = continue_running.lock().unwrap();
+    *continue_running_locked = false;
+    drop(continue_running_locked);
 }

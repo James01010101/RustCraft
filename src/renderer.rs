@@ -252,9 +252,9 @@ impl Renderer {
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         // create a command encoder for the render pass
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        let mut encoder: wgpu::CommandEncoder = { // to drop the mutex after
+            self.device.lock().unwrap().create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None })
+        };
 
         // Update buffers
         // update the uniform buffer with the new camera position matricies ( since it is a queue this must complete before rendering)
@@ -317,8 +317,9 @@ impl Renderer {
             }
         } // the render pass must go out of scope before submit and present are called
           // it finalises the render pass when it goes out of scope so it can be submitted to the gpu
-
-        self.queue.submit(Some(encoder.finish()));
+        { // so the mutex will be dropped
+            self.queue.lock().unwrap().submit(Some(encoder.finish()));
+        }
         frame.present();
     }
 }

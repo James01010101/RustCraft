@@ -28,7 +28,7 @@ impl super::Chunk {
 
         // fill the temp vector with data
         // first check if the chunk has been created before if so load it
-        let mut created_chunks_locked = created_chunks.lock().unwrap();
+        let created_chunks_locked = created_chunks.lock().unwrap();
         let chunk_created: bool = created_chunks_locked.contains(&(self.chunk_id_x, self.chunk_id_z));
         drop(created_chunks_locked); // so i dont hold the lock for it and main can use it
 
@@ -47,11 +47,6 @@ impl super::Chunk {
         } else {
             // else create a new one
             generate_chunk(&mut temp_chunk_vec, chunk_sizes);
-
-            // add this chunk to created chunks
-            let mut created_chunks_locked = created_chunks.lock().unwrap();
-            created_chunks_locked.insert((self.chunk_id_x, self.chunk_id_z));
-            drop(created_chunks_locked); // so i dont hold the lock for it and main can use it
         }
 
 
@@ -71,7 +66,7 @@ impl super::Chunk {
     
 
     // this is called on each chunk per frame so i can do updates if needed
-    pub fn update(&mut self, device: Arc<Mutex<Device>>, queue: Arc<Mutex<Queue>>) {
+    pub fn update(&mut self, device: &Device, queue: &Queue) {
         // first check if there is a new instance buffer to be updated
         if self.creating_new_instance_buffers {
             // check if the new instance buffer is finished being written to
@@ -90,7 +85,7 @@ impl super::Chunk {
             // set creating new instance buffers to false
         } else {
             // if i am not currently creating new instance buffers
-            self.update_instance_buffer(device.clone(), queue.clone());
+            self.update_instance_buffer(device, queue);
         }
     }
 }
@@ -144,7 +139,7 @@ pub fn create_temp_chunk_vector(chunk_ids: (i32, i32), chunk_sizes: (usize, usiz
 pub fn fill_chunk_hashmap( 
     chunk_blocks: &mut HashMap<(i32, i16, i32), Block>, 
     instances_to_render: &mut HashMap<(i32, i16, i32), InstanceData>,
-    temp_chunk_vec: Vec<Vec<Vec<Block>>>, 
+    temp_chunk_vec: &Vec<Vec<Vec<Block>>>, 
     chunk_sizes: (usize, usize, usize)
 ) {
 

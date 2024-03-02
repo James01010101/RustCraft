@@ -1,8 +1,10 @@
-use crate::renderer::*;
+use crate::{renderer::*, types::VertexUniforms};
 
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
-    Buffer, BufferUsages,
+    Buffer, 
+    BufferUsages,
+    Device,
 };
 
 pub struct GPUData {
@@ -16,7 +18,7 @@ pub struct GPUData {
 }
 
 impl GPUData {
-    pub fn new(renderer: &Renderer) -> GPUData {
+    pub fn new(device: &Device, vertex_uniforms: &VertexUniforms) -> GPUData {
         // cube vertices (assume starts at (0,0,0) which is not the bottom front right to align with the world coords)
         let cube_vertices: Vec<f32> = vec![
             0.0, 0.0, 0.0, // 0 Bottom Front Right
@@ -43,14 +45,14 @@ impl GPUData {
 
         // create the buffers for this data
         // now create the vertex buffer for the gpu
-        let vertex_buf = renderer.device.create_buffer_init(&BufferInitDescriptor {
+        let vertex_buf = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: bytemuck::cast_slice(&cube_vertices),
             usage: BufferUsages::VERTEX,
         });
 
         // now make the index buffer for the gpu
-        let index_buf = renderer.device.create_buffer_init(&BufferInitDescriptor {
+        let index_buf = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Index Buffer"),
             contents: bytemuck::cast_slice(&cube_indices),
             usage: BufferUsages::INDEX,
@@ -58,9 +60,9 @@ impl GPUData {
 
         // vertex uniform staging buiffer
         let vertex_uniform_staging_buf: wgpu::Buffer =
-            renderer.device.create_buffer_init(&BufferInitDescriptor {
+            device.create_buffer_init(&BufferInitDescriptor {
                 label: Some("Vertex Uniform Staging Buffer"),
-                contents: bytemuck::bytes_of(&renderer.vertex_uniforms),
+                contents: bytemuck::bytes_of(vertex_uniforms),
                 usage: BufferUsages::COPY_SRC | BufferUsages::COPY_DST,
             });
 

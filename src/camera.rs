@@ -1,6 +1,12 @@
-use crate::{character::*, gpu_data::*, renderer::*};
+use crate::{
+    character::*, 
+    gpu_data::*,
+    types::VertexUniforms,
+};
 
 use nalgebra::{Matrix4, Point3, Vector3};
+
+use wgpu::Queue;
 
 pub struct Camera {
     pub fov: f32,
@@ -85,22 +91,22 @@ impl Camera {
     }
 
     // this is called once per frame and will update the cameras projection and view matricies and send them to the staging buffer
-    pub fn update(&mut self, renderer: &mut Renderer, gpu_data: &GPUData, character: &Character) {
+    pub fn update(&mut self, queue: &Queue, vertex_uniforms: &VertexUniforms, gpu_data: &GPUData, character: &Character) {
         // update the view matrix and the combined
         self.calculate_view_matrix(&character);
 
         // update the uniform buffer with the new camera position matricies
-        renderer.vertex_uniforms.projection_view_matrix = self.projection_view_matrix;
+        vertex_uniforms.projection_view_matrix = self.projection_view_matrix;
 
         // update the gpus staging buffer
         // update the staging gpu buffers and set the flag that this data has changed
-        renderer.queue.write_buffer(
+        queue.write_buffer(
             &gpu_data.vertex_uniform_staging_buf,
             0,
-            bytemuck::bytes_of(&renderer.vertex_uniforms),
+            bytemuck::bytes_of(vertex_uniforms),
         );
 
         // submit those write buffers so they are run
-        renderer.queue.submit(std::iter::empty());
+        queue.submit(std::iter::empty());
     }
 }

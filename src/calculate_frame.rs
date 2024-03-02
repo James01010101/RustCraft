@@ -3,9 +3,12 @@ use crate::{
     camera::*, character::*, file_system::*, gpu_data::*, my_keyboard::*, renderer::*, world::*,
 };
 
+use wgpu::core::device;
 use winit::{dpi::PhysicalPosition, window::Window};
 
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
+
+use std::sync::{Arc, Mutex};
 
 // do any game logic each frame
 pub fn calculate_frame(
@@ -16,8 +19,8 @@ pub fn calculate_frame(
     keyboard: &mut MyKeyboard,
     camera: &mut Camera,
     window: &Window,
-    file_system: &mut FileSystem,
     use_cursor: bool,
+    loading_chunks_queue: Arc<Mutex<VecDeque<((i32, i32), Option<(i32, i32)>)>>>,
 ) {
     // check the keyboard for any key presses
     // create a movement vector (to see what direction i need to move in)
@@ -40,25 +43,25 @@ pub fn calculate_frame(
     // update characters chunk position
     character.update_chunk_position(world.chunk_sizes);
 
-    // update the pending chunks and add them to the chunks if they are ready
-    world.update_pending_chunks(renderer);
-
-
     // update the chunks that are loaded in the world around the player only if the chunk position changed
     if character.chunk_changed {
         character.chunk_changed = false;
         let chunks_to_load: HashSet<(i32, i32)> = world.get_chunks_around_character(character);
-        world.update_chunks_around_character(renderer, file_system, chunks_to_load)
+        world.update_chunks_around_character(chunks_to_load, loading_chunks_queue)
     }
 
     // Calculate the new view and combined matrices
-    camera.update(renderer, gpu_data, character);
+    { //mutex lock scope
+        let queue_locked = renderer.queue.lock().unwrap();
+        let device_locked = renderer.device.lock().unwrap();
+        camera.update(&queue_locked, &renderer.vertex_uniforms, gpu_data, character);
+    
+        // poll the gpu to finish and call any callbacks functions
+        device_locked.poll(wgpu::Maintain::Poll);
 
-    // poll the gpu to finish and call any callbacks functions
-    renderer.device.poll(wgpu::Maintain::Poll);
-
-    // update all chunks instances if needed
-    for chunk in world.chunks.values_mut() {
-        chunk.update(renderer);
+        // update all chunks instances if needed
+        for chunk in world.chunks.lock().unwrap().values_mut() {
+            chunk.update(&device_locked, &queue_locked);
+        }
     }
 }

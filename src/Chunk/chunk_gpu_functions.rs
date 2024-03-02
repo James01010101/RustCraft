@@ -10,7 +10,7 @@ use wgpu::util::DeviceExt;
 
 impl Chunk {
     // each frame call this on each chunk. it will update the instance buffer if the instances have been modified
-    pub fn update_instance_buffer(&mut self, device: Arc<Mutex<Device>>, queue: Arc<Mutex<Queue>>) {
+    pub fn update_instance_buffer(&mut self, device: &Device, queue: &Queue) {
         // if the instances have been modified then update the instance buffer
         if self.instances_modified {
             // and if the staging buffer is finished writing
@@ -20,13 +20,11 @@ impl Chunk {
 
             if !writing {
                 // copy the staging buffer to the instance buffer
-                let device_locked = device.lock().unwrap();
-                let mut encoder = device_locked.create_command_encoder(
+                let mut encoder = device.create_command_encoder(
                     &(wgpu::CommandEncoderDescriptor {
                         label: Some("instance buffer copy encoder"),
                     }),
                 );
-                drop(device_locked);
 
                 encoder.copy_buffer_to_buffer(
                     &self.instance_staging_buffer,
@@ -36,10 +34,7 @@ impl Chunk {
                     ((self.instance_size as usize) * mem::size_of::<InstanceData>())
                         as wgpu::BufferAddress,
                 );
-
-                let queue_locked = queue.lock().unwrap();
-                queue_locked.submit(Some(encoder.finish()));
-                drop(queue_locked);
+                queue.submit(Some(encoder.finish()));
 
                 // set the flag to false
                 self.instances_modified = false;
