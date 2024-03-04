@@ -43,7 +43,7 @@ pub fn run_main_game_loop() {
     let mut renderer: Renderer = task::block_on(Renderer::new(&window_wrapper, &camera));
 
     // create MY file system struct
-    let mut file_system: Arc<Mutex<FileSystem>> = Arc::new(Mutex::new(FileSystem::new()));
+    let file_system: Arc<Mutex<FileSystem>> = Arc::new(Mutex::new(FileSystem::new()));
 
     // create my world
     let mut world: World = World::new(
@@ -84,10 +84,10 @@ pub fn run_main_game_loop() {
 
     
     // create the queue that i will use to load chunks on the chunk generation thread
-    let mut loading_chunks_queue: Arc<Mutex<VecDeque<((i32, i32), Option<(i32, i32)>)>>> = Arc::new(Mutex::new(VecDeque::new()));
+    let loading_chunks_queue: Arc<Mutex<VecDeque<((i32, i32), Option<(i32, i32)>)>>> = Arc::new(Mutex::new(VecDeque::new()));
 
     // make a continue running variable so i can tell the chunk thread to stop
-    let mut continue_running: Arc<Mutex<bool>> = Arc::new(Mutex::new(true));
+    let continue_running: Arc<Mutex<bool>> = Arc::new(Mutex::new(true));
 
     // clone all variabled needed for the generation thread
     let loading_chunks_queue_thread_clone: Arc<Mutex<VecDeque<((i32, i32), Option<(i32, i32)>)>>> = loading_chunks_queue.clone();
@@ -171,7 +171,7 @@ pub fn run_main_game_loop() {
                             &mut camera,
                             &window_locked,
                             use_cursor,
-                            loading_chunks_queue_clone,
+                            loading_chunks_queue_clone.clone(),
                         );
 
                         // calculate the frame
@@ -196,7 +196,7 @@ pub fn run_main_game_loop() {
                             PhysicalKey::Code(KeyCode::Escape) => {
                                 // request a close so the cleanup can happen
                                 // cleanup which saves all chunks to files
-                                clean_up(continue_running_clone);
+                                clean_up(continue_running_clone.clone());
                                 target.exit();
                             }
                             PhysicalKey::Code(KeyCode::KeyW) => {
@@ -263,7 +263,7 @@ pub fn run_main_game_loop() {
                     // if i close the window
                     WindowEvent::CloseRequested => {
                         // cleanup which saves all chunks to files
-                        clean_up(continue_running_clone);
+                        clean_up(continue_running_clone.clone());
 
                         // finally exit the program
                         target.exit();

@@ -91,7 +91,7 @@ impl Camera {
     }
 
     // this is called once per frame and will update the cameras projection and view matricies and send them to the staging buffer
-    pub fn update(&mut self, queue: &Queue, vertex_uniforms: &VertexUniforms, gpu_data: &GPUData, character: &Character) {
+    pub fn update(&mut self, queue: &Queue, vertex_uniforms: &mut VertexUniforms, gpu_data: &GPUData, character: &Character) {
         // update the view matrix and the combined
         self.calculate_view_matrix(&character);
 

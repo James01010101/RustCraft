@@ -246,7 +246,7 @@ impl Chunk {
         // so instead ill use u8 for all calculations on the gpu and then just convert it to a bool on the cpu once i recieve the results
 
         // now create the gpu buffers for both of these
-        let mut device_locked = device.lock().unwrap();
+        let device_locked = device.lock().unwrap();
         let block_type_buffer = device_locked.create_buffer_init(
             &(wgpu::util::BufferInitDescriptor {
                 label: Some("block type compute buffer"),

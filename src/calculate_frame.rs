@@ -1,9 +1,7 @@
 // THis will be all the main code to do all calculations for the frame before it is rendered
 use crate::{
-    camera::*, character::*, file_system::*, gpu_data::*, my_keyboard::*, renderer::*, world::*,
+    camera::*, character::*, gpu_data::*, my_keyboard::*, renderer::*, world::*,
 };
-
-use wgpu::core::device;
 use winit::{dpi::PhysicalPosition, window::Window};
 
 use std::collections::{HashSet, VecDeque};
@@ -54,7 +52,7 @@ pub fn calculate_frame(
     { //mutex lock scope
         let queue_locked = renderer.queue.lock().unwrap();
         let device_locked = renderer.device.lock().unwrap();
-        camera.update(&queue_locked, &renderer.vertex_uniforms, gpu_data, character);
+        camera.update(&queue_locked, &mut renderer.vertex_uniforms, gpu_data, character);
     
         // poll the gpu to finish and call any callbacks functions
         device_locked.poll(wgpu::Maintain::Poll);

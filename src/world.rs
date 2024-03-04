@@ -1,4 +1,4 @@
-use crate::{character::*, chunk::*, file_system::*, renderer::*};
+use crate::{character::*, chunk::*, file_system::*};
 
 use std::{
     collections::{HashMap, HashSet},

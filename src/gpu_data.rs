@@ -1,4 +1,4 @@
-use crate::{renderer::*, types::VertexUniforms};
+use crate::types::VertexUniforms;
 
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
