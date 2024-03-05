@@ -359,7 +359,7 @@ pub fn finish_up_chunks(
         //println!("[Generation Thread] Trying to remove chunk ({:?}, {:?}) from currently_creating_chunks: ({:?})", finished_chunk_id.0, finished_chunk_id.1, currently_creating_chunks.keys().collect::<Vec<&(i32, i32)>>());
         let finished_chunk_data: ChunkGenerationData = currently_creating_chunks
             .remove(&finished_chunk_id)
-            .expect(&format!("[Generation Thread] Unable to remove chunk ({:?}, {:?}) from 'currently_creating_chunks' as they key doesnt exist", 
+            .expect(&format!("[Generation Thread] unable to remove chunk ({:?}, {:?}) from 'currently_creating_chunks' as they key doesnt exist", 
                 finished_chunk_id.0, 
                 finished_chunk_id.1,
             )
