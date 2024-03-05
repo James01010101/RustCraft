@@ -409,6 +409,7 @@ impl Chunk {
         }
 
         // submit the compute shader render pass command
+        
         let queue_locked = queue.lock().unwrap();
         queue_locked.submit(Some(encoder.finish()));
 
@@ -458,6 +459,7 @@ impl Chunk {
     
         drop(device_locked); // dont need this anymore so i wont hold it
         drop(queue_locked); // dont need this anymore so i wont hold it
+
 
         // stop here since itll be waiting for gpu stuff
         return (fence, read_result_buffer);

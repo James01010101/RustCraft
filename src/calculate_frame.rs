@@ -45,13 +45,14 @@ pub fn calculate_frame(
     if character.chunk_changed {
         character.chunk_changed = false;
         let chunks_to_load: HashSet<(i32, i32)> = world.get_chunks_around_character(character);
-        world.update_chunks_around_character(chunks_to_load, loading_chunks_queue)
+        world.update_chunks_around_character(chunks_to_load, loading_chunks_queue);
     }
 
     // Calculate the new view and combined matrices
     { //mutex lock scope
-        let queue_locked = renderer.queue.lock().unwrap();
         let device_locked = renderer.device.lock().unwrap();
+        let queue_locked = renderer.queue.lock().unwrap();
+        
         camera.update(&queue_locked, &mut renderer.vertex_uniforms, gpu_data, character);
     
         // poll the gpu to finish and call any callbacks functions

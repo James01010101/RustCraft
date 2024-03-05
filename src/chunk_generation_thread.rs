@@ -33,7 +33,6 @@ pub struct ChunkGenerationData {
     pub compute_shader_fence: Arc<Mutex<i32>>,
     pub read_buffer: wgpu::Buffer, // this is where the result of the compute shader will be stored
 
-    pub buffer_slice: Option<wgpu::BufferSlice<'static>>,
     // so i know once ive started to i dont start it twice
     pub start_buffer_mapping: bool,
 
@@ -83,6 +82,7 @@ pub fn run_chunk_generation_thread(
             check_air_compute_shader_code.clone(),
             created_chunks.clone(),
             &mut currently_creating_chunks,
+            &mut finished_chunks,
             chunk_sizes,
         );
 
@@ -160,45 +160,59 @@ pub fn check_loading_chunks_queue(
     check_air_compute_shader_code: Arc<Mutex<wgpu::ShaderModule>>,
     created_chunks: Arc<Mutex<HashSet<(i32, i32)>>>,
     currently_creating_chunks: &mut HashMap<(i32, i32), ChunkGenerationData>,
+    finished_chunks: &mut Vec<(i32, i32)>,
     chunk_sizes: (usize, usize, usize),
 ) {
-    let element = { // mutex scope
-        loading_chunks_queue.lock().unwrap().pop_front()
-    };
-    
-    match element {
-        Some((load_chunk_ids, unload_chunk_ids)) => {
-            // load the chunk
-            let mut new_chunk: Chunk = Chunk::new(load_chunk_ids.0, load_chunk_ids.1, -1, device.clone());
-            let (temp_chunk_vector, compute_shader_fence, read_buffer) = new_chunk.load_chunk(
-                filesystem.clone(), 
-                device.clone(), 
-                queue.clone(), 
-                check_air_compute_shader_code.clone(), 
-                chunk_sizes, 
-                created_chunks.clone()
-            );
 
-            let new_chunk_data = ChunkGenerationData {
-                chunk: new_chunk,
-                unload_chunk_ids,
-                temp_chunk_vector,
-                compute_shader_fence,
-                read_buffer,
-                start_buffer_mapping: false,
-                mapping_state: Arc::new(Mutex::new(None)),
-                buffer_slice: None,
-                temp_chunk_vector_finished: false,
-            };
+    loop {
+        let element = { // mutex scope
+            loading_chunks_queue.lock().unwrap().pop_front()
+        };
+        
+        match element {
+            Some((load_chunk_ids, unload_chunk_ids)) => {
 
-            // add this chunks data to the hashmap so i can check it later
-            currently_creating_chunks.insert(load_chunk_ids, new_chunk_data);
-        }
-        None => {
-            // nothing in the queue so ill sleep for a bit
-            //thread::sleep(Duration::from_millis(10));
-        }
-    } // end match element
+                // first check that this isnt currently being loaded
+                if currently_creating_chunks.contains_key(&load_chunk_ids) || finished_chunks.contains(&load_chunk_ids) {
+                    // if it is then i dont need to do anything
+                    println!("[Generation Thread] trying to load Chunk ({}, {}) which is already being loaded or is finished", load_chunk_ids.0, load_chunk_ids.1);
+                    continue;
+                }
+
+
+
+
+                // load the chunk
+                let mut new_chunk: Chunk = Chunk::new(load_chunk_ids.0, load_chunk_ids.1, -1, device.clone());
+                let (temp_chunk_vector, compute_shader_fence, read_buffer) = new_chunk.load_chunk(
+                    filesystem.clone(), 
+                    device.clone(), 
+                    queue.clone(), 
+                    check_air_compute_shader_code.clone(), 
+                    chunk_sizes, 
+                    created_chunks.clone()
+                );
+
+                let new_chunk_data = ChunkGenerationData {
+                    chunk: new_chunk,
+                    unload_chunk_ids,
+                    temp_chunk_vector,
+                    compute_shader_fence,
+                    read_buffer,
+                    start_buffer_mapping: false,
+                    mapping_state: Arc::new(Mutex::new(None)),
+                    temp_chunk_vector_finished: false,
+                };
+
+                // add this chunks data to the hashmap so i can check it later
+                currently_creating_chunks.insert(load_chunk_ids, new_chunk_data);
+            }
+            None => {
+                // nothing in the queue so ill break so i can continue working on creating the chunks
+                break;
+            }
+        } // end match element
+    }
 }
 
 
@@ -220,14 +234,13 @@ pub fn continue_generating_chunks(
         };
 
         if fence_value == 1 {
+            
             // check if the buffer hasnt started being mapped yet
             if !waiting_chunk_data.start_buffer_mapping {
                 // it hasnt so i need to start mapping the buffer
-                waiting_chunk_data.buffer_slice = Some(waiting_chunk_data.read_buffer.slice(..));
-
                 // Sets the buffer up for mapping, sending over the result of the mapping back to us when it is finished.
                 let mapping_state_clone = waiting_chunk_data.mapping_state.clone();
-                waiting_chunk_data.buffer_slice.expect("Buffer Slice doesn't exist when it gets mapped")
+                waiting_chunk_data.read_buffer.slice(..)
                     .map_async(wgpu::MapMode::Read, move |v| {
                         // update this with the result once finished
                         *mapping_state_clone.lock().unwrap() = Some(v);
@@ -235,7 +248,8 @@ pub fn continue_generating_chunks(
                 );
 
                 waiting_chunk_data.start_buffer_mapping = true;
-
+                
+                
 
             } else { // mapping has started
                 
@@ -250,7 +264,7 @@ pub fn continue_generating_chunks(
                             r.unwrap(); // if it is an error it will panic
 
                             // otherwise i can get the data from the buffer
-                            let data = waiting_chunk_data.buffer_slice.expect("Buffer Slice doesn't exist when it gets mapped range").get_mapped_range();
+                            let data = waiting_chunk_data.read_buffer.slice(..).get_mapped_range();
 
                             // Since contents are got in bytes, this converts these bytes back to u32
                             let result: Vec<u32> = bytemuck::cast_slice(&data).to_vec();
@@ -324,6 +338,7 @@ pub fn continue_generating_chunks(
                 } // end if temp_chunk_vector_finished
             } // end if mapping has started
         } // end if fence value == 1
+        
     } // end iteration over currently_creating_chunks
 }
 
@@ -336,11 +351,19 @@ pub fn finish_up_chunks(
     created_chunks: Arc<Mutex<HashSet<(i32, i32)>>>,
     chunk_sizes: (usize, usize, usize),
 ) {
+    //println!("[Generation Thread] Finished Chunks: {:?}", finished_chunks);
+    //println!("[Generation Thread] Currently Creating Chunks: {:?}", currently_creating_chunks.keys().collect::<Vec<&(i32, i32)>>());
+
     for finished_chunk_id in finished_chunks.clone() {
         // remove the chunk from the creating hashmap
+        //println!("[Generation Thread] Trying to remove chunk ({:?}, {:?}) from currently_creating_chunks: ({:?})", finished_chunk_id.0, finished_chunk_id.1, currently_creating_chunks.keys().collect::<Vec<&(i32, i32)>>());
         let finished_chunk_data: ChunkGenerationData = currently_creating_chunks
             .remove(&finished_chunk_id)
-            .expect("unable to remove chunk from 'currently_creating_chunks' as they key doesnt exist");
+            .expect(&format!("[Generation Thread] Unable to remove chunk ({:?}, {:?}) from 'currently_creating_chunks' as they key doesnt exist", 
+                finished_chunk_id.0, 
+                finished_chunk_id.1,
+            )
+        );
 
         // remove the old one from the actual chunks in main
         // if there is an actual chunk to unload (not always if im first loading in all chunks)
@@ -357,10 +380,13 @@ pub fn finish_up_chunks(
         { // mutex lock scope
             // add this chunk to created chunks now that it is finished (needs to be done before i move value into hashmap)
             created_chunks.lock().unwrap().insert((finished_chunk_data.chunk.chunk_id_x, finished_chunk_data.chunk.chunk_id_z));
+            println!("[Generation Thread] Finished chunk: ({}, {})", finished_chunk_data.chunk.chunk_id_x, finished_chunk_data.chunk.chunk_id_z);
 
             // insert it into the hashmap last
             chunks.lock().unwrap().insert((finished_chunk_data.chunk.chunk_id_x, finished_chunk_data.chunk.chunk_id_z), finished_chunk_data.chunk);
-            
         }
+
+        // finally remove it from finished chunks vector
+        finished_chunks.retain(|x| *x != finished_chunk_id);
     }
 }

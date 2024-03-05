@@ -101,7 +101,8 @@ pub fn run_main_game_loop() {
     let continue_running_thread_clone: Arc<Mutex<bool>> = continue_running.clone();
 
     // start up the chunk generation thread
-    let chunk_generation_thread = thread::spawn(move || run_chunk_generation_thread(
+    let generation_thread_builder = thread::Builder::new().name("Generation Thread".to_string());
+    let chunk_generation_thread = generation_thread_builder.spawn(move || run_chunk_generation_thread(
             loading_chunks_queue_thread_clone,
             chunk_sizes,
             created_chunks_clone,
@@ -112,7 +113,7 @@ pub fn run_main_game_loop() {
             chunks_clone,
             continue_running_thread_clone,
         )
-    );
+    ).unwrap();
 
 
 

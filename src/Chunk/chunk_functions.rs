@@ -180,7 +180,7 @@ pub fn fill_chunk_hashmap(
                         ));
                     }
 
-                    blocks_to_insert.push((cached_key, *cached_block));
+                    blocks_to_insert.push((cached_key, (*cached_block).clone()));
                 }
             }
         }
