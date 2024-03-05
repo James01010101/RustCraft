@@ -291,7 +291,9 @@ pub fn run_main_game_loop() {
 pub fn clean_up(continue_running: Arc<Mutex<bool>>) {
 
     // send the stop signal to the generation thread
-    let mut continue_running_locked = continue_running.lock().unwrap();
-    *continue_running_locked = false;
-    drop(continue_running_locked);
+    { // mutex lock scope
+        *continue_running.lock().unwrap() = false;
+    }
+
+    // unloading chunks and saving them to file is done on the generation thread
 }
